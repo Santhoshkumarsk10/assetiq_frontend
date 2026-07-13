@@ -100,6 +100,7 @@ export const userApi = {
   offboardList: (body) => apiRequest('/users/offboard-list', { body }),
   verifyReturn: (allocationId) => apiRequest('/users/offboard-verify', { body: { allocation_id: allocationId } }),
   toggleMfa: (body) => apiRequest('/users/mfa-toggle', { body }),
+  managers: () => apiRequest('/users/managers'),
 };
 
 // Assets
@@ -112,6 +113,10 @@ export const assetApi = {
   returnAsset: (id) => apiRequest('/assets/return', { body: { id } }),
   importAssets: (body) => apiRequest('/assets/import', { body }),
   nextCode: (locationId) => apiRequest('/assets/next-code', { body: { location_id: locationId } }),
+  requestAdd: (body) => apiRequest('/assets/requests/add', { body }),
+  requestList: (body) => apiRequest('/assets/requests/list', { body }),
+  requestPurchase: (id) => apiRequest('/assets/requests/purchase', { body: { id } }),
+  requestComplete: (body) => apiRequest('/assets/requests/complete', { body }),
 };
 
 // Audit Logs

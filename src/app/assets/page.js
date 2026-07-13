@@ -1,9 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import Modal from '@/components/Modal';
 import StatusBadge from '@/components/StatusBadge';
 import { assetApi } from '@/lib/api';
+import { socket } from '@/lib/socket';
 import { Search, Plus, Eye, Pencil, Trash2, Package, Upload, UserPlus, UserMinus, X } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/context/ConfirmContext';
@@ -20,6 +21,9 @@ export default function AssetsPage() {
   const canImport = permissions.includes('asset.import');
   const canAllocate = permissions.includes('asset.allocate');
   const canReturn = permissions.includes('asset.return');
+  const userRole = user?.role || user?.role_name;
+  const isLocAdmin = userRole === 'Location Admin';
+  const isItOrGlobalAdmin = userRole === 'Admin' || userRole === 'Super Admin' || userRole === 'IT Admin';
   const [assets, setAssets] = useState([]);
   const [locations, setLocations] = useState([]);
   const [search, setSearch] = useState('');
@@ -55,7 +59,93 @@ export default function AssetsPage() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
-  const loadAssets = async () => {
+  // Asset Requests states
+  const [activeTab, setActiveTab] = useState('inventory');
+  const [requests, setRequests] = useState([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [requestForm, setRequestForm] = useState({ asset_name: '', asset_type: 'Laptop', quantity: 1, notes: '' });
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [completeForm, setCompleteForm] = useState({ request_id: '', asset_tag: '', brand: '', serial_number: '', mac_address: '', specification: '', warranty: '1 Year', remarks: '' });
+  const [selectedRequest, setSelectedRequest] = useState(null);
+
+  const loadRequests = useCallback(async () => {
+    try {
+      const data = await assetApi.requestList({});
+      setRequests(data.requests || []);
+    } catch (e) {
+      console.error('Failed to load requests:', e);
+    }
+  }, []);
+
+  const handleRaiseRequest = async () => {
+    if (!requestForm.asset_name || !requestForm.asset_type) {
+      showToast('Asset Name and Type are required', 'error');
+      return;
+    }
+    try {
+      await assetApi.requestAdd(requestForm);
+      showToast('Asset request raised successfully', 'success');
+      setShowRequestModal(false);
+      setRequestForm({ asset_name: '', asset_type: 'Laptop', quantity: 1, notes: '' });
+      await loadRequests();
+    } catch (e) {
+      showToast(e.data?.error || 'Failed to raise request', 'error');
+    }
+  };
+
+  const handlePurchaseRequest = async (id) => {
+    const confirmed = await confirm(
+      'Mark as Purchased',
+      'Are you sure this asset has been purchased? This will update the request status to purchased.',
+      {
+        confirmText: 'Yes, Purchased',
+        cancelText: 'Cancel',
+        type: 'info'
+      }
+    );
+    if (!confirmed) return;
+    try {
+      await assetApi.requestPurchase(id);
+      showToast('Request status updated to purchased', 'success');
+      await loadRequests();
+    } catch (e) {
+      showToast(e.data?.error || 'Failed to update request', 'error');
+    }
+  };
+
+  const openCompleteModal = (req) => {
+    setSelectedRequest(req);
+    setCompleteForm({
+      request_id: req.id,
+      asset_tag: '',
+      brand: req.brand || '',
+      serial_number: '',
+      mac_address: '',
+      specification: req.notes || '',
+      warranty: '3 Years',
+      remarks: ''
+    });
+    setShowCompleteModal(true);
+  };
+
+  const handleCompleteRequest = async () => {
+    if (!completeForm.asset_tag) {
+      showToast('Asset Code/Tag is required', 'error');
+      return;
+    }
+    try {
+      await assetApi.requestComplete(completeForm);
+      showToast('Asset added to inventory and allocated successfully!', 'success');
+      setShowCompleteModal(false);
+      await loadRequests();
+      await loadAssets();
+    } catch (e) {
+      showToast(e.data?.error || 'Failed to complete request', 'error');
+    }
+  };
+
+  const loadAssets = useCallback(async () => {
     setLoading(true);
     try {
       const data = await assetApi.list({
@@ -74,7 +164,7 @@ export default function AssetsPage() {
       }
     } catch (e) { console.error(e); }
     setLoading(false);
-  };
+  }, [page, limit, search, statusFilter, typeFilter]);
 
   // Fetch suggestions based on searchInput
   useEffect(() => {
@@ -122,7 +212,26 @@ export default function AssetsPage() {
   // Load assets when pagination or filter states change
   useEffect(() => {
     loadAssets();
-  }, [page, limit, search, statusFilter, typeFilter]);
+    loadRequests();
+  }, [page, limit, search, statusFilter, typeFilter, loadAssets, loadRequests]);
+
+  // Real-time synchronization via WebSockets (Socket.IO)
+  useEffect(() => {
+    const handleAssetChange = () => {
+      setTimeout(() => {
+        loadAssets();
+        loadRequests();
+      }, 50);
+    };
+
+    socket.on('asset_request_change', handleAssetChange);
+    socket.on('onboarding_change', handleAssetChange);
+
+    return () => {
+      socket.off('asset_request_change', handleAssetChange);
+      socket.off('onboarding_change', handleAssetChange);
+    };
+  }, [loadAssets, loadRequests]);
 
   const filtered = assets;
 
@@ -337,22 +446,54 @@ export default function AssetsPage() {
 
   return (
     <AppLayout>
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex justify-between items-start mb-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Assets</h1>
           <p className="text-slate-500 text-sm mt-1">Manage and track all IT assets</p>
         </div>
         <div className="flex gap-2.5">
-          {canImport && (
-            <button className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors" onClick={() => setShowImportModal(true)}><Upload size={18} /> Import Excel</button>
-          )}
-          {canAdd && (
-            <button className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors" onClick={openAdd}><Plus size={18} /> Add Asset</button>
+          {activeTab === 'inventory' ? (
+            <>
+              {canImport && (
+                <button className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors" onClick={() => setShowImportModal(true)}><Upload size={18} /> Import Excel</button>
+              )}
+              {canAdd && (
+                <button className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors" onClick={openAdd}><Plus size={18} /> Add Asset</button>
+              )}
+            </>
+          ) : (
+            isLocAdmin && (
+              <button className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors" onClick={() => setShowRequestModal(true)}><Plus size={18} /> Raise Request</button>
+            )
           )}
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+      <div className="flex border-b border-slate-200 mb-6 gap-6">
+        <button
+          onClick={() => setActiveTab('inventory')}
+          className={`pb-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            activeTab === 'inventory'
+              ? 'border-emerald-500 text-emerald-600'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          All Inventory
+        </button>
+        <button
+          onClick={() => setActiveTab('requests')}
+          className={`pb-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            activeTab === 'requests'
+              ? 'border-emerald-500 text-emerald-600'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          Asset Requests
+        </button>
+      </div>
+
+      {activeTab === 'inventory' ? (
+        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
         <div className="flex items-center gap-3 mb-4 flex-wrap">
           <div className="flex-1 relative">
             <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-2.5">
@@ -523,6 +664,93 @@ export default function AssetsPage() {
           </div>
         )}
       </div>
+      ) : (
+        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+          {requests.length === 0 ? (
+            <div className="text-center py-15 px-5 text-slate-400 flex flex-col items-center justify-center">
+              <Package size={48} className="mb-3 opacity-40" />
+              <p className="text-sm">No asset requests found</p>
+              {isLocAdmin && (
+                <button
+                  onClick={() => setShowRequestModal(true)}
+                  className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+                >
+                  Raise First Request
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">ID</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Requested Asset</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Category</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Location</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Requested By</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Remarks / Notes</th>
+                    {isItOrGlobalAdmin && (
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {requests.map(req => (
+                    <tr key={req.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                      <td className="px-4 py-3.5 text-sm font-semibold text-slate-800 font-mono">#{req.id}</td>
+                      <td className="px-4 py-3.5 text-sm text-slate-700 font-semibold">{req.asset_name}</td>
+                      <td className="px-4 py-3.5 text-sm text-slate-500">{req.asset_type}</td>
+                      <td className="px-4 py-3.5 text-sm text-slate-500">{req.location?.name || '—'}</td>
+                      <td className="px-4 py-3.5 text-sm text-slate-700">
+                        {req.requester?.name || '—'}{' '}
+                        <span className="text-[10px] text-slate-400 block font-normal font-sans">({req.requester?.email})</span>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold border ${
+                          req.status === 'completed' ? 'bg-emerald-100 text-emerald-700 border-emerald-250' :
+                          req.status === 'purchased' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                          'bg-amber-100 text-amber-800 border-amber-200'
+                        }`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                          {req.status === 'completed' ? 'Completed' : req.status === 'purchased' ? 'Purchased' : 'Pending'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-xs text-slate-500 max-w-[200px] truncate" title={req.notes || ''}>{req.notes || '—'}</td>
+                      {isItOrGlobalAdmin && (
+                        <td className="px-4 py-3.5 text-sm">
+                          <div className="flex gap-2">
+                            {req.status === 'pending' && (
+                              <button
+                                onClick={() => handlePurchaseRequest(req.id)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-none bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                              >
+                                Mark Purchased
+                              </button>
+                            )}
+                            {req.status === 'purchased' && (
+                              <button
+                                onClick={() => openCompleteModal(req)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+                              >
+                                Add & Allocate
+                              </button>
+                            )}
+                            {req.status === 'completed' && (
+                              <span className="text-xs text-slate-400 italic font-medium">No action required</span>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editingAsset ? 'Edit Asset' : 'Add Asset'}
         footer={<>
@@ -730,6 +958,157 @@ export default function AssetsPage() {
           )}
         </div>
       </Modal>
+
+      {/* Raise Asset Request Modal */}
+      <Modal
+        isOpen={showRequestModal}
+        onClose={() => setShowRequestModal(false)}
+        title="Raise Hardware Asset Request"
+        footer={<>
+          <button className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors" onClick={() => setShowRequestModal(false)}>Cancel</button>
+          <button className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors" onClick={handleRaiseRequest}>Submit Request</button>
+        </>}
+      >
+        <div className="mb-4">
+          <label className="block text-xs font-medium text-slate-500 mb-1.5">Asset Name *</label>
+          <input
+            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
+            placeholder="e.g. ThinkPad T14, MacBook Pro"
+            value={requestForm.asset_name}
+            onChange={(e) => setRequestForm({ ...requestForm, asset_name: e.target.value.replace(/[^a-zA-Z0-9\s]/g, '') })}
+            required
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1.5">Asset Type *</label>
+            <select
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors"
+              value={requestForm.asset_type}
+              onChange={(e) => setRequestForm({ ...requestForm, asset_type: e.target.value })}
+            >
+              <option value="Laptop">Laptop</option>
+              <option value="Mobile">Mobile</option>
+              <option value="Desktop">Desktop</option>
+              <option value="Accessories">Accessories</option>
+              <option value="Monitor">Monitor</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1.5">Quantity</label>
+            <input
+              type="number"
+              min={1}
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors"
+              value={requestForm.quantity}
+              onChange={(e) => setRequestForm({ ...requestForm, quantity: Math.max(1, parseInt(e.target.value) || 1) })}
+            />
+          </div>
+        </div>
+        <div className="mb-4">
+          <label className="block text-xs font-medium text-slate-500 mb-1.5">Reason / Notes</label>
+          <textarea
+            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors h-24 resize-none"
+            placeholder="Please specify the reason for request..."
+            value={requestForm.notes}
+            onChange={(e) => setRequestForm({ ...requestForm, notes: e.target.value })}
+          />
+        </div>
+      </Modal>
+
+      {/* Complete Request and Allocate Modal */}
+      {selectedRequest && (
+        <Modal
+          isOpen={showCompleteModal}
+          onClose={() => setShowCompleteModal(false)}
+          title="Add Purchased Asset to Inventory & Allocate"
+          footer={<>
+            <button className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors" onClick={() => setShowCompleteModal(false)}>Cancel</button>
+            <button className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors" onClick={handleCompleteRequest}>Complete Allocation</button>
+          </>}
+        >
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4 text-xs space-y-1">
+            <div><strong>Request Detail:</strong> {selectedRequest.asset_name} ({selectedRequest.asset_type})</div>
+            <div><strong>Requested By:</strong> {selectedRequest.requester?.name} ({selectedRequest.requester?.email})</div>
+            <div><strong>Target Location:</strong> {selectedRequest.location?.name}</div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1.5">Asset Code / Tag *</label>
+              <input
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
+                placeholder="e.g. AST-10023"
+                value={completeForm.asset_tag}
+                onChange={(e) => setCompleteForm({ ...completeForm, asset_tag: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '') })}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1.5">Brand</label>
+              <input
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
+                placeholder="e.g. Apple, Dell"
+                value={completeForm.brand}
+                onChange={(e) => setCompleteForm({ ...completeForm, brand: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '') })}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1.5">Serial Number</label>
+              <input
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
+                placeholder="e.g. SN-98765"
+                value={completeForm.serial_number}
+                onChange={(e) => setCompleteForm({ ...completeForm, serial_number: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '') })}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1.5">MAC Address</label>
+              <input
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
+                placeholder="e.g. 00:1A:2B:3C:4D:5E"
+                value={completeForm.mac_address}
+                onChange={(e) => setCompleteForm({ ...completeForm, mac_address: e.target.value.replace(/[^a-zA-Z0-9\s:-]/g, '') })}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1.5">Warranty</label>
+              <input
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
+                placeholder="e.g. 3 Years"
+                value={completeForm.warranty}
+                onChange={(e) => setCompleteForm({ ...completeForm, warranty: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1.5">Specification</label>
+              <input
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
+                placeholder="e.g. 16GB RAM, 512GB SSD"
+                value={completeForm.specification}
+                onChange={(e) => setCompleteForm({ ...completeForm, specification: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-xs font-medium text-slate-500 mb-1.5">Remarks</label>
+            <textarea
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors h-16 resize-none"
+              placeholder="Optional remarks..."
+              value={completeForm.remarks}
+              onChange={(e) => setCompleteForm({ ...completeForm, remarks: e.target.value })}
+            />
+          </div>
+        </Modal>
+      )}
     </AppLayout>
   );
 }
