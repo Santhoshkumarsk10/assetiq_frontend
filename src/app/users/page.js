@@ -34,6 +34,16 @@ export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [locations, setLocations] = useState([]);
+  const [managers, setManagers] = useState([]);
+
+  const loadManagers = async () => {
+    try {
+      const data = await userApi.managers();
+      setManagers(data.managers || []);
+    } catch (e) {
+      console.error("Failed to load managers:", e);
+    }
+  };
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -93,6 +103,7 @@ export default function UsersPage() {
         setTotal(data.pagination.total);
         setTotalPages(data.pagination.totalPages);
       }
+      await loadManagers();
     } catch (e) {
       console.error(e);
     }
@@ -191,6 +202,7 @@ export default function UsersPage() {
       department: "",
       designation: "",
       employee_id: "",
+      reporting_manager_id: "",
     });
     setShowModal(true);
   };
@@ -220,6 +232,7 @@ export default function UsersPage() {
       department: user.department || "",
       designation: user.designation || "",
       employee_id: user.employee_id || "",
+      reporting_manager_id: user.reporting_manager_id || "",
     });
     setShowModal(true);
   };
@@ -587,13 +600,18 @@ export default function UsersPage() {
                       ) : null}
                       <StatusBadge status={u.status} />
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-slate-400">
+                    <div className="flex items-center gap-4 text-xs text-slate-400 flex-wrap">
                       <span className="flex items-center gap-1">
-                        <Mail size={14} /> {u.email}
+                        <Mail size={14} className="shrink-0" /> {u.email}
                       </span>
                       {u.phone && (
                         <span className="flex items-center gap-1">
-                          <Phone size={14} /> {u.phone}
+                          <Phone size={14} className="shrink-0" /> {u.phone}
+                        </span>
+                      )}
+                      {u.reportingManager && (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-50 text-slate-600 border border-slate-200">
+                          Manager: {u.reportingManager.name}
                         </span>
                       )}
                     </div>
@@ -1081,6 +1099,27 @@ export default function UsersPage() {
               }
             />
           </div>
+        </div>
+        <div className="mb-4">
+          <label className="block text-xs font-medium text-slate-500 mb-1.5">
+            Report Manager
+          </label>
+          <select
+            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors"
+            value={form.reporting_manager_id || ""}
+            onChange={(e) =>
+              setForm({ ...form, reporting_manager_id: e.target.value })
+            }
+          >
+            <option value="">Select Report Manager</option>
+            {managers
+              .filter((m) => String(m.id) !== String(editingUser?.id))
+              .map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name} ({m.designation || "No Designation"}) - {m.email}
+                </option>
+              ))}
+          </select>
         </div>
       </Modal>
     </AppLayout>

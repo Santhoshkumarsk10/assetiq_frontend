@@ -1,10 +1,11 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import Modal from '@/components/Modal';
 import StatusBadge from '@/components/StatusBadge';
 import { useAuth } from '@/context/AuthContext';
 import { onboardingApi, emailRequestApi, assetApi } from '@/lib/api';
+import { socket } from '@/lib/socket';
 import { 
   UserPlus, CheckCircle2, ChevronRight, User, Mail, 
   Phone, Briefcase, MapPin, Laptop, ShieldCheck, 
@@ -75,7 +76,7 @@ export default function OnboardingPage() {
   const [selectedEmailReq, setSelectedEmailReq] = useState(null);
   const [emailRemarks, setEmailRemarks] = useState('');
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       if (activeTab === 'emails') {
@@ -102,14 +103,42 @@ export default function OnboardingPage() {
       console.error('Error loading onboarding data:', e);
     }
     setLoading(false);
-  };
+  }, [page, limit, search, activeTab, isITAdmin, isHRorAdmin]);
 
 
+
+  const reloadRequestDetails = useCallback(async (reqId) => {
+    try {
+      const data = await onboardingApi.details(reqId);
+      setSelectedRequest(data.request);
+      setAvailableAssets(data.availableAssets || []);
+    } catch (e) {
+      console.error('Failed to auto-refresh onboarding details:', e);
+    }
+  }, []);
 
   // Load data when page, limit, search, or activeTab changes
   useEffect(() => {
     loadData();
   }, [page, limit, search, activeTab]);
+
+  // Real-time synchronization via WebSockets (Socket.IO)
+  useEffect(() => {
+    const handleOnboardingChange = () => {
+      setTimeout(() => {
+        loadData();
+        if (selectedRequest && selectedRequest.id) {
+          reloadRequestDetails(selectedRequest.id);
+        }
+      }, 50);
+    };
+
+    socket.on('onboarding_change', handleOnboardingChange);
+
+    return () => {
+      socket.off('onboarding_change', handleOnboardingChange);
+    };
+  }, [loadData, reloadRequestDetails, selectedRequest?.id]);
 
   // Fetch suggestions based on searchInput
   useEffect(() => {
@@ -1003,90 +1032,114 @@ export default function OnboardingPage() {
                 </table>
               </div>
             )}
-
+            
             {/* Step 2: Assets Allocation */}
             {currentStep === 2 && (
               <div>
                 <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4 border-b border-slate-250 pb-2">Step 2: Allocate Onboarding Hardware Assets</h3>
-                <p className="text-xs text-slate-500 mb-4">
-                  Select available hardware devices at <strong>{selectedRequest.location?.name}</strong> to allocate to this employee:
-                </p>
-
-                {availableAssets.length === 0 ? (
-                  <div className="text-center p-6 bg-white border border-slate-200 rounded-xl text-slate-400 flex flex-col items-center">
-                    <Laptop size={32} className="mb-2 opacity-40" />
-                    <p className="text-sm mb-4">No available hardware assets found at this location.</p>
-                    <div className="flex gap-2">
-                      <button 
-                        type="button"
-                        onClick={openQuickAddAsset}
-                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold cursor-pointer border-none shadow-sm transition-colors"
-                      >
-                        + Quick Add Asset
-                      </button>
-                      <a 
-                        href="/assets" 
-                        target="_blank" 
-                        rel="noreferrer"
-                        className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold cursor-pointer border border-slate-200 text-decoration-none transition-colors"
-                      >
-                        Go to Assets Page ↗
-                      </a>
-                    </div>
+                
+                {currentStep < selectedRequest.step ? (
+                  <div className="space-y-2">
+                    <p className="text-xs text-slate-500 mb-2">
+                      Allocated hardware devices for this employee:
+                    </p>
+                    {selectedRequest.assets && selectedRequest.assets.length > 0 ? (
+                      selectedRequest.assets.map(a => (
+                        <div key={a.id} className="p-3 bg-white border border-slate-200 rounded-lg flex justify-between items-center shadow-3xs">
+                          <div>
+                            <span className="font-semibold text-slate-800 text-sm">{a.name} ({a.type})</span>
+                            <div className="text-[10px] text-slate-400 mt-0.5">Tag: {a.asset_tag} | SN: {a.serial_number}</div>
+                          </div>
+                          <span className="px-2.5 py-1 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-250 rounded">Allocated</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-slate-400 italic">No assets allocated.</p>
+                    )}
                   </div>
                 ) : (
                   <div>
-                    <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-1 mb-3">
-                      {availableAssets.map(asset => {
-                        const isSelected = wizardStepData.asset_ids.includes(asset.id);
-                        return (
-                          <div 
-                            key={asset.id} 
-                            className={`flex justify-between items-center p-3 border rounded-lg transition-all duration-150 cursor-pointer ${
-                              isSelected ? 'border-emerald-600 bg-emerald-50/40' : 'border-slate-200 bg-white hover:bg-slate-50'
-                            }`}
-                            onClick={() => {
-                              setWizardStepData(prev => {
-                                const list = prev.asset_ids || [];
-                                const updatedList = list.includes(asset.id)
-                                  ? list.filter(id => id !== asset.id)
-                                  : [...list, asset.id];
-                                return { ...prev, asset_ids: updatedList };
-                              });
-                            }}
-                          >
-                            <div>
-                              <div className="text-sm font-semibold text-slate-800">{asset.name} ({asset.type})</div>
-                              <div className="text-[11px] text-slate-400 mt-0.5">Tag: {asset.asset_tag} | SN: {asset.serial_number}</div>
-                            </div>
-                            <span className={`text-xs font-semibold ${isSelected ? 'text-emerald-600' : 'text-slate-400'}`}>
-                              {isSelected ? '✓ Selected' : 'Select'}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="flex justify-between items-center text-xs text-slate-500 mb-4 px-1">
-                      <span>Can't find the right asset?</span>
-                      <button
-                        type="button"
-                        onClick={openQuickAddAsset}
-                        className="text-emerald-600 hover:text-emerald-700 font-semibold cursor-pointer bg-transparent border-none p-0 inline-flex items-center gap-1"
-                      >
-                        + Quick Add Asset
-                      </button>
-                    </div>
-                  </div>
-                )}
+                    <p className="text-xs text-slate-500 mb-4">
+                      Select available hardware devices at <strong>{selectedRequest.location?.name}</strong> to allocate to this employee:
+                    </p>
 
-                {canEditOnboarding && (
-                  <button 
-                    className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors w-full mt-4 disabled:opacity-50 disabled:cursor-not-allowed" 
-                    onClick={handleStep2Submit}
-                    disabled={submitting || !wizardStepData.asset_ids || wizardStepData.asset_ids.length === 0}
-                  >
-                    <Laptop size={16} /> {submitting ? 'Saving...' : 'Confirm Assets & Proceed'}
-                  </button>
+                    {availableAssets.length === 0 ? (
+                      <div className="text-center p-6 bg-white border border-slate-200 rounded-xl text-slate-400 flex flex-col items-center">
+                        <Laptop size={32} className="mb-2 opacity-40" />
+                        <p className="text-sm mb-4">No available hardware assets found at this location.</p>
+                        <div className="flex gap-2">
+                          <button 
+                            type="button"
+                            onClick={openQuickAddAsset}
+                            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold cursor-pointer border-none shadow-sm transition-colors"
+                          >
+                            + Quick Add Asset
+                          </button>
+                          <a 
+                            href="/assets" 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold cursor-pointer border border-slate-200 text-decoration-none transition-colors"
+                          >
+                            Go to Assets Page ↗
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-1 mb-3">
+                          {availableAssets.map(asset => {
+                            const isSelected = wizardStepData.asset_ids.includes(asset.id);
+                            return (
+                              <div 
+                                key={asset.id} 
+                                className={`flex justify-between items-center p-3 border rounded-lg transition-all duration-150 cursor-pointer ${
+                                  isSelected ? 'border-emerald-600 bg-emerald-50/40' : 'border-slate-200 bg-white hover:bg-slate-50'
+                                }`}
+                                onClick={() => {
+                                  setWizardStepData(prev => {
+                                    const list = prev.asset_ids || [];
+                                    const updatedList = list.includes(asset.id)
+                                      ? list.filter(id => id !== asset.id)
+                                      : [...list, asset.id];
+                                    return { ...prev, asset_ids: updatedList };
+                                  });
+                                }}
+                              >
+                                <div>
+                                  <div className="text-sm font-semibold text-slate-800">{asset.name} ({asset.type})</div>
+                                  <div className="text-[11px] text-slate-400 mt-0.5">Tag: {asset.asset_tag} | SN: {asset.serial_number}</div>
+                                </div>
+                                <span className={`text-xs font-semibold ${isSelected ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                  {isSelected ? '✓ Selected' : 'Select'}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="flex justify-between items-center text-xs text-slate-500 mb-4 px-1">
+                          <span>Can't find the right asset?</span>
+                          <button
+                            type="button"
+                            onClick={openQuickAddAsset}
+                            className="text-emerald-600 hover:text-emerald-700 font-semibold cursor-pointer bg-transparent border-none p-0 inline-flex items-center gap-1"
+                          >
+                            + Quick Add Asset
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {canEditOnboarding && (
+                      <button 
+                        className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors w-full mt-4 disabled:opacity-50 disabled:cursor-not-allowed" 
+                        onClick={handleStep2Submit}
+                        disabled={submitting || !wizardStepData.asset_ids || wizardStepData.asset_ids.length === 0}
+                      >
+                        <Laptop size={16} /> {submitting ? 'Saving...' : 'Confirm Assets & Proceed'}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -1095,28 +1148,55 @@ export default function OnboardingPage() {
             {currentStep === 3 && (
               <div>
                 <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4 border-b border-slate-250 pb-2">Step 3: Corporate Account Configuration</h3>
-                <p className="text-xs text-slate-500 mb-4">
-                  Propose a new corporate email address. This will route to the IT Administrator queue for active directory provisioning:
-                </p>
+                
+                {currentStep < selectedRequest.step ? (
+                  <div className="space-y-4">
+                    <div className="mb-4">
+                      <label className="block text-xs font-medium text-slate-450 uppercase tracking-wider mb-1.5 font-bold">Suggested Corporate Email</label>
+                      <div className="p-3 bg-white border border-slate-200 rounded-lg font-mono text-sm text-slate-700 font-semibold">
+                        {selectedRequest.emailRequest?.suggested_email || selectedRequest.official_email || '—'}
+                      </div>
+                    </div>
+                    {selectedRequest.emailRequest && (
+                      <div className="p-3 bg-white border border-slate-200 rounded-lg flex justify-between items-center shadow-3xs">
+                        <div>
+                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">IT Provisioning Status:</div>
+                          <span className="text-sm font-semibold text-slate-705 capitalize">{selectedRequest.emailRequest.status}</span>
+                        </div>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold border ${
+                          selectedRequest.emailRequest.status === 'approved' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-amber-100 text-amber-800 border-amber-200'
+                        }`}>
+                          {selectedRequest.emailRequest.status}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-xs text-slate-500 mb-4">
+                      Propose a new corporate email address. This will route to the IT Administrator queue for active directory provisioning:
+                    </p>
 
-                <div className="mb-4">
-                  <label className="block text-xs font-medium text-slate-500 mb-1.5">Suggested Corporate Email</label>
-                  <input 
-                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
-                    placeholder="name@company.com"
-                    value={wizardStepData.suggested_email} 
-                    onChange={e => setWizardStepData({ ...wizardStepData, suggested_email: e.target.value })} 
-                  />
-                </div>
+                    <div className="mb-4">
+                      <label className="block text-xs font-medium text-slate-500 mb-1.5">Suggested Corporate Email</label>
+                      <input 
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
+                        placeholder="name@company.com"
+                        value={wizardStepData.suggested_email} 
+                        onChange={e => setWizardStepData({ ...wizardStepData, suggested_email: e.target.value })} 
+                      />
+                    </div>
 
-                {canEditOnboarding && (
-                  <button 
-                    className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors w-full" 
-                    onClick={handleStep3Submit}
-                    disabled={submitting || !wizardStepData.suggested_email || !wizardStepData.suggested_email.includes('@')}
-                  >
-                    <Server size={16} /> {submitting ? 'Submitting...' : 'Submit to IT Queue'}
-                  </button>
+                    {canEditOnboarding && (
+                      <button 
+                        className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors w-full" 
+                        onClick={handleStep3Submit}
+                        disabled={submitting || !wizardStepData.suggested_email || !wizardStepData.suggested_email.includes('@')}
+                      >
+                        <Server size={16} /> {submitting ? 'Submitting...' : 'Submit to IT Queue'}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -1126,71 +1206,101 @@ export default function OnboardingPage() {
               <div>
                 <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4 border-b border-slate-250 pb-2">Step 4: HR Onboarding Approval</h3>
                 
-                {/* Checking IT email request status */}
-                {selectedRequest.emailRequest ? (
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center p-3 bg-white border border-slate-200 rounded-lg shadow-2xs">
-                      <div>
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Corporate Email:</div>
-                        <strong className="text-sm text-slate-800 font-mono">{selectedRequest.emailRequest.suggested_email}</strong>
+                {currentStep < selectedRequest.step ? (
+                  <div className="space-y-4">
+                    {selectedRequest.emailRequest && (
+                      <div className="flex justify-between items-center p-3 bg-white border border-slate-200 rounded-lg shadow-3xs">
+                        <div>
+                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Corporate Email:</div>
+                          <strong className="text-sm text-slate-800 font-mono">{selectedRequest.emailRequest.suggested_email}</strong>
+                        </div>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold border bg-emerald-100 text-emerald-700 border-emerald-200">
+                          IT Approved
+                        </span>
                       </div>
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold border ${
-                        selectedRequest.emailRequest.status === 'approved' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 
-                        selectedRequest.emailRequest.status === 'rejected' ? 'bg-rose-100 text-rose-700 border-rose-200' : 'bg-amber-100 text-amber-800 border-amber-200'
-                      }`}>
-                        <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                        IT Queue: {selectedRequest.emailRequest.status}
-                      </span>
+                    )}
+                    <div className="bg-white border border-slate-200 rounded-lg p-3.5 space-y-3 shadow-3xs">
+                      <div>
+                        <span className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Approval Status:</span>
+                        <span className="text-sm font-bold text-emerald-600">Onboarding Approved</span>
+                      </div>
+                      {selectedRequest.approval_remarks && (
+                        <div>
+                          <span className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Remarks / Review Notes:</span>
+                          <p className="text-xs text-slate-655 bg-slate-50 p-2.5 rounded border border-slate-200 mt-1 italic">{selectedRequest.approval_remarks}</p>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ) : null}
-
-                {selectedRequest.emailRequest && selectedRequest.emailRequest.status !== 'approved' ? (
-                  <div className="text-center p-5 bg-amber-50 text-amber-800 border border-amber-205 rounded-lg">
-                    <Server size={32} className="mx-auto mb-2 opacity-80" />
-                    <p className="text-xs font-semibold">
-                      Waiting for IT Administration to provision and approve corporate email request. 
-                    </p>
-                    <p className="text-[11px] mt-1 opacity-80">
-                      (You can click "Refresh" or contact IT support admin: itadmin@assetiq.com)
-                    </p>
                   </div>
                 ) : (
                   <div>
-                    <p className="text-xs text-slate-500 mb-4">
-                      Corporate email is ready. Provide the final approval decision for onboarding dispatch:
-                    </p>
+                    {/* Checking IT email request status */}
+                    {selectedRequest.emailRequest ? (
+                      <div className="mb-4">
+                        <div className="flex justify-between items-center p-3 bg-white border border-slate-200 rounded-lg shadow-2xs">
+                          <div>
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Corporate Email:</div>
+                            <strong className="text-sm text-slate-800 font-mono">{selectedRequest.emailRequest.suggested_email}</strong>
+                          </div>
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold border ${
+                            selectedRequest.emailRequest.status === 'approved' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 
+                            selectedRequest.emailRequest.status === 'rejected' ? 'bg-rose-100 text-rose-700 border-rose-200' : 'bg-amber-100 text-amber-800 border-amber-200'
+                          }`}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                            IT Queue: {selectedRequest.emailRequest.status}
+                          </span>
+                        </div>
+                      </div>
+                    ) : null}
 
-                    <div className="mb-4">
-                      <label className="block text-xs font-medium text-slate-500 mb-1.5">Decision</label>
-                      <select 
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors"
-                        value={wizardStepData.decision}
-                        onChange={e => setWizardStepData({ ...wizardStepData, decision: e.target.value })}
-                      >
-                        <option value="Approve Onboarding">Approve Onboarding</option>
-                        <option value="Reject">Reject / Halt</option>
-                      </select>
-                    </div>
+                    {selectedRequest.emailRequest && selectedRequest.emailRequest.status !== 'approved' ? (
+                      <div className="text-center p-5 bg-amber-50 text-amber-800 border border-amber-205 rounded-lg">
+                        <Server size={32} className="mx-auto mb-2 opacity-80" />
+                        <p className="text-xs font-semibold">
+                          Waiting for IT Administration to provision and approve corporate email request. 
+                        </p>
+                        <p className="text-[11px] mt-1 opacity-80">
+                          (You can click "Refresh" or contact IT support admin: itadmin@assetiq.com)
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-xs text-slate-500 mb-4">
+                          Corporate email is ready. Provide the final approval decision for onboarding dispatch:
+                        </p>
 
-                    <div className="mb-4">
-                      <label className="block text-xs font-medium text-slate-500 mb-1.5">Remarks / Review Notes</label>
-                      <textarea 
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors h-20 resize-none" 
-                        placeholder="Onboarding checklist verified..."
-                        value={wizardStepData.remarks}
-                        onChange={e => setWizardStepData({ ...wizardStepData, remarks: e.target.value })}
-                      />
-                    </div>
+                        <div className="mb-4">
+                          <label className="block text-xs font-medium text-slate-500 mb-1.5">Decision</label>
+                          <select 
+                            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors"
+                            value={wizardStepData.decision}
+                            onChange={e => setWizardStepData({ ...wizardStepData, decision: e.target.value })}
+                          >
+                            <option value="Approve Onboarding">Approve Onboarding</option>
+                            <option value="Reject">Reject / Halt</option>
+                          </select>
+                        </div>
 
-                    {canApproveOnboarding && (
-                      <button 
-                        className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors w-full" 
-                        onClick={handleStep4Submit}
-                        disabled={submitting}
-                      >
-                        <ShieldCheck size={16} /> {submitting ? 'Recording...' : 'Submit Approval Decision'}
-                      </button>
+                        <div className="mb-4">
+                          <label className="block text-xs font-medium text-slate-500 mb-1.5">Remarks / Review Notes</label>
+                          <textarea 
+                            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors h-20 resize-none" 
+                            placeholder="Onboarding checklist verified..."
+                            value={wizardStepData.remarks}
+                            onChange={e => setWizardStepData({ ...wizardStepData, remarks: e.target.value })}
+                          />
+                        </div>
+
+                        {canApproveOnboarding && (
+                          <button 
+                            className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors w-full" 
+                            onClick={handleStep4Submit}
+                            disabled={submitting}
+                          >
+                            <ShieldCheck size={16} /> {submitting ? 'Recording...' : 'Submit Approval Decision'}
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
@@ -1201,48 +1311,70 @@ export default function OnboardingPage() {
             {currentStep === 5 && (
               <div>
                 <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4 border-b border-slate-250 pb-2">Step 5: Employee Account Activation</h3>
-                <p className="text-xs text-slate-500 mb-4">
-                  Onboarding approved. Activate employee session account now. This will officially create the user profile, log allocations, and generate system credentials:
-                </p>
-
-                <div className="text-xs text-slate-500 mb-4">
-                  <strong className="font-semibold text-slate-700">Allocated Assets:</strong> {selectedRequest.assets && selectedRequest.assets.length > 0 ? selectedRequest.assets.map(a => a.name).join(', ') : 'None'}
-                </div>
-
-                {!generatedCredentials ? (
-                  <button 
-                    className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors w-full" 
-                    onClick={handleStep5Submit}
-                    disabled={submitting}
-                  >
-                    <UserPlus size={16} /> {submitting ? 'Activating Profile...' : 'Activate Employee User Account'}
-                  </button>
+                
+                {currentStep < selectedRequest.step ? (
+                  <div className="space-y-4">
+                    <div className="p-4 border border-emerald-250 rounded-xl bg-emerald-50/40 text-sm">
+                      <h4 className="text-emerald-800 font-bold text-xs uppercase tracking-wider mb-2">
+                        ✓ Employee Profile Activated
+                      </h4>
+                      <p className="text-xs text-slate-600">
+                        The user account has been successfully generated and activated in the system.
+                      </p>
+                      {selectedRequest.official_email && (
+                        <div className="mt-3 pt-3 border-t border-emerald-100 flex justify-between items-center">
+                          <span className="text-xs font-semibold text-emerald-700">Official Email:</span>
+                          <span className="text-sm font-semibold font-mono text-emerald-900">{selectedRequest.official_email}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 ) : (
                   <div>
-                    <div className="p-4 border border-emerald-250 rounded-xl bg-emerald-50/40 text-sm">
-                      <h4 className="text-emerald-800 font-bold text-xs uppercase tracking-wider mb-3">
-                        ✓ Account Activated! Temporarily Generated Credentials:
-                      </h4>
-                      <table className="w-full border-collapse">
-                        <tbody>
-                          <tr className="border-b border-emerald-100">
-                            <td className="py-2 text-xs font-semibold text-emerald-600/70 w-1/3 align-middle">Official Email:</td>
-                            <td className="py-2 text-sm text-emerald-900 font-semibold font-mono align-middle">{generatedCredentials.email}</td>
-                          </tr>
-                          <tr>
-                            <td className="py-2 text-xs font-semibold text-emerald-600/70 w-1/3 align-middle">One-Time Pass:</td>
-                            <td className="py-2 text-sm text-rose-600 font-semibold font-mono align-middle">{generatedCredentials.password}</td>
-                          </tr>
-                        </tbody>
-                      </table>
+                    <p className="text-xs text-slate-500 mb-4">
+                      Onboarding approved. Activate employee session account now. This will officially create the user profile, log allocations, and generate system credentials:
+                    </p>
+
+                    <div className="text-xs text-slate-500 mb-4">
+                      <strong className="font-semibold text-slate-700">Allocated Assets:</strong> {selectedRequest.assets && selectedRequest.assets.length > 0 ? selectedRequest.assets.map(a => a.name).join(', ') : 'None'}
                     </div>
-                    {canEditOnboarding && (
+
+                    {!generatedCredentials ? (
                       <button 
-                        className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors w-full mt-4" 
-                        onClick={() => openWizard(selectedRequest.id)}
+                        className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors w-full" 
+                        onClick={handleStep5Submit}
+                        disabled={submitting}
                       >
-                        Proceed to Step 6 (Send Welcome Email)
+                        <UserPlus size={16} /> {submitting ? 'Activating Profile...' : 'Activate Employee User Account'}
                       </button>
+                    ) : (
+                      <div>
+                        <div className="p-4 border border-emerald-250 rounded-xl bg-emerald-50/40 text-sm">
+                          <h4 className="text-emerald-800 font-bold text-xs uppercase tracking-wider mb-3">
+                            ✓ Account Activated! Temporarily Generated Credentials:
+                          </h4>
+                          <table className="w-full border-collapse">
+                            <tbody>
+                              <tr className="border-b border-emerald-100">
+                                <td className="py-2 text-xs font-semibold text-emerald-600/70 w-1/3 align-middle">Official Email:</td>
+                                <td className="py-2 text-sm text-emerald-900 font-semibold font-mono align-middle">{generatedCredentials.email}</td>
+                              </tr>
+                              <tr>
+                                <td className="py-2 text-xs font-semibold text-emerald-600/70 w-1/3 align-middle">One-Time Pass:</td>
+                                <td className="py-2 text-sm text-rose-600 font-semibold font-mono align-middle">{generatedCredentials.password}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                        {canEditOnboarding && (
+                          <button 
+                            className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors w-full mt-4" 
+                            onClick={() => openWizard(selectedRequest.id)}
+                          >
+                            Proceed to Step 6 (Send Welcome Email)
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
@@ -1253,37 +1385,52 @@ export default function OnboardingPage() {
             {currentStep === 6 && (
               <div>
                 <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4 border-b border-slate-250 pb-2">Step 6: Welcoming Credentials Notification</h3>
-                <p className="text-xs text-slate-500 mb-4">
-                  The employee account has been created. Dispatch the login credentials to their personal email address (<strong>{selectedRequest.personal_email}</strong>) to complete the onboarding pipeline:
-                </p>
+                
+                {selectedRequest.status === 'completed' ? (
+                  <div className="p-4 border border-emerald-250 rounded-xl bg-emerald-50/40 text-sm text-center">
+                    <Send size={32} className="mx-auto mb-2 text-emerald-600" />
+                    <h4 className="text-emerald-800 font-bold text-xs uppercase tracking-wider mb-1">
+                      ✓ Onboarding Pipeline Completed
+                    </h4>
+                    <p className="text-xs text-slate-600">
+                      Welcome credentials email has been successfully dispatched to the employee's personal email address: <strong>{selectedRequest.personal_email}</strong>.
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-xs text-slate-500 mb-4">
+                      The employee account has been created. Dispatch the login credentials to their personal email address (<strong>{selectedRequest.personal_email}</strong>) to complete the onboarding pipeline:
+                    </p>
 
-                <div className="mb-4">
-                  <label className="block text-xs font-medium text-slate-500 mb-1.5">Target Corporate Email</label>
-                  <input 
-                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
-                    value={wizardStepData.official_email} 
-                    onChange={e => setWizardStepData({ ...wizardStepData, official_email: e.target.value })} 
-                  />
-                </div>
+                    <div className="mb-4">
+                      <label className="block text-xs font-medium text-slate-500 mb-1.5">Target Corporate Email</label>
+                      <input 
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
+                        value={wizardStepData.official_email} 
+                        onChange={e => setWizardStepData({ ...wizardStepData, official_email: e.target.value })} 
+                      />
+                    </div>
 
-                <div className="mb-4">
-                  <label className="block text-xs font-medium text-slate-500 mb-1.5">Password Credential</label>
-                  <input 
-                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
-                    placeholder="Enter password generated in Step 5"
-                    value={wizardStepData.password} 
-                    onChange={e => setWizardStepData({ ...wizardStepData, password: e.target.value })} 
-                  />
-                </div>
+                    <div className="mb-4">
+                      <label className="block text-xs font-medium text-slate-500 mb-1.5">Password Credential</label>
+                      <input 
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
+                        placeholder="Enter password generated in Step 5"
+                        value={wizardStepData.password} 
+                        onChange={e => setWizardStepData({ ...wizardStepData, password: e.target.value })} 
+                      />
+                    </div>
 
-                {canEditOnboarding && (
-                  <button 
-                    className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors w-full" 
-                    onClick={handleStep6Submit}
-                    disabled={submitting || !wizardStepData.official_email || !wizardStepData.password}
-                  >
-                    <Send size={16} /> {submitting ? 'Dispatched Mailing...' : 'Dispatch Welcome Credentials Email'}
-                  </button>
+                    {canEditOnboarding && (
+                      <button 
+                        className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors w-full" 
+                        onClick={handleStep6Submit}
+                        disabled={submitting || !wizardStepData.official_email || !wizardStepData.password}
+                      >
+                        <Send size={16} /> {submitting ? 'Dispatched Mailing...' : 'Dispatch Welcome Credentials Email'}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             )}
