@@ -1,6 +1,7 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import AppLayout from "@/components/AppLayout";
+import SearchableSelect from "@/components/SearchableSelect";
 import { useAuth } from "@/context/AuthContext";
 import { assetApi, auditApi } from "@/lib/api";
 import {
@@ -73,16 +74,17 @@ function TablePagination({ currentPage, totalItems, limit, onPageChange, onLimit
         Showing {Math.min((currentPage - 1) * limit + 1, totalItems)} to {Math.min(currentPage * limit, totalItems)} of {totalItems} entries
       </div>
       <div className="flex items-center gap-3">
-        <select
-          className="px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-700 bg-white cursor-pointer outline-none"
+        <SearchableSelect
+          options={[
+            { value: 5, label: "5 per page" },
+            { value: 10, label: "10 per page" },
+            { value: 25, label: "25 per page" },
+            { value: 50, label: "50 per page" }
+          ]}
           value={limit}
-          onChange={(e) => onLimitChange(parseInt(e.target.value))}
-        >
-          <option value={5}>5 per page</option>
-          <option value={10}>10 per page</option>
-          <option value={25}>25 per page</option>
-          <option value={50}>50 per page</option>
-        </select>
+          onChange={val => onLimitChange(val)}
+          className="w-[130px]"
+        />
         <div className="flex gap-1">
           <button 
             className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" 
@@ -146,12 +148,15 @@ export default function ReportsPage() {
 
   // Reset page numbers on filter changes
   useEffect(() => {
-    setPageInventory(1);
-    setPageAllocations(1);
-    setPageAudit(1);
+    const timer = setTimeout(() => {
+      setPageInventory(1);
+      setPageAllocations(1);
+      setPageAudit(1);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [searchQuery, selectedLocation, selectedType, selectedStatus, selectedAction]);
 
-  const loadInventoryData = async () => {
+  const loadInventoryData = useCallback(async () => {
     setLoading(true);
     try {
       const assetsData = await assetApi.list({ paginate: false });
@@ -162,9 +167,9 @@ export default function ReportsPage() {
       console.error("Error loading inventory data:", e);
     }
     setLoading(false);
-  };
+  }, []);
 
-  const loadAuditData = async () => {
+  const loadAuditData = useCallback(async () => {
     setLoading(true);
     try {
       const auditData = await auditApi.list({ paginate: false }).catch(() => ({ logs: [] }));
@@ -173,19 +178,22 @@ export default function ReportsPage() {
       console.error("Error loading audit data:", e);
     }
     setLoading(false);
-  };
+  }, []);
 
-  const loadData = () => {
+  const loadData = useCallback(() => {
     if (activeTab === "inventory" || activeTab === "allocations") {
       loadInventoryData();
     } else if (activeTab === "audit") {
       loadAuditData();
     }
-  };
+  }, [activeTab, loadInventoryData, loadAuditData]);
 
   useEffect(() => {
-    loadData();
-  }, [activeTab]);
+    const timer = setTimeout(() => {
+      loadData();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadData]);
 
   // Filter Assets
   const filteredAssets = assets.filter((asset) => {
@@ -635,42 +643,38 @@ export default function ReportsPage() {
                   />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 shrink-0 w-full md:w-[450px]">
-                  <select
-                    className="px-3 py-2 border border-slate-200 rounded-lg text-xs bg-white outline-none focus:border-emerald-500 cursor-pointer text-slate-800"
+                  <SearchableSelect
+                    options={[
+                      { value: "", label: "All Locations" },
+                      ...locations.map((loc) => ({ value: loc.id, label: loc.name }))
+                    ]}
                     value={selectedLocation}
-                    onChange={(e) => setSelectedLocation(e.target.value)}
-                  >
-                    <option value="">All Locations</option>
-                    {locations.map((loc) => (
-                      <option key={loc.id} value={loc.id}>
-                        {loc.name}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    className="px-3 py-2 border border-slate-200 rounded-lg text-xs bg-white outline-none focus:border-emerald-500 cursor-pointer text-slate-800"
+                    onChange={val => setSelectedLocation(val)}
+                  />
+                  <SearchableSelect
+                    options={[
+                      { value: "", label: "All Types" },
+                      { value: "Laptop", label: "Laptop" },
+                      { value: "Desktop", label: "Desktop" },
+                      { value: "Mobile", label: "Mobile" },
+                      { value: "Monitor", label: "Monitor" },
+                      { value: "Accessories", label: "Accessories" },
+                      { value: "Other", label: "Other" }
+                    ]}
                     value={selectedType}
-                    onChange={(e) => setSelectedType(e.target.value)}
-                  >
-                    <option value="">All Types</option>
-                    <option value="Laptop">Laptop</option>
-                    <option value="Desktop">Desktop</option>
-                    <option value="Mobile">Mobile</option>
-                    <option value="Monitor">Monitor</option>
-                    <option value="Accessories">Accessories</option>
-                    <option value="Other">Other</option>
-                  </select>
-                  <select
-                    className="px-3 py-2 border border-slate-200 rounded-lg text-xs bg-white outline-none focus:border-emerald-500 cursor-pointer text-slate-800"
+                    onChange={val => setSelectedType(val)}
+                  />
+                  <SearchableSelect
+                    options={[
+                      { value: "", label: "All Statuses" },
+                      { value: "available", label: "Available" },
+                      { value: "allocated", label: "Allocated" },
+                      { value: "maintenance", label: "Maintenance" },
+                      { value: "retired", label: "Retired" }
+                    ]}
                     value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value)}
-                  >
-                    <option value="">All Statuses</option>
-                    <option value="available">Available</option>
-                    <option value="allocated">Allocated</option>
-                    <option value="maintenance">Maintenance</option>
-                    <option value="retired">Retired</option>
-                  </select>
+                    onChange={val => setSelectedStatus(val)}
+                  />
                 </div>
               </div>
 
@@ -778,15 +782,16 @@ export default function ReportsPage() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <select
-                  className="px-3 py-2 border border-slate-200 rounded-lg text-xs bg-white outline-none focus:border-emerald-500 cursor-pointer text-slate-800 shrink-0 w-full sm:w-[180px]"
+                <SearchableSelect
+                  options={[
+                    { value: "", label: "All Allocations" },
+                    { value: "active", label: "Active (Assigned)" },
+                    { value: "returned", label: "Returned" }
+                  ]}
                   value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                >
-                  <option value="">All Allocations</option>
-                  <option value="active">Active (Assigned)</option>
-                  <option value="returned">Returned</option>
-                </select>
+                  onChange={val => setSelectedStatus(val)}
+                  className="w-full sm:w-[200px]"
+                />
               </div>
 
               {/* Data Table */}
@@ -911,20 +916,21 @@ export default function ReportsPage() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <select
-                  className="px-3 py-2 border border-slate-200 rounded-lg text-xs bg-white outline-none focus:border-emerald-500 cursor-pointer text-slate-800 shrink-0 w-full sm:w-[220px]"
+                <SearchableSelect
+                  options={[
+                    { value: "", label: "All Actions" },
+                    { value: "ASSET_CREATE", label: "Asset Created" },
+                    { value: "ASSET_UPDATE", label: "Asset Updated" },
+                    { value: "ASSET_DELETE", label: "Asset Deleted" },
+                    { value: "ASSET_ALLOCATED", label: "Asset Allocated" },
+                    { value: "ASSET_RETURNED", label: "Asset Returned" },
+                    { value: "USER_LOGIN", label: "User Login" },
+                    { value: "USER_MFA", label: "MFA Modification" }
+                  ]}
                   value={selectedAction}
-                  onChange={(e) => setSelectedAction(e.target.value)}
-                >
-                  <option value="">All Actions</option>
-                  <option value="ASSET_CREATE">Asset Created</option>
-                  <option value="ASSET_UPDATE">Asset Updated</option>
-                  <option value="ASSET_DELETE">Asset Deleted</option>
-                  <option value="ASSET_ALLOCATED">Asset Allocated</option>
-                  <option value="ASSET_RETURNED">Asset Returned</option>
-                  <option value="USER_LOGIN">User Login</option>
-                  <option value="USER_MFA">MFA Modification</option>
-                </select>
+                  onChange={val => setSelectedAction(val)}
+                  className="w-full sm:w-[240px]"
+                />
               </div>
 
               {/* Data Table */}

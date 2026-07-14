@@ -20,12 +20,15 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    if (user) {
-      setProfileForm({
-        name: user.name || '',
-        phone: user.phone || '',
-      });
-    }
+    const timer = setTimeout(() => {
+      if (user) {
+        setProfileForm({
+          name: user.name || '',
+          phone: user.phone || '',
+        });
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [user]);
 
   const handleProfileSave = async (e) => {

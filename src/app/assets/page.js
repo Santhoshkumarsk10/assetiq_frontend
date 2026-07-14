@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import Modal from '@/components/Modal';
 import StatusBadge from '@/components/StatusBadge';
+import SearchableSelect from '@/components/SearchableSelect';
 import { assetApi } from '@/lib/api';
 import { socket } from '@/lib/socket';
 import { Search, Plus, Eye, Pencil, Trash2, Package, Upload, UserPlus, UserMinus, X } from 'lucide-react';
@@ -168,11 +169,11 @@ export default function AssetsPage() {
 
   // Fetch suggestions based on searchInput
   useEffect(() => {
-    if (!searchInput.trim()) {
-      setSuggestions([]);
-      return;
-    }
     const timer = setTimeout(async () => {
+      if (!searchInput.trim()) {
+        setSuggestions([]);
+        return;
+      }
       try {
         const data = await assetApi.list({ 
           page: 1, 
@@ -197,7 +198,7 @@ export default function AssetsPage() {
       } catch (e) {
         console.error(e);
       }
-    },100);
+    }, 100);
     return () => clearTimeout(timer);
   }, [searchInput, statusFilter, typeFilter]);
 
@@ -211,8 +212,11 @@ export default function AssetsPage() {
 
   // Load assets when pagination or filter states change
   useEffect(() => {
-    loadAssets();
-    loadRequests();
+    const timer = setTimeout(() => {
+      loadAssets();
+      loadRequests();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [page, limit, search, statusFilter, typeFilter, loadAssets, loadRequests]);
 
   // Real-time synchronization via WebSockets (Socket.IO)
@@ -545,22 +549,37 @@ export default function AssetsPage() {
               </div>
             )}
           </div>
-          <select className="px-3.5 py-2 border border-slate-200 rounded-lg text-xs text-slate-700 bg-white cursor-pointer outline-none" value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}>
-            <option value="">All Categories</option>
-            {types.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-          <select className="px-3.5 py-2 border border-slate-200 rounded-lg text-xs text-slate-700 bg-white cursor-pointer outline-none" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
-            <option value="">All Statuses</option>
-            <option value="available">Available</option>
-            <option value="allocated">In Use</option>
-            <option value="maintenance">Under Repair</option>
-          </select>
-          <select className="px-3.5 py-2 border border-slate-200 rounded-lg text-xs text-slate-700 bg-white cursor-pointer outline-none" value={limit} onChange={(e) => setLimit(parseInt(e.target.value))}>
-            <option value={5}>5 per page</option>
-            <option value={10}>10 per page</option>
-            <option value={20}>20 per page</option>
-            <option value={50}>50 per page</option>
-          </select>
+          <SearchableSelect
+            options={[
+              { value: "", label: "All Categories" },
+              ...types.map(t => ({ value: t, label: t }))
+            ]}
+            value={typeFilter}
+            onChange={val => { setTypeFilter(val); setPage(1); }}
+            className="w-[160px]"
+          />
+          <SearchableSelect
+            options={[
+              { value: "", label: "All Statuses" },
+              { value: "available", label: "Available" },
+              { value: "allocated", label: "In Use" },
+              { value: "maintenance", label: "Under Repair" }
+            ]}
+            value={statusFilter}
+            onChange={val => { setStatusFilter(val); setPage(1); }}
+            className="w-[155px]"
+          />
+          <SearchableSelect
+            options={[
+              { value: 5, label: "5 per page" },
+              { value: 10, label: "10 per page" },
+              { value: 20, label: "20 per page" },
+              { value: 50, label: "50 per page" }
+            ]}
+            value={limit}
+            onChange={val => setLimit(val)}
+            className="w-[145px]"
+          />
         </div>
 
         <p className="text-xs text-slate-500 mb-3">Showing <strong>{filtered.length}</strong> of {total} assets</p>
@@ -760,10 +779,12 @@ export default function AssetsPage() {
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="mb-4">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Location *</label>
-            <select className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors" value={form.location_id || ''} onChange={(e) => handleLocationChange(e.target.value)} required>
-              <option value="">Select Location</option>
-              {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-            </select>
+            <SearchableSelect
+              options={locations.map(l => ({ value: l.id, label: l.name }))}
+              value={form.location_id || ''}
+              placeholder="Select Location"
+              onChange={val => handleLocationChange(val)}
+            />
           </div>
           <div className="mb-4">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Asset Code (Auto-generated) *</label>
@@ -777,16 +798,20 @@ export default function AssetsPage() {
           </div>
           <div className="mb-4">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Asset Type *</label>
-            <select className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors" value={form.type || ''} onChange={(e) => setForm({ ...form, type: e.target.value })} required>
-              <option value="">Select Type</option>
-              <option value="Laptop">Laptop</option>
-              <option value="Mobile">Mobile</option>
-              <option value="Desktop">Desktop</option>
-              <option value="Accessories">Accessories</option>
-              <option value="Monitor">Monitor</option>
-              <option value="Mobile Device">Mobile Device</option>
-              <option value="Other">Other</option>
-            </select>
+            <SearchableSelect
+              options={[
+                { value: "Laptop", label: "Laptop" },
+                { value: "Mobile", label: "Mobile" },
+                { value: "Desktop", label: "Desktop" },
+                { value: "Accessories", label: "Accessories" },
+                { value: "Monitor", label: "Monitor" },
+                { value: "Mobile Device", label: "Mobile Device" },
+                { value: "Other", label: "Other" }
+              ]}
+              value={form.type || ''}
+              placeholder="Select Type"
+              onChange={val => setForm({ ...form, type: val })}
+            />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4 mb-4">
@@ -812,12 +837,16 @@ export default function AssetsPage() {
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="mb-4">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Status</label>
-            <select className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors" value={form.status || 'available'} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-              <option value="available">Available</option>
-              <option value="allocated">Allocated</option>
-              <option value="maintenance">Maintenance</option>
-              <option value="retired">Retired</option>
-            </select>
+            <SearchableSelect
+              options={[
+                { value: "available", label: "Available" },
+                { value: "allocated", label: "Allocated" },
+                { value: "maintenance", label: "Maintenance" },
+                { value: "retired", label: "Retired" }
+              ]}
+              value={form.status || 'available'}
+              onChange={val => setForm({ ...form, status: val })}
+            />
           </div>
           <div className="mb-4">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Remarks</label>
@@ -848,10 +877,12 @@ export default function AssetsPage() {
         </div>
         <div className="mb-4">
           <label className="block text-xs font-medium text-slate-500 mb-1.5">Target Location *</label>
-          <select className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors" value={importLocationId} onChange={(e) => setImportLocationId(e.target.value)} required>
-            <option value="">Select Location</option>
-            {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-          </select>
+          <SearchableSelect
+            options={locations.map(l => ({ value: l.id, label: l.name }))}
+            value={importLocationId}
+            placeholder="Select Location"
+            onChange={val => setImportLocationId(val)}
+          />
           <p className="block text-xs text-slate-400 mt-1">
             All imported assets will be registered under this selected location.
           </p>
@@ -876,10 +907,12 @@ export default function AssetsPage() {
         </div>
         <div className="mb-4">
           <label className="block text-xs font-medium text-slate-500 mb-1.5">Employee / User *</label>
-          <select className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors" value={allocateForm.user_id} onChange={(e) => setAllocateForm({ ...allocateForm, user_id: e.target.value })} required>
-            <option value="">Select Employee</option>
-            {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
-          </select>
+          <SearchableSelect
+            options={users.map(u => ({ value: u.id, label: `${u.name} (${u.email})` }))}
+            value={allocateForm.user_id}
+            placeholder="Select Employee"
+            onChange={val => setAllocateForm({ ...allocateForm, user_id: val })}
+          />
         </div>
         <div className="mb-4">
           <label className="block text-xs font-medium text-slate-500 mb-1.5">Allocation Notes</label>
@@ -982,18 +1015,18 @@ export default function AssetsPage() {
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Asset Type *</label>
-            <select
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors"
+            <SearchableSelect
+              options={[
+                { value: "Laptop", label: "Laptop" },
+                { value: "Mobile", label: "Mobile" },
+                { value: "Desktop", label: "Desktop" },
+                { value: "Accessories", label: "Accessories" },
+                { value: "Monitor", label: "Monitor" },
+                { value: "Other", label: "Other" }
+              ]}
               value={requestForm.asset_type}
-              onChange={(e) => setRequestForm({ ...requestForm, asset_type: e.target.value })}
-            >
-              <option value="Laptop">Laptop</option>
-              <option value="Mobile">Mobile</option>
-              <option value="Desktop">Desktop</option>
-              <option value="Accessories">Accessories</option>
-              <option value="Monitor">Monitor</option>
-              <option value="Other">Other</option>
-            </select>
+              onChange={val => setRequestForm({ ...requestForm, asset_type: val })}
+            />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Quantity</label>

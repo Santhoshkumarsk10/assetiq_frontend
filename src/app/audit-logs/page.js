@@ -1,6 +1,7 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import AppLayout from "@/components/AppLayout";
+import SearchableSelect from "@/components/SearchableSelect";
 import { auditApi } from "@/lib/api";
 import {
   Search,
@@ -60,7 +61,7 @@ export default function AuditLogsPage() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
-  const loadLogs = async () => {
+  const loadLogs = useCallback(async () => {
     try {
       const data = await auditApi.list({
         page,
@@ -77,15 +78,15 @@ export default function AuditLogsPage() {
       console.error(e);
     }
     setLoading(false);
-  };
+  }, [page, limit, search, actionFilter]);
 
   // Fetch suggestions based on searchInput
   useEffect(() => {
-    if (!searchInput.trim()) {
-      setSuggestions([]);
-      return;
-    }
     const timer = setTimeout(async () => {
+      if (!searchInput.trim()) {
+        setSuggestions([]);
+        return;
+      }
       try {
         const data = await auditApi.list({ 
           page: 1, 
@@ -130,8 +131,11 @@ export default function AuditLogsPage() {
 
   // Load logs when page, limit, search, or actionFilter changes
   useEffect(() => {
-    loadLogs();
-  }, [page, limit, search, actionFilter]);
+    const timer = setTimeout(() => {
+      loadLogs();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadLogs]);
 
   const filtered = logs;
 
@@ -199,27 +203,29 @@ export default function AuditLogsPage() {
               </div>
             )}
           </div>
-          <select
-            className="px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white cursor-pointer outline-none w-[130px]"
+          <SearchableSelect
+            options={[
+              { value: "", label: "All Actions" },
+              { value: "CREATE", label: "Created" },
+              { value: "UPDATE", label: "Updated" },
+              { value: "DELETE", label: "Deleted" },
+              { value: "LOGIN", label: "Login" }
+            ]}
             value={actionFilter}
-            onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
-          >
-            <option value="">All Actions</option>
-            <option value="CREATE">Created</option>
-            <option value="UPDATE">Updated</option>
-            <option value="DELETE">Deleted</option>
-            <option value="LOGIN">Login</option>
-          </select>
-          <select
-            className="px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white cursor-pointer outline-none w-[130px]"
+            onChange={val => { setActionFilter(val); setPage(1); }}
+            className="w-[150px]"
+          />
+          <SearchableSelect
+            options={[
+              { value: 5, label: "5 per page" },
+              { value: 10, label: "10 per page" },
+              { value: 20, label: "20 per page" },
+              { value: 50, label: "50 per page" }
+            ]}
             value={limit}
-            onChange={(e) => setLimit(parseInt(e.target.value))}
-          >
-            <option value={5}>5 per page</option>
-            <option value={10}>10 per page</option>
-            <option value={20}>20 per page</option>
-            <option value={50}>50 per page</option>
-          </select>
+            onChange={val => setLimit(val)}
+            className="w-[150px]"
+          />
         </div>
 
         {loading ? (

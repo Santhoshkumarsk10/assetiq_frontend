@@ -10,18 +10,21 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const saved = localStorage.getItem('assetiq_token');
-    if (saved) {
-      setToken(saved);
-      authApi.me().then(data => {
-        setUser(data.user);
-      }).catch(() => {
-        localStorage.removeItem('assetiq_token');
-        setToken(null);
-      }).finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
+    const timer = setTimeout(() => {
+      const saved = localStorage.getItem('assetiq_token');
+      if (saved) {
+        setToken(saved);
+        authApi.me().then(data => {
+          setUser(data.user);
+        }).catch(() => {
+          localStorage.removeItem('assetiq_token');
+          setToken(null);
+        }).finally(() => setLoading(false));
+      } else {
+        setLoading(false);
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const login = useCallback(async (loginIdentifier, password) => {

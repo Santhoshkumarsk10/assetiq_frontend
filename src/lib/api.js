@@ -154,3 +154,24 @@ export const rolesApi = {
   editPermission: (body) => apiRequest('/permissions/edit', { body }),
   deletePermission: (id) => apiRequest('/permissions/delete', { body: { id } }),
 };
+
+// Software Licenses
+export const licenseApi = {
+  list: (body) => apiRequest('/licenses/list', { body }),
+  add: (body) => apiRequest('/licenses/add', { body }),
+  edit: (body) => apiRequest('/licenses/edit', { body }),
+  delete: (id) => apiRequest('/licenses/delete', { body: { id } }),
+  // Renewal workflow
+  submitRenewal: (body) => apiRequest('/licenses/renewal/submit', { body }),
+  listRenewals: (body) => apiRequest('/licenses/renewal/list', { body }),
+  decideRenewal: (body) => apiRequest('/licenses/renewal/decide', { body }),
+  notifyUser: (license_id) => apiRequest('/licenses/renewal/notify-user', { body: { license_id } }),
+};
+
+// In-app Notifications
+export const notificationApi = {
+  list: () => apiRequest('/notifications/list', {}),
+  markRead: (body) => apiRequest('/notifications/mark-read', { body }),
+};
+
+

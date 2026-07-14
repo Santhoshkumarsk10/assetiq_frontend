@@ -1,7 +1,8 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import Modal from '@/components/Modal';
+import SearchableSelect from '@/components/SearchableSelect';
 import { locationApi } from '@/lib/api';
 import { Search, Plus, Pencil, Trash2, MapPin, X } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
@@ -33,7 +34,7 @@ export default function LocationsPage() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
-  const loadLocations = async () => {
+  const loadLocations = useCallback(async () => {
     try {
       const data = await locationApi.list({ page, limit, search, paginate: true });
       setLocations(data.locations || []);
@@ -43,15 +44,15 @@ export default function LocationsPage() {
       }
     } catch (e) { console.error(e); }
     setLoading(false);
-  };
+  }, [page, limit, search]);
 
   // Fetch suggestions based on searchInput
   useEffect(() => {
-    if (!searchInput.trim()) {
-      setSuggestions([]);
-      return;
-    }
     const timer = setTimeout(async () => {
+      if (!searchInput.trim()) {
+        setSuggestions([]);
+        return;
+      }
       try {
         const data = await locationApi.list({ page: 1, limit: 10, search: searchInput, paginate: true });
         const results = [];
@@ -80,8 +81,11 @@ export default function LocationsPage() {
 
   // Load when page, limit or search changes
   useEffect(() => {
-    loadLocations();
-  }, [page, limit, search]);
+    const timer = setTimeout(() => {
+      loadLocations();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadLocations]);
 
   const filtered = locations;
 
@@ -205,12 +209,17 @@ export default function LocationsPage() {
               </div>
             )}
           </div>
-          <select className="px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white cursor-pointer outline-none w-[130px]" value={limit} onChange={(e) => setLimit(parseInt(e.target.value))}>
-            <option value={5}>5 per page</option>
-            <option value={10}>10 per page</option>
-            <option value={20}>20 per page</option>
-            <option value={50}>50 per page</option>
-          </select>
+          <SearchableSelect
+            options={[
+              { value: 5, label: "5 per page" },
+              { value: 10, label: "10 per page" },
+              { value: 20, label: "20 per page" },
+              { value: 50, label: "50 per page" }
+            ]}
+            value={limit}
+            onChange={val => setLimit(val)}
+            className="w-[150px]"
+          />
         </div>
 
         {loading ? (

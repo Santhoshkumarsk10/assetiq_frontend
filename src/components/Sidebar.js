@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import {
   LayoutDashboard, Settings2, Users, ClipboardList,
-  MapPin, LogOut, Package, Shield, UserCheck, BarChart2
+  MapPin, LogOut, Package, Shield, UserCheck, BarChart2, KeyRound
 } from 'lucide-react';
 
 export default function Sidebar({ isOpen }) {
@@ -17,6 +17,7 @@ export default function Sidebar({ isOpen }) {
   const menuConfig = [
     { href: '/dashboard', labelKey: 'dashboard', icon: LayoutDashboard, permissions: [] },      
     { href: '/assets', labelKey: 'assets', icon: Package, permissions: ['asset.list'] },
+    { href: '/license', labelKey: 'license', icon: KeyRound, permissions: ['asset.list'] },
     { href: '/locations', labelKey: 'locations', icon: MapPin, permissions: ['location.list'] },
     { href: '/users', labelKey: 'users', icon: Users, permissions: ['user.list'] },
     { href: '/onboarding', labelKey: 'onboarding', icon: UserCheck, permissions: ['onboarding.list', 'email_request.list'] },
