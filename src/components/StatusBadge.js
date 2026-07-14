@@ -6,6 +6,7 @@ export default function StatusBadge({ status }) {
     maintenance: { containerCls: 'bg-amber-50 text-amber-800', dotCls: 'bg-amber-500', label: 'Under Repair' },
     inactive: { containerCls: 'bg-rose-50 text-rose-600', dotCls: 'bg-rose-500', label: 'Inactive' },
     retired: { containerCls: 'bg-rose-50 text-rose-600', dotCls: 'bg-rose-500', label: 'Retired' },
+    expired: { containerCls: 'bg-rose-50 text-rose-600', dotCls: 'bg-rose-500', label: 'Expired' },
     pending: { containerCls: 'bg-amber-50 text-amber-800', dotCls: 'bg-amber-500', label: 'Pending' },
     approved: { containerCls: 'bg-emerald-50 text-emerald-700', dotCls: 'bg-emerald-500', label: 'Approved' },
     rejected: { containerCls: 'bg-rose-50 text-rose-600', dotCls: 'bg-rose-500', label: 'Rejected' },

@@ -3,8 +3,9 @@ import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import Modal from '@/components/Modal';
 import StatusBadge from '@/components/StatusBadge';
+import SearchableSelect from '@/components/SearchableSelect';
 import { useAuth } from '@/context/AuthContext';
-import { onboardingApi, emailRequestApi, assetApi } from '@/lib/api';
+import { onboardingApi, emailRequestApi, assetApi, userApi } from '@/lib/api';
 import { socket } from '@/lib/socket';
 import { 
   UserPlus, CheckCircle2, ChevronRight, User, Mail, 
@@ -54,8 +55,10 @@ export default function OnboardingPage() {
   const [step1Form, setStep1Form] = useState({
     employee_id: '', name: '', personal_email: '', phone: '',
     department: '', designation: '', location_id: '',
-    state: '', city: '', address: ''
+    state: '', city: '', address: '', reporting_manager_id: ''
   });
+
+  const [managers, setManagers] = useState([]);
 
   // Wizard state
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -117,18 +120,35 @@ export default function OnboardingPage() {
     }
   }, []);
 
+  const loadManagers = useCallback(async () => {
+    try {
+      const data = await userApi.managers();
+      setManagers(data.managers || []);
+    } catch (e) {
+      console.error('Failed to load managers:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadManagers();
+  }, [loadManagers]);
+
   // Load data when page, limit, search, or activeTab changes
   useEffect(() => {
-    loadData();
-  }, [page, limit, search, activeTab]);
+    const timer = setTimeout(() => {
+      loadData();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [page, limit, search, activeTab, loadData]);
 
+  const selectedRequestId = selectedRequest?.id;
   // Real-time synchronization via WebSockets (Socket.IO)
   useEffect(() => {
     const handleOnboardingChange = () => {
       setTimeout(() => {
         loadData();
-        if (selectedRequest && selectedRequest.id) {
-          reloadRequestDetails(selectedRequest.id);
+        if (selectedRequestId) {
+          reloadRequestDetails(selectedRequestId);
         }
       }, 50);
     };
@@ -138,15 +158,15 @@ export default function OnboardingPage() {
     return () => {
       socket.off('onboarding_change', handleOnboardingChange);
     };
-  }, [loadData, reloadRequestDetails, selectedRequest?.id]);
+  }, [loadData, reloadRequestDetails, selectedRequestId]);
 
   // Fetch suggestions based on searchInput
   useEffect(() => {
-    if (!searchInput.trim()) {
-      setSuggestions([]);
-      return;
-    }
     const timer = setTimeout(async () => {
+      if (!searchInput.trim()) {
+        setSuggestions([]);
+        return;
+      }
       try {
         let data;
         if (activeTab === 'emails') {
@@ -194,7 +214,7 @@ export default function OnboardingPage() {
       }
     }, 100);
     return () => clearTimeout(timer);
-  }, [searchInput, activeTab]);
+  }, [searchInput, activeTab, isITAdmin, isHRorAdmin]);
 
   const handleSearchInputChange = (val) => {
     setSearchInput(val);
@@ -307,7 +327,7 @@ export default function OnboardingPage() {
       setStep1Form({
         employee_id: '', name: '', personal_email: '', phone: '',
         department: '', designation: '', location_id: '',
-        state: '', city: '', address: ''
+        state: '', city: '', address: '', reporting_manager_id: ''
       });
       await loadData();
       // Open wizard directly to step 2
@@ -630,12 +650,17 @@ export default function OnboardingPage() {
             </div>
           )}
         </div>
-        <select className="px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white cursor-pointer outline-none w-[130px]" value={limit} onChange={(e) => setLimit(parseInt(e.target.value))}>
-          <option value={5}>5 per page</option>
-          <option value={10}>10 per page</option>
-          <option value={20}>20 per page</option>
-          <option value={50}>50 per page</option>
-        </select>
+        <SearchableSelect
+          options={[
+            { value: 5, label: "5 per page" },
+            { value: 10, label: "10 per page" },
+            { value: 20, label: "20 per page" },
+            { value: 50, label: "50 per page" }
+          ]}
+          value={limit}
+          onChange={val => setLimit(val)}
+          className="w-[150px]"
+        />
       </div>
 
       {loading ? (
@@ -837,11 +862,11 @@ export default function OnboardingPage() {
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="mb-4">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Onboarding Location *</label>
-            <select 
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors"
+            <SearchableSelect
+              options={locations.map(l => ({ value: l.id, label: l.name }))}
               value={step1Form.location_id}
-              onChange={async (e) => {
-                const locId = e.target.value;
+              placeholder="Select Location"
+              onChange={async (locId) => {
                 setStep1Form(prev => ({ ...prev, location_id: locId }));
                 if (locId) {
                   try {
@@ -856,12 +881,7 @@ export default function OnboardingPage() {
                   setStep1Form(prev => ({ ...prev, employee_id: '' }));
                 }
               }}
-            >
-              <option value="">Select Location</option>
-              {locations.map(l => (
-                <option key={l.id} value={l.id}>{l.name}</option>
-              ))}
-            </select>
+            />
           </div>
           <div className="mb-4">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Employee ID (Auto-Generated) *</label>
@@ -960,6 +980,18 @@ export default function OnboardingPage() {
               onChange={e => setStep1Form({ ...step1Form, city: e.target.value.replace(/[^a-zA-Z\s-]/g, '') })} 
             />
           </div>
+          <div className="mb-4">
+            <label className="block text-xs font-medium text-slate-500 mb-1.5">Report Manager</label>
+            <SearchableSelect
+              options={managers.map(m => ({
+                value: m.id,
+                label: `${m.name} (${m.designation || "No Designation"}) - ${m.email}`
+              }))}
+              value={step1Form.reporting_manager_id}
+              placeholder="Select Report Manager"
+              onChange={val => setStep1Form({ ...step1Form, reporting_manager_id: val })}
+            />
+          </div>
           <div className="mb-4 col-span-2">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Address *</label>
             <textarea 
@@ -1027,6 +1059,7 @@ export default function OnboardingPage() {
                     <tr className="border-b border-slate-150"><td className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase w-1/3 bg-slate-50 align-middle">Designation:</td><td className="px-4 py-3 text-sm text-slate-700 font-medium align-middle">{selectedRequest.designation}</td></tr>
                     <tr className="border-b border-slate-150"><td className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase w-1/3 bg-slate-50 align-middle">State:</td><td className="px-4 py-3 text-sm text-slate-700 font-medium align-middle">{selectedRequest.state || '—'}</td></tr>
                     <tr className="border-b border-slate-150"><td className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase w-1/3 bg-slate-50 align-middle">City:</td><td className="px-4 py-3 text-sm text-slate-700 font-medium align-middle">{selectedRequest.city || '—'}</td></tr>
+                    <tr className="border-b border-slate-150"><td className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase w-1/3 bg-slate-50 align-middle">Report Manager:</td><td className="px-4 py-3 text-sm text-slate-700 font-medium align-middle">{selectedRequest.reportingManager ? `${selectedRequest.reportingManager.name} (${selectedRequest.reportingManager.email})` : '—'}</td></tr>
                     <tr className="last:border-b-0"><td className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase w-1/3 bg-slate-50 align-middle">Address:</td><td className="px-4 py-3 text-sm text-slate-700 font-medium align-middle">{selectedRequest.address || '—'}</td></tr>
                   </tbody>
                 </table>
@@ -1118,7 +1151,7 @@ export default function OnboardingPage() {
                           })}
                         </div>
                         <div className="flex justify-between items-center text-xs text-slate-500 mb-4 px-1">
-                          <span>Can't find the right asset?</span>
+                          <span>Can&apos;t find the right asset?</span>
                           <button
                             type="button"
                             onClick={openQuickAddAsset}
@@ -1260,7 +1293,7 @@ export default function OnboardingPage() {
                           Waiting for IT Administration to provision and approve corporate email request. 
                         </p>
                         <p className="text-[11px] mt-1 opacity-80">
-                          (You can click "Refresh" or contact IT support admin: itadmin@assetiq.com)
+                          (You can click &quot;Refresh&quot; or contact IT support admin: itadmin@assetiq.com)
                         </p>
                       </div>
                     ) : (
@@ -1271,14 +1304,14 @@ export default function OnboardingPage() {
 
                         <div className="mb-4">
                           <label className="block text-xs font-medium text-slate-500 mb-1.5">Decision</label>
-                          <select 
-                            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors"
+                          <SearchableSelect
+                            options={[
+                              { value: "Approve Onboarding", label: "Approve Onboarding" },
+                              { value: "Reject", label: "Reject / Halt" }
+                            ]}
                             value={wizardStepData.decision}
-                            onChange={e => setWizardStepData({ ...wizardStepData, decision: e.target.value })}
-                          >
-                            <option value="Approve Onboarding">Approve Onboarding</option>
-                            <option value="Reject">Reject / Halt</option>
-                          </select>
+                            onChange={val => setWizardStepData({ ...wizardStepData, decision: val })}
+                          />
                         </div>
 
                         <div className="mb-4">
@@ -1393,7 +1426,7 @@ export default function OnboardingPage() {
                       ✓ Onboarding Pipeline Completed
                     </h4>
                     <p className="text-xs text-slate-600">
-                      Welcome credentials email has been successfully dispatched to the employee's personal email address: <strong>{selectedRequest.personal_email}</strong>.
+                      Welcome credentials email has been successfully dispatched to the employee&apos;s personal email address: <strong>{selectedRequest.personal_email}</strong>.
                     </p>
                   </div>
                 ) : (
@@ -1554,19 +1587,19 @@ export default function OnboardingPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-500 mb-1.5">Asset Type *</label>
-              <select 
-                className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-850 outline-none bg-white focus:border-emerald-500 transition-colors"
+              <SearchableSelect
+                options={[
+                  { value: "Laptop", label: "Laptop" },
+                  { value: "Mobile", label: "Mobile" },
+                  { value: "Desktop", label: "Desktop" },
+                  { value: "Accessories", label: "Accessories" },
+                  { value: "Monitor", label: "Monitor" },
+                  { value: "Mobile Device", label: "Mobile Device" },
+                  { value: "Other", label: "Other" }
+                ]}
                 value={quickAssetForm.type}
-                onChange={e => setQuickAssetForm({ ...quickAssetForm, type: e.target.value })}
-              >
-                <option value="Laptop">Laptop</option>
-                <option value="Mobile">Mobile</option>
-                <option value="Desktop">Desktop</option>
-                <option value="Accessories">Accessories</option>
-                <option value="Monitor">Monitor</option>
-                <option value="Mobile Device">Mobile Device</option>
-                <option value="Other">Other</option>
-              </select>
+                onChange={val => setQuickAssetForm({ ...quickAssetForm, type: val })}
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-500 mb-1.5">Brand</label>

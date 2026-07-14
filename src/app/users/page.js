@@ -1,8 +1,9 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import AppLayout from "@/components/AppLayout";
 import Modal from "@/components/Modal";
 import StatusBadge from "@/components/StatusBadge";
+import SearchableSelect from "@/components/SearchableSelect";
 import { userApi } from "@/lib/api";
 import {
   Search,
@@ -36,14 +37,14 @@ export default function UsersPage() {
   const [locations, setLocations] = useState([]);
   const [managers, setManagers] = useState([]);
 
-  const loadManagers = async () => {
+  const loadManagers = useCallback(async () => {
     try {
       const data = await userApi.managers();
       setManagers(data.managers || []);
     } catch (e) {
       console.error("Failed to load managers:", e);
     }
-  };
+  }, []);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -60,7 +61,7 @@ export default function UsersPage() {
   const [offboardQueue, setOffboardQueue] = useState([]);
   const [loadingOffboard, setLoadingOffboard] = useState(false);
 
-  const loadOffboardQueue = async () => {
+  const loadOffboardQueue = useCallback(async () => {
     setLoadingOffboard(true);
     try {
       const data = await userApi.offboardList();
@@ -69,7 +70,7 @@ export default function UsersPage() {
       showToast(e.data?.error || "Failed to load offboarding queue", "error");
     }
     setLoadingOffboard(false);
-  };
+  }, [showToast]);
 
   const handleVerifyReturn = async (allocationId) => {
     try {
@@ -88,7 +89,7 @@ export default function UsersPage() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       const data = await userApi.list({
         page,
@@ -108,15 +109,15 @@ export default function UsersPage() {
       console.error(e);
     }
     setLoading(false);
-  };
+  }, [page, limit, search, locationFilter, loadManagers]);
 
   // Fetch suggestions based on searchInput
   useEffect(() => {
-    if (!searchInput.trim()) {
-      setSuggestions([]);
-      return;
-    }
     const timer = setTimeout(async () => {
+      if (!searchInput.trim()) {
+        setSuggestions([]);
+        return;
+      }
       try {
         const data = await userApi.list({
           page: 1,
@@ -174,14 +175,20 @@ export default function UsersPage() {
 
   // Load when page, limit, search, or locationFilter changes
   useEffect(() => {
-    loadUsers();
-  }, [page, limit, search, locationFilter]);
+    const timer = setTimeout(() => {
+      loadUsers();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadUsers]);
 
   useEffect(() => {
-    if (activeTab === "offboarding") {
-      loadOffboardQueue();
-    }
-  }, [activeTab]);
+    const timer = setTimeout(() => {
+      if (activeTab === "offboarding") {
+        loadOffboardQueue();
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [activeTab, loadOffboardQueue]);
 
   const filtered = users;
 
@@ -530,32 +537,30 @@ export default function UsersPage() {
                 )}
               </div>
               {currentUser?.role?.name !== "Location Admin" && (
-                <select
-                  className="px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white cursor-pointer outline-none w-[180px]"
+                <SearchableSelect
+                  options={[
+                    { value: "", label: "All Locations" },
+                    ...locations.map((l) => ({ value: l.id, label: l.name }))
+                  ]}
                   value={locationFilter}
-                  onChange={(e) => {
-                    setLocationFilter(e.target.value);
+                  onChange={(val) => {
+                    setLocationFilter(val);
                     setPage(1);
                   }}
-                >
-                  <option value="">All Locations</option>
-                  {locations.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.name}
-                    </option>
-                  ))}
-                </select>
+                  className="w-[180px]"
+                />
               )}
-              <select
-                className="px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white cursor-pointer outline-none w-[130px]"
+              <SearchableSelect
+                options={[
+                  { value: 5, label: "5 per page" },
+                  { value: 10, label: "10 per page" },
+                  { value: 20, label: "20 per page" },
+                  { value: 50, label: "50 per page" }
+                ]}
                 value={limit}
-                onChange={(e) => setLimit(parseInt(e.target.value))}
-              >
-                <option value={5}>5 per page</option>
-                <option value={10}>10 per page</option>
-                <option value={20}>20 per page</option>
-                <option value={50}>50 per page</option>
-              </select>
+                onChange={val => setLimit(val)}
+                className="w-[150px]"
+              />
             </div>
 
             {loading ? (
@@ -1035,37 +1040,23 @@ export default function UsersPage() {
             <label className="block text-xs font-medium text-slate-500 mb-1.5">
               Role *
             </label>
-            <select
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors"
+            <SearchableSelect
+              options={roles.map((r) => ({ value: r.id, label: r.name }))}
               value={form.role_id || ""}
-              onChange={(e) => setForm({ ...form, role_id: e.target.value })}
-            >
-              <option value="">Select Role</option>
-              {roles.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
+              placeholder="Select Role"
+              onChange={val => setForm({ ...form, role_id: val })}
+            />
           </div>
           <div className="mb-4">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">
               Location
             </label>
-            <select
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors"
+            <SearchableSelect
+              options={locations.map((l) => ({ value: l.id, label: l.name }))}
               value={form.location_id || ""}
-              onChange={(e) =>
-                setForm({ ...form, location_id: e.target.value })
-              }
-            >
-              <option value="">Select Location</option>
-              {locations.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
+              placeholder="Select Location"
+              onChange={val => setForm({ ...form, location_id: val })}
+            />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4 mb-4">
@@ -1104,22 +1095,17 @@ export default function UsersPage() {
           <label className="block text-xs font-medium text-slate-500 mb-1.5">
             Report Manager
           </label>
-          <select
-            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors"
-            value={form.reporting_manager_id || ""}
-            onChange={(e) =>
-              setForm({ ...form, reporting_manager_id: e.target.value })
-            }
-          >
-            <option value="">Select Report Manager</option>
-            {managers
+          <SearchableSelect
+            options={managers
               .filter((m) => String(m.id) !== String(editingUser?.id))
-              .map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name} ({m.designation || "No Designation"}) - {m.email}
-                </option>
-              ))}
-          </select>
+              .map((m) => ({
+                value: m.id,
+                label: `${m.name} (${m.designation || "No Designation"}) - ${m.email}`
+              }))}
+            value={form.reporting_manager_id || ""}
+            placeholder="Select Report Manager"
+            onChange={val => setForm({ ...form, reporting_manager_id: val })}
+          />
         </div>
       </Modal>
     </AppLayout>

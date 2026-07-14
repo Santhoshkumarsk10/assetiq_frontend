@@ -1,7 +1,8 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import Modal from '@/components/Modal';
+import SearchableSelect from '@/components/SearchableSelect';
 import { rolesApi } from '@/lib/api';
 import { Shield, Key, CheckSquare, Square, Save, RefreshCw, Plus, Pencil, Trash2, Search, X } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
@@ -42,7 +43,7 @@ export default function RolesPermissionsPage() {
   const [permForm, setPermForm] = useState({ name: '', description: '' });
   const [savingPerm, setSavingPerm] = useState(false);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const data = await rolesApi.list({}); // Get all roles and permissions without pagination
@@ -59,12 +60,15 @@ export default function RolesPermissionsPage() {
       console.error('Error loading roles & permissions:', e);
     }
     setLoading(false);
-  };
+  }, []);
 
   // Load data when mounting or activeTab changes
   useEffect(() => {
-    loadData();
-  }, [activeTab]);
+    const timer = setTimeout(() => {
+      loadData();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [activeTab, loadData]);
 
   const handleTogglePermission = (roleId, permissionId) => {
     setRolePermissionsState(prev => {
@@ -384,19 +388,20 @@ export default function RolesPermissionsPage() {
                 )}
               </div>
             </div>
-            <select 
-              className="px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white cursor-pointer outline-none w-[130px]" 
-              value={permLimit} 
-              onChange={(e) => {
-                setPermLimit(parseInt(e.target.value));
+            <SearchableSelect
+              options={[
+                { value: 5, label: "5 per page" },
+                { value: 10, label: "10 per page" },
+                { value: 20, label: "20 per page" },
+                { value: 50, label: "50 per page" }
+              ]}
+              value={permLimit}
+              onChange={val => {
+                setPermLimit(val);
                 setPermPage(1);
               }}
-            >
-              <option value={5}>5 per page</option>
-              <option value={10}>10 per page</option>
-              <option value={20}>20 per page</option>
-              <option value={50}>50 per page</option>
-            </select>
+              className="w-[150px]"
+            />
           </div>
           <table className="w-full border-collapse">
             <thead>
@@ -424,7 +429,7 @@ export default function RolesPermissionsPage() {
               {displayedPerms.length === 0 && (
                 <tr>
                   <td colSpan={3} className="text-center py-8 text-sm text-slate-400">
-                    No permissions found matching "{permSearch}"
+                    No permissions found matching &quot;{permSearch}&quot;
                   </td>
                 </tr>
               )}

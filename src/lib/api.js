@@ -154,3 +154,11 @@ export const rolesApi = {
   editPermission: (body) => apiRequest('/permissions/edit', { body }),
   deletePermission: (id) => apiRequest('/permissions/delete', { body: { id } }),
 };
+
+// Software Licenses
+export const licenseApi = {
+  list: (body) => apiRequest('/licenses/list', { body }),
+  add: (body) => apiRequest('/licenses/add', { body }),
+  edit: (body) => apiRequest('/licenses/edit', { body }),
+  delete: (id) => apiRequest('/licenses/delete', { body: { id } }),
+};
