@@ -6,7 +6,7 @@ import StatusBadge from '@/components/StatusBadge';
 import SearchableSelect from '@/components/SearchableSelect';
 import { licenseApi } from '@/lib/api';
 import { socket } from '@/lib/socket';
-import { Search, Plus, Eye, Pencil, Trash2, KeyRound, X, Calendar, User } from 'lucide-react';
+import { Search, Plus, Eye, Pencil, Trash2, KeyRound, X, Calendar, User, RefreshCw, CheckCircle, XCircle, Bell } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { useAuth } from '@/context/AuthContext';
@@ -16,9 +16,18 @@ export default function LicensePage() {
   const { showToast } = useToast();
   const { confirm } = useConfirm();
 
-  // Roles & Permissions check
-  const isItOrGlobalAdmin = ['Super Admin', 'Admin', 'IT Admin'].includes(user?.role_name || user?.role);
-  const canManage = isItOrGlobalAdmin;
+  // Dynamic permission checks (driven by JWT permissions from backend)
+  const permissions = user?.permissions || [];
+  const canList        = permissions.includes('license.list');
+  const canAdd         = permissions.includes('license.add');
+  const canEdit        = permissions.includes('license.edit');
+  const canDelete      = permissions.includes('license.delete');
+  const canSubmitRenew = permissions.includes('license.renewal.submit');
+  const canDecideRenew = permissions.includes('license.renewal.decide');
+  const canNotify      = permissions.includes('license.notify');
+
+  // Derived helper flags (kept for UI branching)
+  const canManage = canAdd || canEdit || canDelete;
 
   // State Variables
   const [licenses, setLicenses] = useState([]);
@@ -51,6 +60,16 @@ export default function LicensePage() {
     status: 'available',
     notes: ''
   });
+
+  // Renewal state
+  const [showRenewalModal, setShowRenewalModal] = useState(false);
+  const [renewalLicense, setRenewalLicense] = useState(null);
+  const [renewalForm, setRenewalForm] = useState({ proposed_valid_until: '', renewal_notes: '' });
+  const [renewalRequests, setRenewalRequests] = useState([]);
+  const [showRenewalListModal, setShowRenewalListModal] = useState(false);
+  const [renewalDeciding, setRenewalDeciding] = useState(null); // renewal request being decided
+  const [decisionForm, setDecisionForm] = useState({ response_notes: '' });
+  const [renewalSaving, setRenewalSaving] = useState(false);
 
   // Fetch licenses
   const loadLicenses = useCallback(async () => {
@@ -182,6 +201,71 @@ export default function LicensePage() {
     }
   };
 
+  // ── Renewal Handlers ──────────────────────────────────────────────────────
+  const openRenewalModal = (license) => {
+    setRenewalLicense(license);
+    setRenewalForm({ proposed_valid_until: '', renewal_notes: '' });
+    setShowRenewalModal(true);
+  };
+
+  const handleSubmitRenewal = async (e) => {
+    e.preventDefault();
+    setRenewalSaving(true);
+    try {
+      await licenseApi.submitRenewal({
+        license_id: renewalLicense.id,
+        proposed_valid_until: renewalForm.proposed_valid_until || undefined,
+        renewal_notes: renewalForm.renewal_notes || undefined
+      });
+      showToast('Renewal request submitted! Admins have been notified.', 'success');
+      setShowRenewalModal(false);
+    } catch (e) {
+      showToast(e.data?.error || 'Failed to submit renewal request.', 'error');
+    }
+    setRenewalSaving(false);
+  };
+
+  const loadRenewalRequests = useCallback(async () => {
+    try {
+      const data = await licenseApi.listRenewals({});
+      setRenewalRequests(data.renewalRequests || []);
+    } catch (e) {
+      showToast('Failed to load renewal requests.', 'error');
+    }
+  }, [showToast]);
+
+  const openRenewalList = async () => {
+    await loadRenewalRequests();
+    setShowRenewalListModal(true);
+  };
+
+  const handleDecision = async (renewalId, decision) => {
+    setRenewalSaving(true);
+    try {
+      await licenseApi.decideRenewal({
+        renewal_request_id: renewalId,
+        decision,
+        response_notes: decisionForm.response_notes || undefined
+      });
+      showToast(`Renewal request ${decision}!`, decision === 'approved' ? 'success' : 'error');
+      setRenewalDeciding(null);
+      await loadRenewalRequests();
+      await loadLicenses();
+    } catch (e) {
+      showToast(e.data?.error || 'Failed to process decision.', 'error');
+    }
+    setRenewalSaving(false);
+  };
+
+  const handleNotifyUser = async (licenseId, licenseName) => {
+    try {
+      await licenseApi.notifyUser(licenseId);
+      showToast(`User has been notified about the renewed license "${licenseName}".`, 'success');
+    } catch (e) {
+      showToast(e.data?.error || 'Failed to notify user.', 'error');
+    }
+  };
+
   return (
     <AppLayout>
       <div className="flex justify-between items-start mb-6">
@@ -189,13 +273,25 @@ export default function LicensePage() {
           <h1 className="text-2xl font-bold text-slate-900">License Management</h1>
           <p className="text-slate-500 text-sm mt-1">Manage, allocate, and track software licenses & subscriptions</p>
         </div>
-        {canManage && (
-          <button
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
-            onClick={openAdd}
-          >
-            <Plus size={18} /> Add License
-          </button>
+        {(canAdd || canDecideRenew) && (
+          <div className="flex gap-2">
+            {canDecideRenew && (
+              <button
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-medium cursor-pointer border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors"
+                onClick={openRenewalList}
+              >
+                <RefreshCw size={16} /> Renewal Requests
+              </button>
+            )}
+            {canAdd && (
+              <button
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+                onClick={openAdd}
+              >
+                <Plus size={18} /> Add License
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -285,7 +381,7 @@ export default function LicensePage() {
                       <StatusBadge status={license.status} />
                     </td>
                     <td className="py-3.5 px-4 text-right">
-                      <div className="flex justify-end gap-1.5">
+                      <div className="flex justify-end gap-1.5 flex-wrap">
                         <button
                           onClick={() => openViewDetails(license)}
                           className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 border-none bg-transparent cursor-pointer"
@@ -293,22 +389,46 @@ export default function LicensePage() {
                         >
                           <Eye size={16} />
                         </button>
-                        {canManage && (
+                        {/* IT Admin / Admin: Submit renewal request for expired licenses */}
+                        {canSubmitRenew && license.status === 'expired' && (
+                          <button
+                            onClick={() => openRenewalModal(license)}
+                            className="p-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 border-none bg-transparent cursor-pointer"
+                            title="Submit Renewal Request"
+                          >
+                            <RefreshCw size={16} />
+                          </button>
+                        )}
+                        {/* Location Admin: Notify user if license is active (just renewed) */}
+                        {canNotify && license.status === 'active' && license.user && (
+                          <button
+                            onClick={() => handleNotifyUser(license.id, license.software_name)}
+                            className="p-2 text-emerald-500 hover:text-emerald-700 rounded-lg hover:bg-emerald-50 border-none bg-transparent cursor-pointer"
+                            title="Notify Assigned User"
+                          >
+                            <Bell size={16} />
+                          </button>
+                        )}
+                        {(canEdit || canDelete) && (
                           <>
-                            <button
-                              onClick={() => openEdit(license)}
-                              className="p-2 text-slate-400 hover:text-emerald-600 rounded-lg hover:bg-emerald-50 border-none bg-transparent cursor-pointer"
-                              title="Edit License"
-                            >
-                              <Pencil size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(license.id, license.software_name)}
-                              className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 border-none bg-transparent cursor-pointer"
-                              title="Delete License"
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                            {canEdit && (
+                              <button
+                                onClick={() => openEdit(license)}
+                                className="p-2 text-slate-400 hover:text-emerald-600 rounded-lg hover:bg-emerald-50 border-none bg-transparent cursor-pointer"
+                                title="Edit License"
+                              >
+                                <Pencil size={16} />
+                              </button>
+                            )}
+                            {canDelete && (
+                              <button
+                                onClick={() => handleDelete(license.id, license.software_name)}
+                                className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 border-none bg-transparent cursor-pointer"
+                                title="Delete License"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
                           </>
                         )}
                       </div>
@@ -512,6 +632,111 @@ export default function LicensePage() {
                 Close
               </button>
             </div>
+          </div>
+        </Modal>
+      )}
+      {/* ── Submit Renewal Request Modal (IT Admin) ─────────────────────────── */}
+      {showRenewalModal && renewalLicense && (
+        <Modal isOpen={showRenewalModal} title={`Request Renewal: ${renewalLicense.software_name}`} onClose={() => setShowRenewalModal(false)}>
+          <form onSubmit={handleSubmitRenewal} className="space-y-4">
+            <div className="p-3 bg-rose-50 border border-rose-100 rounded-xl text-sm text-rose-700">
+              ⚠️ This license expired on <strong>{renewalLicense.valid_until}</strong>. Submit a renewal request for Admin approval.
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Proposed New Valid Until</label>
+              <input
+                type="date"
+                value={renewalForm.proposed_valid_until}
+                onChange={e => setRenewalForm({ ...renewalForm, proposed_valid_until: e.target.value })}
+                className="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-slate-800"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Renewal Notes</label>
+              <textarea
+                placeholder="Reason for renewal, vendor details, cost info..."
+                value={renewalForm.renewal_notes}
+                onChange={e => setRenewalForm({ ...renewalForm, renewal_notes: e.target.value })}
+                rows={3}
+                className="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-slate-800"
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <button type="button" onClick={() => setShowRenewalModal(false)} className="px-5 py-2.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer">Cancel</button>
+              <button type="submit" disabled={renewalSaving} className="px-5 py-2.5 border-none bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium cursor-pointer">
+                {renewalSaving ? 'Submitting...' : 'Submit Renewal Request'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* ── Renewal Requests List + Decision Modal (Admin) ───────────────────── */}
+      {showRenewalListModal && (
+        <Modal isOpen={showRenewalListModal} title="License Renewal Requests" onClose={() => { setShowRenewalListModal(false); setRenewalDeciding(null); }}>
+          <div className="space-y-3 max-h-[520px] overflow-y-auto">
+            {renewalRequests.length === 0 ? (
+              <div className="text-center py-10 text-slate-400">
+                <RefreshCw size={32} className="mx-auto mb-2 opacity-30" />
+                <p className="text-sm">No renewal requests found.</p>
+              </div>
+            ) : renewalRequests.map((rr) => (
+              <div key={rr.id} className="border border-slate-200 rounded-xl p-4 space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-slate-800 text-sm">{rr.license?.software_name}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Requested by {rr.requester?.name} • {new Date(rr.created_at).toLocaleDateString()}</p>
+                    {rr.proposed_valid_until && <p className="text-xs text-slate-600 mt-1">Proposed validity: <strong>{rr.proposed_valid_until}</strong></p>}
+                    {rr.renewal_notes && <p className="text-xs text-slate-500 italic mt-1">&ldquo;{rr.renewal_notes}&rdquo;</p>}
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0 ${
+                    rr.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                    rr.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                    'bg-rose-100 text-rose-700'
+                  }`}>{rr.status.toUpperCase()}</span>
+                </div>
+
+                {/* Decision panel for Admin */}
+                {canDecideRenew && rr.status === 'pending' && (
+                  renewalDeciding?.id === rr.id ? (
+                    <div className="pt-2 border-t border-slate-100 space-y-2">
+                      <textarea
+                        placeholder="Response notes (optional)..."
+                        value={decisionForm.response_notes}
+                        onChange={e => setDecisionForm({ response_notes: e.target.value })}
+                        rows={2}
+                        className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none text-slate-800"
+                      />
+                      <div className="flex gap-2">
+                        <button onClick={() => handleDecision(rr.id, 'approved')} disabled={renewalSaving} className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold border-none cursor-pointer">
+                          <CheckCircle size={14} /> {renewalSaving ? 'Processing...' : 'Approve'}
+                        </button>
+                        <button onClick={() => handleDecision(rr.id, 'rejected')} disabled={renewalSaving} className="flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold border-none cursor-pointer">
+                          <XCircle size={14} /> Reject
+                        </button>
+                        <button onClick={() => setRenewalDeciding(null)} className="px-4 py-2 border border-slate-200 rounded-lg text-xs text-slate-600 cursor-pointer bg-transparent">Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="pt-2 border-t border-slate-100">
+                      <button
+                        onClick={() => { setRenewalDeciding(rr); setDecisionForm({ response_notes: '' }); }}
+                        className="text-xs font-semibold text-blue-600 hover:text-blue-800 cursor-pointer border-none bg-transparent"
+                      >
+                        Review &amp; Decide →
+                      </button>
+                    </div>
+                  )
+                )}
+
+                {rr.status !== 'pending' && rr.response_notes && (
+                  <p className="text-xs text-slate-500 pt-2 border-t border-slate-100">Response: <em>{rr.response_notes}</em></p>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end pt-4 border-t border-slate-100">
+            <button onClick={() => setShowRenewalListModal(false)} className="px-5 py-2.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer">Close</button>
           </div>
         </Modal>
       )}
