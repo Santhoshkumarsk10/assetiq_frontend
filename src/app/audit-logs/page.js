@@ -152,8 +152,8 @@ export default function AuditLogsPage() {
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
-        <div className="flex gap-4 items-center mb-5">
-          <div className="flex-1 relative">
+        <div className="flex flex-col md:flex-row gap-4 md:items-center mb-5">
+          <div className="flex-1 relative w-full">
             <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-2.5">
               <Search size={18} className="text-slate-400 shrink-0" />
               <input
@@ -213,7 +213,7 @@ export default function AuditLogsPage() {
             ]}
             value={actionFilter}
             onChange={val => { setActionFilter(val); setPage(1); }}
-            className="w-[150px]"
+            className="w-full md:w-[150px]"
           />
           <SearchableSelect
             options={[
@@ -224,7 +224,7 @@ export default function AuditLogsPage() {
             ]}
             value={limit}
             onChange={val => setLimit(val)}
-            className="w-[150px]"
+            className="w-full md:w-[150px]"
           />
         </div>
 

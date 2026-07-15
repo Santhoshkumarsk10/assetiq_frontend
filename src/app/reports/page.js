@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import AppLayout from "@/components/AppLayout";
 import SearchableSelect from "@/components/SearchableSelect";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { assetApi, auditApi } from "@/lib/api";
 import {
   BarChart,
@@ -119,6 +120,7 @@ function TablePagination({ currentPage, totalItems, limit, onPageChange, onLimit
 }
 
 export default function ReportsPage() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("inventory");
 
@@ -679,25 +681,27 @@ export default function ReportsPage() {
               </div>
 
               {/* Data Table */}
+              {/* Data Table */}
               <div className="border border-slate-100 rounded-2xl overflow-hidden bg-white shadow-xs">
-                <div className="overflow-x-auto">
+                {/* Desktop view */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-100">
                         <th className="px-5 py-3 text-xs font-bold text-slate-450 uppercase tracking-wider">
-                          Asset Tag
+                          {t('assetTag')}
                         </th>
                         <th className="px-5 py-3 text-xs font-bold text-slate-450 uppercase tracking-wider">
-                          Asset Details
+                          {t('assetDetails')}
                         </th>
                         <th className="px-5 py-3 text-xs font-bold text-slate-450 uppercase tracking-wider">
-                          Location
+                          {t('location')}
                         </th>
                         <th className="px-5 py-3 text-xs font-bold text-slate-450 uppercase tracking-wider">
-                          Status
+                          {t('status')}
                         </th>
                         <th className="px-5 py-3 text-xs font-bold text-slate-450 uppercase tracking-wider">
-                          Assigned To
+                          {t('allocatedTo')}
                         </th>
                       </tr>
                     </thead>
@@ -725,11 +729,11 @@ export default function ReportsPage() {
                                 {asset.name}
                               </div>
                               <div className="text-[10px] text-slate-400 font-medium mt-0.5">
-                                {asset.type} • {asset.brand || "No Brand"} • SN:{" "}
+                                {t(asset.type) || asset.type} • {asset.brand || "No Brand"} • SN:{" "}
                                 {asset.serial_number || "—"}
                               </div>
                             </td>
-                            <td className="px-5 py-4 text-xs text-slate-600 font-medium">
+                            <td className="px-5 py-4 text-xs text-slate-660 font-medium">
                               {asset.location?.name || "—"}
                             </td>
                             <td className="px-5 py-4">
@@ -741,7 +745,7 @@ export default function ReportsPage() {
                                   border: `1px solid ${STATUS_COLORS[asset.status]}30`,
                                 }}
                               >
-                                {asset.status}
+                                {t(asset.status) || asset.status}
                               </span>
                             </td>
                             <td className="px-5 py-4 text-xs text-slate-650 font-bold">
@@ -752,6 +756,54 @@ export default function ReportsPage() {
                       )}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Mobile view */}
+                <div className="block md:hidden divide-y divide-slate-100">
+                  {filteredAssets.length === 0 ? (
+                    <div className="text-center py-10 text-slate-400 text-xs">
+                      No matching assets found.
+                    </div>
+                  ) : (
+                    filteredAssets.slice((pageInventory - 1) * limitInventory, pageInventory * limitInventory).map((asset) => (
+                      <div key={asset.id} className="p-4 flex flex-col gap-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="text-sm font-bold text-slate-800">{asset.name}</h4>
+                            <span className="text-xs font-mono text-emerald-600 font-bold mt-0.5 block">{asset.asset_tag}</span>
+                          </div>
+                          <span
+                            className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase"
+                            style={{
+                              backgroundColor: `${STATUS_COLORS[asset.status]}15`,
+                              color: STATUS_COLORS[asset.status],
+                              border: `1px solid ${STATUS_COLORS[asset.status]}30`,
+                            }}
+                          >
+                            {t(asset.status) || asset.status}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 border-t border-slate-50 pt-2">
+                          <div>
+                            <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('category')}</span>
+                            <span className="font-semibold text-slate-700">{t(asset.type) || asset.type}</span>
+                          </div>
+                          <div>
+                            <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('location')}</span>
+                            <span className="font-semibold text-slate-700">{asset.location?.name || "—"}</span>
+                          </div>
+                          <div>
+                            <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('allocatedTo')}</span>
+                            <span className="font-semibold text-slate-750">{asset.allocated_user_name || "—"}</span>
+                          </div>
+                          <div>
+                            <span className="block text-[10px] text-slate-400 font-bold uppercase">SN</span>
+                            <span className="font-semibold text-slate-700">{asset.serial_number || "—"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
                 <TablePagination
                   currentPage={pageInventory}
@@ -795,31 +847,33 @@ export default function ReportsPage() {
               </div>
 
               {/* Data Table */}
+              {/* Data Table */}
               <div className="border border-slate-100 rounded-2xl overflow-hidden bg-white shadow-xs">
-                <div className="overflow-x-auto">
+                {/* Desktop view */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-100">
                         <th className="px-5 py-3 text-xs font-bold text-slate-450 uppercase tracking-wider">
-                          Asset Tag
+                          {t('assetTag')}
                         </th>
                         <th className="px-5 py-3 text-xs font-bold text-slate-450 uppercase tracking-wider">
-                          Assigned Employee
+                          {t('assignedEmployee')}
                         </th>
                         <th className="px-5 py-3 text-xs font-bold text-slate-450 uppercase tracking-wider">
-                          Allocated By
+                          {t('allocatedBy')}
                         </th>
                         <th className="px-5 py-3 text-xs font-bold text-slate-450 uppercase tracking-wider">
-                          Notes / Reason
+                          {t('notesReason')}
                         </th>
                         <th className="px-5 py-3 text-xs font-bold text-slate-450 uppercase tracking-wider">
-                          State
+                          {t('state')}
                         </th>
                         <th className="px-5 py-3 text-xs font-bold text-slate-450 uppercase tracking-wider">
-                          Allocated Date
+                          {t('allocatedDate')}
                         </th>
                         <th className="px-5 py-3 text-xs font-bold text-slate-450 uppercase tracking-wider">
-                          Returned Date
+                          {t('returnedDate')}
                         </th>
                       </tr>
                     </thead>
@@ -863,8 +917,8 @@ export default function ReportsPage() {
                                 }`}
                               >
                                 {alloc.status === "active"
-                                  ? "Active"
-                                  : "Returned"}
+                                  ? t('active')
+                                  : t('returned')}
                               </span>
                             </td>
                             <td className="px-5 py-4 text-xs text-slate-600 font-medium">
@@ -886,6 +940,63 @@ export default function ReportsPage() {
                       )}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Mobile view */}
+                <div className="block md:hidden divide-y divide-slate-100">
+                  {filteredAllocations.length === 0 ? (
+                    <div className="text-center py-10 text-slate-400 text-xs">
+                      No allocation records found.
+                    </div>
+                  ) : (
+                    filteredAllocations.slice((pageAllocations - 1) * limitAllocations, pageAllocations * limitAllocations).map((alloc) => (
+                      <div key={alloc.id} className="p-4 flex flex-col gap-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="text-sm font-bold text-slate-800">{alloc.asset?.name || "—"}</h4>
+                            <span className="text-xs font-mono text-emerald-600 font-bold mt-0.5 block">{alloc.asset?.asset_tag || "—"}</span>
+                          </div>
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                              alloc.status === "active"
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : "bg-slate-100 text-slate-600 border-slate-200"
+                            }`}
+                          >
+                            {alloc.status === "active" ? t('active') : t('returned')}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 border-t border-slate-50 pt-2">
+                          <div>
+                            <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('assignedEmployee')}</span>
+                            <span className="font-semibold text-slate-700">{alloc.user?.name || "—"}</span>
+                          </div>
+                          <div>
+                            <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('allocatedBy')}</span>
+                            <span className="font-semibold text-slate-700">{alloc.allocator?.name || "—"}</span>
+                          </div>
+                          <div>
+                            <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('allocatedDate')}</span>
+                            <span className="font-semibold text-slate-700">
+                              {alloc.created_at ? new Date(alloc.created_at).toLocaleDateString() : "—"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('returnedDate')}</span>
+                            <span className="font-semibold text-slate-700">
+                              {alloc.returned_at ? new Date(alloc.returned_at).toLocaleDateString() : "—"}
+                            </span>
+                          </div>
+                        </div>
+                        {alloc.notes && (
+                          <div className="text-xs text-slate-500 border-t border-slate-50 pt-2">
+                            <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('notesReason')}</span>
+                            <p className="mt-0.5 text-slate-700 leading-relaxed">{alloc.notes}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
                 <TablePagination
                   currentPage={pageAllocations}
@@ -934,22 +1045,24 @@ export default function ReportsPage() {
               </div>
 
               {/* Data Table */}
+              {/* Data Table */}
               <div className="border border-slate-100 rounded-2xl overflow-hidden bg-white shadow-xs">
-                <div className="overflow-x-auto">
+                {/* Desktop view */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-100">
                         <th className="px-5 py-3 text-xs font-bold text-slate-450 uppercase tracking-wider w-[180px]">
-                          Timestamp
+                          {t('timestamp')}
                         </th>
                         <th className="px-5 py-3 text-xs font-bold text-slate-450 uppercase tracking-wider w-[160px]">
-                          Performed By
+                          {t('performedBy')}
                         </th>
                         <th className="px-5 py-3 text-xs font-bold text-slate-450 uppercase tracking-wider w-[180px]">
                           Action
                         </th>
                         <th className="px-5 py-3 text-xs font-bold text-slate-450 uppercase tracking-wider">
-                          Log Details
+                          {t('logDetails')}
                         </th>
                       </tr>
                     </thead>
@@ -999,6 +1112,40 @@ export default function ReportsPage() {
                       )}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Mobile view */}
+                <div className="block md:hidden divide-y divide-slate-100">
+                  {filteredAuditLogs.length === 0 ? (
+                    <div className="text-center py-10 text-slate-400 text-xs">
+                      No audit logs found.
+                    </div>
+                  ) : (
+                    filteredAuditLogs.slice((pageAudit - 1) * limitAudit, pageAudit * limitAudit).map((log) => (
+                      <div key={log.id} className="p-4 flex flex-col gap-3">
+                        <div className="flex justify-between items-start">
+                          <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
+                            <Calendar size={13} className="text-slate-400" />
+                            {log.created_at ? new Date(log.created_at).toLocaleString() : "—"}
+                          </span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                            {log.action}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-700 border-t border-slate-50 pt-2">
+                          <span className="block text-[10px] text-slate-450 font-bold uppercase mb-1">{t('performedBy')}</span>
+                          <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                            <User size={13} className="text-slate-400" />
+                            {log.user?.name || "System"}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-650 leading-relaxed font-medium">
+                          <span className="block text-[10px] text-slate-450 font-bold uppercase mb-1">{t('logDetails')}</span>
+                          <p>{log.details}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
                 <TablePagination
                   currentPage={pageAudit}

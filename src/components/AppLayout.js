@@ -21,6 +21,19 @@ export default function AppLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        setSidebarOpen(false);
+      } else {
+        setSidebarOpen(true);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
     if (!loading) {
       if (!isAuthenticated) {
         router.push('/login');
@@ -55,9 +68,17 @@ export default function AppLayout({ children }) {
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar isOpen={sidebarOpen} />
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs z-[95] lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
       <TopBar isOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-      <main className={`flex-1 pt-[60px] transition-all duration-300 ${sidebarOpen ? 'ml-[220px]' : 'ml-[80px]'}`}>
-        <div className="p-7 md:p-8">{children}</div>
+      <main className={`flex-1 pt-[60px] transition-all duration-300 ${
+        sidebarOpen ? 'ml-0 lg:ml-[220px]' : 'ml-0 lg:ml-[80px]'
+      }`}>
+        <div className="p-4 md:p-8">{children}</div>
       </main>
     </div>
   );

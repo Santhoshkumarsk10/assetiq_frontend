@@ -22,6 +22,13 @@ const notifTypeConfig = {
   renewal_approved: { icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-50' },
   renewal_rejected: { icon: XCircle, color: 'text-rose-500', bg: 'bg-rose-50' },
   user_notify: { icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+  ticket_raised: { icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-50' },
+  ticket_assigned: { icon: Info, color: 'text-blue-500', bg: 'bg-blue-50' },
+  ticket_resolved: { icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+  ticket_closed: { icon: CheckCircle, color: 'text-slate-500', bg: 'bg-slate-50' },
+  ticket_cancelled: { icon: XCircle, color: 'text-rose-500', bg: 'bg-rose-50' },
+  ticket_comment: { icon: Info, color: 'text-blue-500', bg: 'bg-blue-50' },
+  ticket_update: { icon: Info, color: 'text-blue-500', bg: 'bg-blue-50' },
   info: { icon: Info, color: 'text-slate-400', bg: 'bg-slate-50' },
 };
 
@@ -114,8 +121,8 @@ export default function TopBar({ isOpen, toggleSidebar }) {
   const currentLanguageObject = languagesList.find(l => l.code === language) || languagesList[0];
 
   return (
-    <header className={`fixed top-0 right-0 h-[60px] bg-white border-b border-slate-200 flex items-center justify-between px-7 z-[90] transition-all duration-300 ${
-      isOpen ? 'left-[220px]' : 'left-[80px]'
+    <header className={`fixed top-0 right-0 h-[60px] bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-7 z-[90] transition-all duration-300 ${
+      isOpen ? 'left-0 lg:left-[220px]' : 'left-0 lg:left-[80px]'
     }`}>
       <div className="flex items-center gap-3">
         <button

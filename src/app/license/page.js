@@ -10,8 +10,10 @@ import { Search, Plus, Eye, Pencil, Trash2, KeyRound, X, Calendar, User, Refresh
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function LicensePage() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const { showToast } = useToast();
   const { confirm } = useConfirm();
@@ -335,108 +337,176 @@ export default function LicensePage() {
               <KeyRound className="animate-pulse text-emerald-500 mb-2" size={32} />
               Loading licenses...
             </div>
-          ) : licenses.length === 0 ? (
-            <div className="text-center py-12 text-slate-500 text-sm">
-              No software licenses found matching your filters.
-            </div>
           ) : (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-100 text-slate-400 text-xs font-semibold uppercase tracking-wider">
-                  <th className="py-3 px-4">Software Title</th>
-                  <th className="py-3 px-4">License Key</th>
-                  <th className="py-3 px-4">Assigned To</th>
-                  <th className="py-3 px-4">Validity</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {licenses.map((license) => (
-                  <tr key={license.id} className="text-slate-700 text-sm hover:bg-slate-50/50 transition-colors">
-                    <td className="py-3.5 px-4 font-semibold text-slate-900">{license.software_name}</td>
-                    <td className="py-3.5 px-4 font-mono text-xs text-slate-500">{license.license_key.substring(0, 12)}...</td>
-                    <td className="py-3.5 px-4">
-                      {license.user ? (
-                        <div className="flex items-center gap-1.5">
-                          <User size={15} className="text-slate-400" />
-                          <span>{license.user.name}</span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 font-light italic">Unassigned</span>
-                      )}
-                    </td>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                      <th className="py-3 px-4">{t('software')}</th>
+                      <th className="py-3 px-4">{t('licenseKey')}</th>
+                      <th className="py-3 px-4">{t('assignedTo')}</th>
+                      <th className="py-3 px-4">{t('validUntil')}</th>
+                      <th className="py-3 px-4">{t('status')}</th>
+                      <th className="py-3 px-4 text-right">{t('actions')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {licenses.map((license) => (
+                      <tr key={license.id} className="text-slate-700 text-sm hover:bg-slate-50/50 transition-colors">
+                        <td className="py-3.5 px-4 font-semibold text-slate-900">{license.software_name}</td>
+                        <td className="py-3.5 px-4 font-mono text-xs text-slate-500">{license.license_key.substring(0, 12)}...</td>
+                        <td className="py-3.5 px-4">
+                          {license.user ? (
+                            <div className="flex items-center gap-1.5">
+                              <User size={15} className="text-slate-400" />
+                              <span>{license.user.name}</span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 font-light italic">{t('unassigned')}</span>
+                          )}
+                        </td>
 
-                    <td className="py-3.5 px-4 text-xs text-slate-600">
-                      {license.valid_until ? (
-                        <div className="flex items-center gap-1">
-                          <Calendar size={13} className="text-slate-400" />
-                          <span>Expires {license.valid_until}</span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400">Perpetual / Ongoing</span>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <StatusBadge status={license.status} />
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex justify-end gap-1.5 flex-wrap">
-                        <button
-                          onClick={() => openViewDetails(license)}
-                          className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 border-none bg-transparent cursor-pointer"
-                          title="View Details"
-                        >
-                          <Eye size={16} />
-                        </button>
-                        {/* IT Admin / Admin: Submit renewal request for expired licenses */}
-                        {canSubmitRenew && license.status === 'expired' && (
-                          <button
-                            onClick={() => openRenewalModal(license)}
-                            className="p-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 border-none bg-transparent cursor-pointer"
-                            title="Submit Renewal Request"
-                          >
-                            <RefreshCw size={16} />
-                          </button>
-                        )}
-                        {/* Location Admin: Notify user if license is active (just renewed) */}
-                        {canNotify && license.status === 'active' && license.user && (
-                          <button
-                            onClick={() => handleNotifyUser(license.id, license.software_name)}
-                            className="p-2 text-emerald-500 hover:text-emerald-700 rounded-lg hover:bg-emerald-50 border-none bg-transparent cursor-pointer"
-                            title="Notify Assigned User"
-                          >
-                            <Bell size={16} />
-                          </button>
-                        )}
-                        {(canEdit || canDelete) && (
-                          <>
-                            {canEdit && (
+                        <td className="py-3.5 px-4 text-xs text-slate-600">
+                          {license.valid_until ? (
+                            <div className="flex items-center gap-1">
+                              <Calendar size={13} className="text-slate-400" />
+                              <span>Expires {license.valid_until}</span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">Perpetual / Ongoing</span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <StatusBadge status={license.status} />
+                        </td>
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="flex justify-end gap-1.5 flex-wrap">
+                            <button
+                              onClick={() => openViewDetails(license)}
+                              className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 border-none bg-transparent cursor-pointer"
+                              title={t('view')}
+                            >
+                              <Eye size={16} />
+                            </button>
+                            {/* IT Admin / Admin: Submit renewal request for expired licenses */}
+                            {canSubmitRenew && license.status === 'expired' && (
                               <button
-                                onClick={() => openEdit(license)}
-                                className="p-2 text-slate-400 hover:text-emerald-600 rounded-lg hover:bg-emerald-50 border-none bg-transparent cursor-pointer"
-                                title="Edit License"
+                                onClick={() => openRenewalModal(license)}
+                                className="p-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 border-none bg-transparent cursor-pointer"
+                                title="Submit Renewal Request"
                               >
-                                <Pencil size={16} />
+                                <RefreshCw size={16} />
                               </button>
                             )}
-                            {canDelete && (
+                            {/* Location Admin: Notify user if license is active (just renewed) */}
+                            {canNotify && license.status === 'active' && license.user && (
                               <button
-                                onClick={() => handleDelete(license.id, license.software_name)}
-                                className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 border-none bg-transparent cursor-pointer"
-                                title="Delete License"
+                                onClick={() => handleNotifyUser(license.id, license.software_name)}
+                                className="p-2 text-emerald-500 hover:text-emerald-700 rounded-lg hover:bg-emerald-50 border-none bg-transparent cursor-pointer"
+                                title="Notify Assigned User"
                               >
-                                <Trash2 size={16} />
+                                <Bell size={16} />
                               </button>
                             )}
-                          </>
-                        )}
+                            {(canEdit || canDelete) && (
+                              <>
+                                {canEdit && (
+                                  <button
+                                    onClick={() => openEdit(license)}
+                                    className="p-2 text-slate-400 hover:text-emerald-600 rounded-lg hover:bg-emerald-50 border-none bg-transparent cursor-pointer"
+                                    title={t('edit')}
+                                  >
+                                    <Pencil size={16} />
+                                  </button>
+                                )}
+                                {canDelete && (
+                                  <button
+                                    onClick={() => handleDelete(license.id, license.software_name)}
+                                    className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 border-none bg-transparent cursor-pointer"
+                                    title={t('delete')}
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Cards View */}
+              <div className="block md:hidden space-y-4">
+                {licenses.map((license) => (
+                  <div key={license.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex flex-col gap-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800">{license.software_name}</h4>
+                        <span className="text-xs text-slate-450 font-mono mt-0.5 block">{license.license_key.substring(0, 16)}...</span>
                       </div>
-                    </td>
-                  </tr>
+                      <StatusBadge status={license.status} />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 border-t border-b border-slate-100 py-2">
+                      <div>
+                        <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('assignedTo')}</span>
+                        <span className="font-semibold text-slate-700">{license.user?.name || t('unassigned')}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('validUntil')}</span>
+                        <span className="font-semibold text-slate-700">{license.valid_until || 'Perpetual'}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-1.5 pt-1">
+                      <button
+                        onClick={() => openViewDetails(license)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-650 text-xs font-bold hover:bg-slate-100 transition-colors cursor-pointer"
+                      >
+                        <Eye size={14} /> {t('view')}
+                      </button>
+                      {canSubmitRenew && license.status === 'expired' && (
+                        <button
+                          onClick={() => openRenewalModal(license)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors cursor-pointer"
+                        >
+                          <RefreshCw size={14} /> {t('refresh')}
+                        </button>
+                      )}
+                      {canNotify && license.status === 'active' && license.user && (
+                        <button
+                          onClick={() => handleNotifyUser(license.id, license.software_name)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors cursor-pointer"
+                        >
+                          <Bell size={14} /> {t('actions')}
+                        </button>
+                      )}
+                      {canEdit && (
+                        <button
+                          onClick={() => openEdit(license)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-650 text-xs font-bold hover:bg-slate-100 transition-colors cursor-pointer"
+                        >
+                          <Pencil size={14} /> {t('edit')}
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={() => handleDelete(license.id, license.software_name)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold transition-colors cursor-pointer"
+                        >
+                          <Trash2 size={14} /> {t('delete')}
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </>
           )}
         </div>
 
@@ -685,7 +755,7 @@ export default function LicensePage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-semibold text-slate-800 text-sm">{rr.license?.software_name}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">Requested by {rr.requester?.name} • {new Date(rr.created_at).toLocaleDateString()}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Requested by {rr.requester?.name} • {new Date(rr.createdAt || rr.created_at).toLocaleDateString()}</p>
                     {rr.proposed_valid_until && <p className="text-xs text-slate-600 mt-1">Proposed validity: <strong>{rr.proposed_valid_until}</strong></p>}
                     {rr.renewal_notes && <p className="text-xs text-slate-500 italic mt-1">&ldquo;{rr.renewal_notes}&rdquo;</p>}
                   </div>
