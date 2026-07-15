@@ -174,4 +174,16 @@ export const notificationApi = {
   markRead: (body) => apiRequest('/notifications/mark-read', { body }),
 };
 
-
+// Tickets
+export const ticketApi = {
+  list: (body) => apiRequest('/tickets/list', { body }),
+  details: (id) => apiRequest('/tickets/details', { body: { id } }),
+  raise: (body) => apiRequest('/tickets/raise', { body }),
+  assign: (body) => apiRequest('/tickets/assign', { body }),
+  resolve: (body) => apiRequest('/tickets/resolve', { body }),
+  close: (id) => apiRequest('/tickets/close', { body: { id } }),
+  cancel: (body) => apiRequest('/tickets/cancel', { body }),
+  addComment: (body) => apiRequest('/tickets/comment/add', { body }),
+  listComments: (ticketId) => apiRequest('/tickets/comment/list', { body: { ticket_id: ticketId } }),
+  myAssets: () => apiRequest('/tickets/my-assets', {}),
+};

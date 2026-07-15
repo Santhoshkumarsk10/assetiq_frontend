@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import {
   LayoutDashboard, Settings2, Users, ClipboardList,
-  MapPin, LogOut, Package, Shield, UserCheck, BarChart2, KeyRound
+  MapPin, LogOut, Package, Shield, UserCheck, BarChart2, KeyRound, Ticket
 } from 'lucide-react';
 
 export default function Sidebar({ isOpen }) {
@@ -23,7 +23,8 @@ export default function Sidebar({ isOpen }) {
     { href: '/onboarding', labelKey: 'onboarding', icon: UserCheck, permissions: ['onboarding.list', 'email_request.list'] },
     { href: '/roles-permissions', labelKey: 'rolesPermissions', icon: Shield, permissions: ['role.list'] },
     { href: '/audit-logs', labelKey: 'auditLogs', icon: ClipboardList, permissions: ['auditlog.list'] },
-    { href: '/reports', labelKey: 'reports', icon: BarChart2, permissions: ['asset.list'] }
+    { href: '/reports', labelKey: 'reports', icon: BarChart2, permissions: ['asset.list'] },
+    { href: '/tickets', labelKey: 'tickets', icon: Ticket, permissions: ['ticket.list'] }
   ];
 
   const navItems = menuConfig.filter(item => 
@@ -31,14 +32,14 @@ export default function Sidebar({ isOpen }) {
   );
 
   return (
-    <aside className={`fixed left-0 top-0 bottom-0 bg-white border-r border-slate-200 flex flex-col z-[100] transition-all duration-300 ${
-      isOpen ? 'w-[220px]' : 'w-[80px]'
+    <aside className={`fixed top-0 bottom-0 bg-white border-r border-slate-200 flex flex-col z-[100] transition-all duration-300 ${
+      isOpen ? 'w-[220px] left-0' : 'w-[80px] -left-20 lg:left-0'
     }`}>
       <div className={`p-5 pb-4 flex items-center gap-2 border-b border-slate-100 ${isOpen ? '' : 'justify-center px-2'}`}>
         <div className="w-8 h-8 bg-emerald-50 rounded-lg flex shrink-0 items-center justify-center text-emerald-600">
           <Settings2 size={20} />
         </div>
-        {isOpen && <h1 className="text-lg font-bold text-slate-900 overflow-hidden whitespace-nowrap">Asset<span className="text-emerald-500">IQ</span></h1>}
+        {isOpen && <h1 className="text-md font-bold text-slate-900 overflow-hidden whitespace-nowrap">AUX Asset<span className="text-emerald-500">CARE</span></h1>}
       </div>
 
       <nav className="flex-1 py-3 overflow-y-auto">

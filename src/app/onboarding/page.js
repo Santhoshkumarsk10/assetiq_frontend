@@ -5,6 +5,7 @@ import Modal from '@/components/Modal';
 import StatusBadge from '@/components/StatusBadge';
 import SearchableSelect from '@/components/SearchableSelect';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { onboardingApi, emailRequestApi, assetApi, userApi } from '@/lib/api';
 import { socket } from '@/lib/socket';
 import { 
@@ -13,8 +14,9 @@ import {
   Send, Server, RefreshCw, XCircle, Search, X
 } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
-
+ 
 export default function OnboardingPage() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const { showToast } = useToast();
   const permissions = user?.permissions || [];
@@ -673,86 +675,168 @@ export default function OnboardingPage() {
           <div className="text-sm text-slate-500 mb-4">
             Showing <strong className="font-semibold text-slate-700">{emailRequests.length}</strong> corporate email requests
           </div>
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Employee</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Location</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Suggested Corporate Email</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Onboarding Status</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Email Status</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">IT Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {emailRequests.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="text-center py-15 px-5 text-slate-400 text-sm">
-                    No email provisioning requests found.
-                  </td>
+          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('employee')}</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('location')}</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('suggestedCorporateEmail')}</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('onboardingStatus')}</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('emailStatus')}</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('itActions')}</th>
                 </tr>
-              ) : (
-                emailRequests.map(req => (
-                  <tr key={req.id} className="hover:bg-slate-50 border-b border-slate-100">
-                    <td className="px-4 py-3.5 text-sm align-middle">
-                      <div className="font-semibold text-slate-800">{req.onboardingRequest?.name}</div>
-                      <div className="text-xs text-slate-405 mt-0.5">
-                        ID: {req.onboardingRequest?.employee_id} | {req.onboardingRequest?.designation}
-                      </div>
+              </thead>
+              <tbody>
+                {emailRequests.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="text-center py-15 px-5 text-slate-400 text-sm">
+                      No email provisioning requests found.
                     </td>
-                    <td className="px-4 py-3.5 text-sm text-slate-600 align-middle">{req.onboardingRequest?.location?.name || '—'}</td>
-                    <td className="px-4 py-3.5 text-sm align-middle"><span className="inline-block px-2.5 py-1 rounded bg-slate-50 border border-slate-200 font-mono text-xs text-slate-700">{req.suggested_email}</span></td>
-                    <td className="px-4 py-3.5 text-sm align-middle">
+                  </tr>
+                ) : (
+                  emailRequests.map(req => (
+                    <tr key={req.id} className="hover:bg-slate-50 border-b border-slate-100">
+                      <td className="px-4 py-3.5 text-sm align-middle">
+                        <div className="font-semibold text-slate-800">{req.onboardingRequest?.name}</div>
+                        <div className="text-xs text-slate-405 mt-0.5">
+                          ID: {req.onboardingRequest?.employee_id} | {req.onboardingRequest?.designation}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5 text-sm text-slate-600 align-middle">{req.onboardingRequest?.location?.name || '—'}</td>
+                      <td className="px-4 py-3.5 text-sm align-middle"><span className="inline-block px-2.5 py-1 rounded bg-slate-50 border border-slate-200 font-mono text-xs text-slate-700">{req.suggested_email}</span></td>
+                      <td className="px-4 py-3.5 text-sm align-middle">
+                        {req.onboardingRequest ? (
+                          <div className="flex flex-col gap-1">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border w-fit ${
+                              req.onboardingRequest.status === 'completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
+                              req.onboardingRequest.status === 'draft' ? 'bg-slate-50 text-slate-600 border-slate-200' : 
+                              req.onboardingRequest.status === 'pending_approval' ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200'
+                            }`}>
+                              <span className="w-1 h-1 rounded-full bg-current" />
+                              {t(req.onboardingRequest.status) || req.onboardingRequest.status.replace('_', ' ')}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium">Step {req.onboardingRequest.step} / 6</span>
+                          </div>
+                        ) : '—'}
+                      </td>
+                      <td className="px-4 py-3.5 text-sm align-middle">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold border ${
+                          req.status === 'approved' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 
+                          req.status === 'rejected' ? 'bg-rose-100 text-rose-700 border-rose-200' : 'bg-amber-100 text-amber-800 border-amber-200'
+                        }`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                          {t(req.status) || req.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-sm align-middle">
+                        {req.status === 'pending' ? (
+                          <div className="flex gap-2">
+                            {canProcessEmails && (
+                              <button 
+                                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer" 
+                                onClick={() => {
+                                  setSelectedEmailReq(req);
+                                  setEmailRemarks('');
+                                  setShowEmailActionModal(true);
+                                }}
+                              >
+                                Process Request
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400">
+                            Processed by {req.processor?.name || 'Admin'}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="block md:hidden divide-y divide-slate-100">
+            {emailRequests.length === 0 ? (
+              <div className="text-center py-10 text-slate-400 text-xs">
+                No email provisioning requests found.
+              </div>
+            ) : (
+              emailRequests.map(req => (
+                <div key={req.id} className="p-4 flex flex-col gap-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-800">{req.onboardingRequest?.name}</h4>
+                      <span className="text-xs text-slate-500 mt-0.5 block">
+                        ID: {req.onboardingRequest?.employee_id} | {req.onboardingRequest?.designation}
+                      </span>
+                    </div>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold border ${
+                      req.status === 'approved' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 
+                      req.status === 'rejected' ? 'bg-rose-100 text-rose-700 border-rose-200' : 'bg-amber-100 text-amber-800 border-amber-200'
+                    }`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                      {t(req.status) || req.status}
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 border-t border-slate-50 pt-2">
+                    <div>
+                      <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('location')}</span>
+                      <span className="font-semibold text-slate-700">{req.onboardingRequest?.location?.name || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('onboardingStatus')}</span>
                       {req.onboardingRequest ? (
-                        <div className="flex flex-col gap-1">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border w-fit ${
+                        <div className="flex flex-col gap-0.5 mt-0.5">
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border w-fit ${
                             req.onboardingRequest.status === 'completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
                             req.onboardingRequest.status === 'draft' ? 'bg-slate-50 text-slate-600 border-slate-200' : 
                             req.onboardingRequest.status === 'pending_approval' ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200'
                           }`}>
-                            <span className="w-1 h-1 rounded-full bg-current" />
-                            {req.onboardingRequest.status.replace('_', ' ')}
+                            {t(req.onboardingRequest.status) || req.onboardingRequest.status.replace('_', ' ')}
                           </span>
-                          <span className="text-[10px] text-slate-400 font-medium">Step {req.onboardingRequest.step} / 6</span>
+                          <span className="text-[9px] text-slate-400">Step {req.onboardingRequest.step} / 6</span>
                         </div>
                       ) : '—'}
-                    </td>
-                    <td className="px-4 py-3.5 text-sm align-middle">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold border ${
-                        req.status === 'approved' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 
-                        req.status === 'rejected' ? 'bg-rose-100 text-rose-700 border-rose-200' : 'bg-amber-100 text-amber-800 border-amber-200'
-                      }`}>
-                        <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                        {req.status}
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-slate-500 border-t border-slate-50 pt-2">
+                    <span className="block text-[10px] text-slate-400 font-bold uppercase mb-1">{t('suggestedCorporateEmail')}</span>
+                    <span className="inline-block px-2 py-0.5 rounded bg-slate-50 border border-slate-200 font-mono text-xs text-slate-700">{req.suggested_email}</span>
+                  </div>
+
+                  <div className="border-t border-slate-50 pt-3 flex justify-end">
+                    {req.status === 'pending' ? (
+                      canProcessEmails && (
+                        <button 
+                          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white border-none cursor-pointer w-full" 
+                          onClick={() => {
+                            setSelectedEmailReq(req);
+                            setEmailRemarks('');
+                            setShowEmailActionModal(true);
+                          }}
+                        >
+                          Process Request
+                        </button>
+                      )
+                    ) : (
+                      <span className="text-xs text-slate-400">
+                        Processed by {req.processor?.name || 'Admin'}
                       </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-sm align-middle">
-                      {req.status === 'pending' ? (
-                        <div className="flex gap-2">
-                          {canProcessEmails && (
-                            <button 
-                              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer" 
-                              onClick={() => {
-                                setSelectedEmailReq(req);
-                                setEmailRemarks('');
-                                setShowEmailActionModal(true);
-                              }}
-                            >
-                              Process Request
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-400">
-                          Processed by {req.processor?.name || 'Admin'}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          </div>
         </div>
       ) : (
         // HR/Admin Pipeline tabs
@@ -859,7 +943,7 @@ export default function OnboardingPage() {
           </button>
         </>}
       >
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div className="mb-4">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Onboarding Location *</label>
             <SearchableSelect
@@ -893,7 +977,7 @@ export default function OnboardingPage() {
             />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div className="mb-4">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Full Name *</label>
             <input 
@@ -914,7 +998,7 @@ export default function OnboardingPage() {
             />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div className="mb-4">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Personal Phone *</label>
             <div className="flex gap-2">
@@ -950,7 +1034,7 @@ export default function OnboardingPage() {
             />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div className="mb-4">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Designation *</label>
             <input 
@@ -970,7 +1054,7 @@ export default function OnboardingPage() {
             />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div className="mb-4">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">City *</label>
             <input 

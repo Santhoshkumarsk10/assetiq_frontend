@@ -20,8 +20,10 @@ import {
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function UsersPage() {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const { confirm } = useConfirm();
   const { user: currentUser } = useAuth();
@@ -415,7 +417,7 @@ export default function UsersPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
           <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
             Total Users
@@ -576,52 +578,54 @@ export default function UsersPage() {
             ) : (
               filtered.map((u) => (
                 <div
-                  className="flex items-center gap-4 px-5 py-4 border-b border-slate-100 transition-all duration-150 hover:bg-slate-50"
+                  className="flex flex-col sm:flex-row sm:items-center gap-4 px-5 py-4 border-b border-slate-100 transition-all duration-150 hover:bg-slate-50"
                   key={u.id}
                 >
-                  <div className="w-11 h-11 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm font-semibold shrink-0">
-                    {getInitials(u.name)}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-semibold text-slate-800">
-                        {u.name}
-                      </span>
-                      <span
-                        className={`px-2 py-0.5 rounded text-xs font-medium ${getRoleBadgeClass(u.role?.name)}`}
-                      >
-                        {u.role?.name || "User"}
-                      </span>
-                      {u.mfa_enabled ? (
-                        u.mfa_configured ? (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            MFA Active
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
-                            MFA Pending
-                          </span>
-                        )
-                      ) : null}
-                      <StatusBadge status={u.status} />
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className="w-11 h-11 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm font-semibold shrink-0">
+                      {getInitials(u.name)}
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-slate-400 flex-wrap">
-                      <span className="flex items-center gap-1">
-                        <Mail size={14} className="shrink-0" /> {u.email}
-                      </span>
-                      {u.phone && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="text-sm font-semibold text-slate-800">
+                          {u.name}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded text-xs font-medium ${getRoleBadgeClass(u.role?.name)}`}
+                        >
+                          {u.role?.name || "User"}
+                        </span>
+                        {u.mfa_enabled ? (
+                          u.mfa_configured ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              MFA Active
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+                              MFA Pending
+                            </span>
+                          )
+                        ) : null}
+                        <StatusBadge status={u.status} />
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-slate-400 flex-wrap">
                         <span className="flex items-center gap-1">
-                          <Phone size={14} className="shrink-0" /> {u.phone}
+                          <Mail size={14} className="shrink-0" /> {u.email}
                         </span>
-                      )}
-                      {u.reportingManager && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-50 text-slate-600 border border-slate-200">
-                          Manager: {u.reportingManager.name}
-                        </span>
-                      )}
+                        {u.phone && (
+                          <span className="flex items-center gap-1">
+                            <Phone size={14} className="shrink-0" /> {u.phone}
+                          </span>
+                        )}
+                        {u.reportingManager && (
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-50 text-slate-600 border border-slate-200">
+                            Manager: {u.reportingManager.name}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="flex justify-between items-center sm:flex-col sm:items-end gap-2 border-t border-slate-100 pt-3 sm:border-none sm:pt-0">
                     <div className="text-sm font-medium text-slate-700">
                       {u.department || "—"}
                     </div>
@@ -629,7 +633,7 @@ export default function UsersPage() {
                       {u.location?.name || "—"}
                     </div>
                   </div>
-                  <div className="relative flex gap-1.5 items-center">
+                  <div className="relative flex gap-1.5 items-center justify-end border-t border-slate-100 pt-3 sm:border-none sm:pt-0">
                     {/* Super Admin MFA Actions */}
                     {isSuperAdmin && (
                       <div className="flex gap-1 mr-2">
@@ -803,111 +807,203 @@ export default function UsersPage() {
                       </div>
 
                       {hasPendingAssets ? (
-                        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-                          <table className="w-full text-left border-collapse">
-                            <thead>
-                              <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-[10px] uppercase font-bold tracking-wider">
-                                <th className="p-3">Asset</th>
-                                <th className="p-3">Type / Brand</th>
-                                <th className="p-3">Location Admin</th>
-                                <th className="p-3">General Admin</th>
-                                <th className="p-3 text-right">Action</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {item.allocations.map((alloc) => {
-                                const isLocAdmin =
-                                  currentUser?.role_name === "Location Admin";
-                                const isGenAdmin =
-                                  currentUser?.role_name === "Admin" ||
-                                  currentUser?.role_name === "Super Admin" ||
-                                  currentUser?.role_name === "General Admin";
+                        <>
+                          {/* Desktop Table View */}
+                          <div className="hidden md:block bg-white border border-slate-200 rounded-lg overflow-hidden">
+                            <table className="w-full text-left border-collapse">
+                              <thead>
+                                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-[10px] uppercase font-bold tracking-wider">
+                                  <th className="p-3">{t('asset')}</th>
+                                  <th className="p-3">{t('category')} / Brand</th>
+                                  <th className="p-3">Location Admin</th>
+                                  <th className="p-3">General Admin</th>
+                                  <th className="p-3 text-right">{t('actions')}</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {item.allocations.map((alloc) => {
+                                  const isLocAdmin =
+                                    currentUser?.role_name === "Location Admin";
+                                  const isGenAdmin =
+                                    currentUser?.role_name === "Admin" ||
+                                    currentUser?.role_name === "Super Admin" ||
+                                    currentUser?.role_name === "General Admin";
 
-                                // Disable action button logic
-                                const alreadyVerified = isLocAdmin
-                                  ? alloc.verified_by_location_admin
-                                  : alloc.verified_by_general_admin;
-                                const canVerify =
-                                  (isLocAdmin &&
-                                    !alloc.verified_by_location_admin) ||
-                                  (isGenAdmin &&
-                                    !alloc.verified_by_general_admin);
+                                  // Disable action button logic
+                                  const alreadyVerified = isLocAdmin
+                                    ? alloc.verified_by_location_admin
+                                    : alloc.verified_by_general_admin;
+                                  const canVerify =
+                                    (isLocAdmin &&
+                                      !alloc.verified_by_location_admin) ||
+                                    (isGenAdmin &&
+                                      !alloc.verified_by_general_admin);
 
-                                return (
-                                  <tr
-                                    key={alloc.id}
-                                    className="border-b border-slate-100 last:border-none text-sm text-slate-700"
-                                  >
-                                    <td className="p-3">
-                                      <div className="font-semibold text-slate-800">
-                                        {alloc.asset?.name || "—"}
-                                      </div>
-                                      <div className="text-xs text-slate-400 font-mono mt-0.5">
-                                        {alloc.asset?.asset_tag || "—"}
-                                      </div>
-                                    </td>
-                                    <td className="p-3">
-                                      <div>{alloc.asset?.type || "—"}</div>
-                                      <div className="text-xs text-slate-400 mt-0.5">
-                                        {alloc.asset?.brand || "—"}
-                                      </div>
-                                    </td>
-                                    <td className="p-3">
+                                  return (
+                                    <tr
+                                      key={alloc.id}
+                                      className="border-b border-slate-100 last:border-none text-sm text-slate-700"
+                                    >
+                                      <td className="p-3">
+                                        <div className="font-semibold text-slate-800">
+                                          {alloc.asset?.name || "—"}
+                                        </div>
+                                        <div className="text-xs text-slate-400 font-mono mt-0.5">
+                                          {alloc.asset?.asset_tag || "—"}
+                                        </div>
+                                      </td>
+                                      <td className="p-3">
+                                        <div>{t(alloc.asset?.type) || "—"}</div>
+                                        <div className="text-xs text-slate-400 mt-0.5">
+                                          {alloc.asset?.brand || "—"}
+                                        </div>
+                                      </td>
+                                      <td className="p-3">
+                                        {alloc.verified_by_location_admin ? (
+                                          <span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-semibold">
+                                            <Check
+                                              size={14}
+                                              className="stroke-[3px]"
+                                            />{" "}
+                                            Verified
+                                          </span>
+                                        ) : (
+                                          <span className="inline-flex items-center gap-1 text-slate-400 text-xs">
+                                            <AlertCircle size={14} /> Pending
+                                          </span>
+                                        )}
+                                      </td>
+                                      <td className="p-3">
+                                        {alloc.verified_by_general_admin ? (
+                                          <span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-semibold">
+                                            <Check
+                                              size={14}
+                                              className="stroke-[3px]"
+                                            />{" "}
+                                            Verified
+                                          </span>
+                                        ) : (
+                                          <span className="inline-flex items-center gap-1 text-slate-400 text-xs">
+                                            <AlertCircle size={14} /> Pending
+                                          </span>
+                                        )}
+                                      </td>
+                                      <td className="p-3 text-right">
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            handleVerifyReturn(alloc.id)
+                                          }
+                                          disabled={!canVerify}
+                                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${
+                                            alreadyVerified
+                                              ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+                                              : canVerify
+                                                ? "bg-emerald-600 hover:bg-emerald-700 text-white border-none"
+                                                : "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+                                          }`}
+                                        >
+                                          {alreadyVerified
+                                            ? "Verified by You"
+                                            : "Verify Return"}
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {/* Mobile Cards View */}
+                          <div className="block md:hidden space-y-4">
+                            {item.allocations.map((alloc) => {
+                              const isLocAdmin =
+                                currentUser?.role_name === "Location Admin";
+                              const isGenAdmin =
+                                currentUser?.role_name === "Admin" ||
+                                currentUser?.role_name === "Super Admin" ||
+                                currentUser?.role_name === "General Admin";
+
+                              // Disable action button logic
+                              const alreadyVerified = isLocAdmin
+                                ? alloc.verified_by_location_admin
+                                : alloc.verified_by_general_admin;
+                              const canVerify =
+                                (isLocAdmin &&
+                                  !alloc.verified_by_location_admin) ||
+                                (isGenAdmin &&
+                                  !alloc.verified_by_general_admin);
+
+                              return (
+                                <div key={alloc.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex flex-col gap-3">
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <h4 className="text-sm font-bold text-slate-800">{alloc.asset?.name || "—"}</h4>
+                                      <span className="text-xs text-slate-450 font-mono mt-0.5 block">{alloc.asset?.asset_tag || "—"}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 border-t border-b border-slate-100 py-2">
+                                    <div>
+                                      <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('category')}</span>
+                                      <span className="font-semibold text-slate-700">{t(alloc.asset?.type) || "—"}</span>
+                                    </div>
+                                    <div>
+                                      <span className="block text-[10px] text-slate-400 font-bold uppercase">Brand</span>
+                                      <span className="font-semibold text-slate-700">{alloc.asset?.brand || "—"}</span>
+                                    </div>
+                                    <div>
+                                      <span className="block text-[10px] text-slate-400 font-bold uppercase">Location Admin</span>
                                       {alloc.verified_by_location_admin ? (
-                                        <span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-semibold">
-                                          <Check
-                                            size={14}
-                                            className="stroke-[3px]"
-                                          />{" "}
+                                        <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold">
                                           Verified
                                         </span>
                                       ) : (
-                                        <span className="inline-flex items-center gap-1 text-slate-400 text-xs">
-                                          <AlertCircle size={14} /> Pending
+                                        <span className="inline-flex items-center gap-1 text-slate-450">
+                                          Pending
                                         </span>
                                       )}
-                                    </td>
-                                    <td className="p-3">
+                                    </div>
+                                    <div>
+                                      <span className="block text-[10px] text-slate-400 font-bold uppercase">General Admin</span>
                                       {alloc.verified_by_general_admin ? (
-                                        <span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-semibold">
-                                          <Check
-                                            size={14}
-                                            className="stroke-[3px]"
-                                          />{" "}
+                                        <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold">
                                           Verified
                                         </span>
                                       ) : (
-                                        <span className="inline-flex items-center gap-1 text-slate-400 text-xs">
-                                          <AlertCircle size={14} /> Pending
+                                        <span className="inline-flex items-center gap-1 text-slate-450">
+                                          Pending
                                         </span>
                                       )}
-                                    </td>
-                                    <td className="p-3 text-right">
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          handleVerifyReturn(alloc.id)
-                                        }
-                                        disabled={!canVerify}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${
-                                          alreadyVerified
-                                            ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
-                                            : canVerify
-                                              ? "bg-emerald-600 hover:bg-emerald-700 text-white border-none"
-                                              : "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
-                                        }`}
-                                      >
-                                        {alreadyVerified
-                                          ? "Verified by You"
-                                          : "Verify Return"}
-                                      </button>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex justify-end pt-1">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleVerifyReturn(alloc.id)
+                                      }
+                                      disabled={!canVerify}
+                                      className={`w-full px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${
+                                        alreadyVerified
+                                          ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+                                          : canVerify
+                                            ? "bg-emerald-600 hover:bg-emerald-700 text-white border-none"
+                                            : "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+                                      }`}
+                                    >
+                                      {alreadyVerified
+                                        ? "Verified by You"
+                                        : "Verify Return"}
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </>
                       ) : (
                         <p className="text-xs text-emerald-600 font-semibold bg-emerald-50 p-3 rounded-lg border border-emerald-100">
                           All assigned assets have been returned and verified.
