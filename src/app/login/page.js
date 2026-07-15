@@ -105,7 +105,7 @@ export default function LoginPage() {
 
         {/* Bottom Credits / Footer */}
         <div className="relative z-10 flex justify-between items-center text-xs text-slate-500 border-t border-white/[0.05] pt-6 mt-auto">
-          <span>&copy; 2026 AssetIQ Enterprise.</span>
+          <span>&copy; 2026 Aux AssetCare Enterprise.</span>
         </div>
       </div>
 
@@ -271,7 +271,7 @@ export default function LoginPage() {
             )}
           </div>
 
-          <p className="text-xs text-slate-400 mt-16 text-center">&copy; 2026 AssetIQ. Enterprise-grade IT Asset Management.</p>
+          <p className="text-xs text-slate-400 mt-16 text-center">&copy; 2026 Aux AssetCare. Enterprise-grade IT Asset Management.</p>
         </div>
       </div>
     </div>

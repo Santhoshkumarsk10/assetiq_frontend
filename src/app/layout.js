@@ -5,8 +5,8 @@ import { ConfirmProvider } from '@/context/ConfirmContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 
 export const metadata = {
-  title: 'AssetIQ - Enterprise IT Asset Management',
-  description: 'Manage and track all your IT assets with AssetIQ',
+  title: 'Aux AssetCare - Enterprise IT Asset Management',
+  description: 'Manage and track all your IT assets with Aux AssetCare',
   icons: {
     icon: '/favicon.ico',
   },
