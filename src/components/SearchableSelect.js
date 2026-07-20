@@ -12,6 +12,7 @@ export default function SearchableSelect({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [openUpward, setOpenUpward] = useState(false);
   const dropdownRef = useRef(null);
 
   // Close dropdown on outside click
@@ -25,6 +26,16 @@ export default function SearchableSelect({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleToggle = () => {
+    if (disabled) return;
+    if (!isOpen && dropdownRef.current) {
+      const rect = dropdownRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setOpenUpward(spaceBelow < 240);
+    }
+    setIsOpen(!isOpen);
+  };
+
   const selectedOption = options.find(opt => String(opt.value) === String(value));
 
   const filteredOptions = options.filter(opt =>
@@ -36,7 +47,7 @@ export default function SearchableSelect({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         className={`w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-850 outline-none bg-white focus:border-emerald-500 transition-colors flex justify-between items-center cursor-pointer text-left ${
           disabled ? 'opacity-50 cursor-not-allowed bg-slate-55' : ''
         }`}
@@ -48,7 +59,9 @@ export default function SearchableSelect({
       </button>
 
       {isOpen && !disabled && (
-        <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-[9999] max-h-60 overflow-hidden flex flex-col">
+        <div className={`absolute left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-xl z-[9999] max-h-60 overflow-hidden flex flex-col ${
+          openUpward ? 'bottom-full mb-1' : 'top-full mt-1'
+        }`}>
           <div className="p-2 border-b border-slate-100 flex items-center gap-2 bg-slate-50">
             <Search size={14} className="text-slate-400 shrink-0" />
             <input

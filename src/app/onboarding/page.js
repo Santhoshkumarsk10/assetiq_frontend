@@ -6,7 +6,7 @@ import StatusBadge from '@/components/StatusBadge';
 import SearchableSelect from '@/components/SearchableSelect';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { onboardingApi, emailRequestApi, assetApi, userApi } from '@/lib/api';
+import { onboardingApi, emailRequestApi, assetApi, userApi, rolesApi } from '@/lib/api';
 import { socket } from '@/lib/socket';
 import { 
   UserPlus, CheckCircle2, ChevronRight, User, Mail, 
@@ -28,25 +28,30 @@ export default function OnboardingPage() {
   const canListEmails = permissions.includes('email_request.list');
 
   const isITAdmin = canProcessEmails || canListEmails;
-  const isHRorAdmin = canListOnboarding || canAddOnboarding || canEditOnboarding || canApproveOnboarding;
+  const isHRorAdmin = canAddOnboarding || canEditOnboarding || canListOnboarding || canApproveOnboarding;
 
-  // Tabs: 'active', 'completed', 'emails'
-  const [activeTab, setActiveTab] = useState(isHRorAdmin ? 'active' : 'emails');
-  const [requests, setRequests] = useState([]);
-  const [locations, setLocations] = useState([]);
-  const [emailRequests, setEmailRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const isSuperAdmin = user?.role_name === 'Super Admin' || user?.role_name === 'General Admin';
+  const isLocationAdmin = user?.role_name === 'Location Admin';
 
-  // Search and Pagination states
-  const [search, setSearch] = useState('');
-  const [searchInput, setSearchInput] = useState('');
-  const [suggestions, setSuggestions] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  // Filters and pagination
+  const [activeTab, setActiveTab] = useState('active'); // 'active', 'completed', 'emails'
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Data lists
+  const [requests, setRequests] = useState([]);
+  const [locations, setLocations] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [emailRequests, setEmailRequests] = useState([]);
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
@@ -57,10 +62,12 @@ export default function OnboardingPage() {
   const [step1Form, setStep1Form] = useState({
     employee_id: '', name: '', personal_email: '', phone: '',
     department: '', designation: '', location_id: '',
-    state: '', city: '', address: '', reporting_manager_id: ''
+    state: '', city: '', address: '', role_id: '',
+    reporting_manager_id: '', general_manager_id: ''
   });
 
   const [managers, setManagers] = useState([]);
+  const adminUser = managers.find((m) => m.role?.name === "Admin" || m.role?.name === "Super Admin");
 
   // Wizard state
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -72,7 +79,7 @@ export default function OnboardingPage() {
   // Quick Add Asset states
   const [showQuickAddAssetModal, setShowQuickAddAssetModal] = useState(false);
   const [quickAssetForm, setQuickAssetForm] = useState({
-    name: '', asset_tag: '', type: 'Laptop', brand: '', serial_number: '',
+    name: '', asset_tag: '', type: 'Laptop', custom_type: '', brand: '', serial_number: '',
     mac_address: '', specification: '', warranty: '', remarks: '', location_id: ''
   });
   const [savingQuickAsset, setSavingQuickAsset] = useState(false);
@@ -98,6 +105,9 @@ export default function OnboardingPage() {
           const data = await onboardingApi.list({ page, limit, search, status: activeTab });
           setRequests(data.requests || []);
           setLocations(data.locations || []);
+          if (data.roles && data.roles.length > 0) {
+            setRoles(data.roles);
+          }
           if (data.pagination) {
             setTotal(data.pagination.total);
             setTotalPages(data.pagination.totalPages);
@@ -131,9 +141,57 @@ export default function OnboardingPage() {
     }
   }, []);
 
+  const loadRoles = useCallback(async () => {
+    try {
+      const data = await rolesApi.list();
+      setRoles(data.roles || []);
+    } catch (e) {
+      // If rolesApi.list is forbidden (e.g. user lacks role.list permission), roles will still be populated via listOnboarding
+    }
+  }, []);
+
   useEffect(() => {
     loadManagers();
-  }, [loadManagers]);
+    loadRoles();
+  }, [loadManagers, loadRoles]);
+
+  const applyRoleLocationDefaults = (roleId, locationId, currentForm) => {
+    const selectedRole = roles.find((r) => String(r.id) === String(roleId));
+    const roleName = selectedRole?.name || "";
+
+    const adminUser = managers.find(
+      (m) => m.role?.name === "Admin" || m.role?.name === "Super Admin",
+    );
+    const locAdminUser = locationId
+      ? managers.find(
+          (m) =>
+            m.role?.name === "Location Admin" &&
+            String(m.location_id) === String(locationId),
+        )
+      : null;
+
+    let updatedReportingManager = "";
+    let updatedGeneralManager = adminUser ? adminUser.id : "";
+
+    if (isLocationAdmin && user?.id) {
+      updatedReportingManager = user.id;
+    } else if (roleName === "Location Admin") {
+      updatedReportingManager = "self";
+    } else {
+      if (locAdminUser) {
+        updatedReportingManager = locAdminUser.id;
+      }
+    }
+
+    if (adminUser) {
+      updatedGeneralManager = adminUser.id;
+    }
+
+    return {
+      reporting_manager_id: updatedReportingManager,
+      general_manager_id: updatedGeneralManager,
+    };
+  };
 
   // Load data when page, limit, search, or activeTab changes
   useEffect(() => {
@@ -329,7 +387,8 @@ export default function OnboardingPage() {
       setStep1Form({
         employee_id: '', name: '', personal_email: '', phone: '',
         department: '', designation: '', location_id: '',
-        state: '', city: '', address: '', reporting_manager_id: ''
+        state: '', city: '', address: '', role_id: '',
+        reporting_manager_id: '', general_manager_id: ''
       });
       await loadData();
       // Open wizard directly to step 2
@@ -403,7 +462,8 @@ export default function OnboardingPage() {
       showToast('Asset Name is required.', 'error');
       return;
     }
-    if (!quickAssetForm.type || quickAssetForm.type.trim() === '') {
+    const finalType = quickAssetForm.type === 'Other' ? quickAssetForm.custom_type : quickAssetForm.type;
+    if (!finalType || finalType.trim() === '') {
       showToast('Asset Type is required.', 'error');
       return;
     }
@@ -414,7 +474,10 @@ export default function OnboardingPage() {
 
     setSavingQuickAsset(true);
     try {
-      const newAsset = await assetApi.add(quickAssetForm);
+      const newAsset = await assetApi.add({
+        ...quickAssetForm,
+        type: finalType.trim()
+      });
       showToast('Asset created successfully!', 'success');
       setShowQuickAddAssetModal(false);
       
@@ -553,7 +616,28 @@ export default function OnboardingPage() {
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
           {canAddOnboarding && (
-            <button className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors" onClick={() => setShowAddModal(true)}>
+            <button 
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors" 
+              onClick={() => {
+                const defaultLocId = isLocationAdmin ? user?.location_id : '';
+                const userRole = roles.find(r => r.name === 'User');
+                const adminUser = managers.find(
+                  (m) => m.role?.name === "Admin" || m.role?.name === "Super Admin"
+                );
+                const defaults = applyRoleLocationDefaults(userRole?.id, defaultLocId, {});
+
+                setStep1Form({
+                  employee_id: '', name: '', personal_email: '', phone: '',
+                  department: '', designation: '', 
+                  location_id: defaultLocId || '',
+                  state: '', city: '', address: '', 
+                  role_id: userRole ? userRole.id : '',
+                  reporting_manager_id: isLocationAdmin && user?.id ? user.id : (defaults.reporting_manager_id || ''),
+                  general_manager_id: defaults.general_manager_id || (adminUser ? adminUser.id : '')
+                });
+                setShowAddModal(true);
+              }}
+            >
               <UserPlus size={18} /> Start Onboarding
             </button>
           )}
@@ -932,6 +1016,7 @@ export default function OnboardingPage() {
         isOpen={showAddModal} 
         onClose={() => setShowAddModal(false)} 
         title="Start User Onboarding"
+        size="lg"
         footer={<>
           <button className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors" onClick={() => setShowAddModal(false)}>Cancel</button>
           <button 
@@ -943,15 +1028,32 @@ export default function OnboardingPage() {
           </button>
         </>}
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          <div className="mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-5 gap-y-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1.5">Target Role</label>
+            <SearchableSelect
+              options={roles.map(r => ({ value: r.id, label: r.name }))}
+              value={step1Form.role_id}
+              placeholder="Select Target Role"
+              onChange={(roleId) => {
+                const defaults = applyRoleLocationDefaults(roleId, step1Form.location_id, step1Form);
+                setStep1Form(prev => ({
+                  ...prev,
+                  role_id: roleId,
+                  ...defaults
+                }));
+              }}
+            />
+          </div>
+          <div>
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Onboarding Location *</label>
             <SearchableSelect
               options={locations.map(l => ({ value: l.id, label: l.name }))}
               value={step1Form.location_id}
               placeholder="Select Location"
               onChange={async (locId) => {
-                setStep1Form(prev => ({ ...prev, location_id: locId }));
+                const defaults = applyRoleLocationDefaults(step1Form.role_id, locId, step1Form);
+                setStep1Form(prev => ({ ...prev, location_id: locId, ...defaults }));
                 if (locId) {
                   try {
                     const res = await onboardingApi.nextCode(locId);
@@ -967,7 +1069,7 @@ export default function OnboardingPage() {
               }}
             />
           </div>
-          <div className="mb-4">
+          <div>
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Employee ID (Auto-Generated) *</label>
             <input 
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-slate-50 focus:border-emerald-500 placeholder-slate-400 transition-colors cursor-not-allowed" 
@@ -976,9 +1078,8 @@ export default function OnboardingPage() {
               readOnly
             />
           </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          <div className="mb-4">
+
+          <div>
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Full Name *</label>
             <input 
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
@@ -987,7 +1088,7 @@ export default function OnboardingPage() {
               onChange={e => setStep1Form({ ...step1Form, name: e.target.value.replace(/[^a-zA-Z\s]/g, '') })} 
             />
           </div>
-          <div className="mb-4">
+          <div>
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Personal Email *</label>
             <input 
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
@@ -997,13 +1098,11 @@ export default function OnboardingPage() {
               onChange={e => setStep1Form({ ...step1Form, personal_email: e.target.value })} 
             />
           </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          <div className="mb-4">
+          <div>
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Personal Phone *</label>
             <div className="flex gap-2">
               {countryCode && (
-                <span className="inline-flex items-center px-3.5 border border-slate-200 bg-slate-50 text-slate-500 rounded-lg text-sm font-semibold select-none">
+                <span className="inline-flex items-center px-3 border border-slate-200 bg-slate-50 text-slate-500 rounded-lg text-xs font-semibold select-none">
                   {countryCode}
                 </span>
               )}
@@ -1024,7 +1123,8 @@ export default function OnboardingPage() {
               />
             </div>
           </div>
-          <div className="mb-4">
+
+          <div>
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Department *</label>
             <input 
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
@@ -1033,9 +1133,7 @@ export default function OnboardingPage() {
               onChange={e => setStep1Form({ ...step1Form, department: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '') })} 
             />
           </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          <div className="mb-4">
+          <div>
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Designation *</label>
             <input 
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
@@ -1044,7 +1142,7 @@ export default function OnboardingPage() {
               onChange={e => setStep1Form({ ...step1Form, designation: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '') })} 
             />
           </div>
-          <div className="mb-4">
+          <div>
             <label className="block text-xs font-medium text-slate-500 mb-1.5">State *</label>
             <input 
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
@@ -1053,9 +1151,8 @@ export default function OnboardingPage() {
               onChange={e => setStep1Form({ ...step1Form, state: e.target.value.replace(/[^a-zA-Z\s-]/g, '') })} 
             />
           </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          <div className="mb-4">
+
+          <div>
             <label className="block text-xs font-medium text-slate-500 mb-1.5">City *</label>
             <input 
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
@@ -1064,22 +1161,47 @@ export default function OnboardingPage() {
               onChange={e => setStep1Form({ ...step1Form, city: e.target.value.replace(/[^a-zA-Z\s-]/g, '') })} 
             />
           </div>
-          <div className="mb-4">
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">Report Manager</label>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1.5">Reporting Manager</label>
             <SearchableSelect
-              options={managers.map(m => ({
-                value: m.id,
-                label: `${m.name} (${m.designation || "No Designation"}) - ${m.email}`
-              }))}
+              options={
+                isLocationAdmin && user?.id
+                  ? [{ value: user.id, label: `${user.name} (${user.role_name || "Location Admin"}) - ${user.email}` }]
+                  : roles.find((r) => String(r.id) === String(step1Form.role_id))?.name === "Location Admin"
+                  ? [{ value: "self", label: "Self (Same User)" }]
+                  : managers.map(m => ({
+                      value: m.id,
+                      label: `${m.name} (${m.role?.name || m.designation || "No Designation"}) - ${m.email}`
+                    }))
+              }
               value={step1Form.reporting_manager_id}
-              placeholder="Select Report Manager"
-              onChange={val => setStep1Form({ ...step1Form, reporting_manager_id: val })}
+              disabled={isLocationAdmin || roles.find((r) => String(r.id) === String(step1Form.role_id))?.name === "Location Admin"}
+              placeholder="Select Reporting Manager"
+              onChange={val => setStep1Form(prev => ({ ...prev, reporting_manager_id: val }))}
             />
           </div>
-          <div className="mb-4 col-span-2">
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1.5">General Manager</label>
+            <SearchableSelect
+              options={
+                adminUser
+                  ? [{ value: adminUser.id, label: `${adminUser.name} (${adminUser.role?.name || "Admin"}) - ${adminUser.email}` }]
+                  : managers.map(m => ({
+                      value: m.id,
+                      label: `${m.name} (${m.role?.name || m.designation || "No Designation"}) - ${m.email}`
+                    }))
+              }
+              value={step1Form.general_manager_id || (adminUser ? adminUser.id : '')}
+              disabled={true}
+              placeholder="Select General Manager"
+              onChange={val => setStep1Form(prev => ({ ...prev, general_manager_id: val }))}
+            />
+          </div>
+
+          <div className="md:col-span-3">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Address *</label>
             <textarea 
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors h-16 resize-none" 
+              className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors h-14 resize-none" 
               placeholder="e.g. 123 Main Street, Suite 400"
               value={step1Form.address} 
               onChange={e => setStep1Form({ ...step1Form, address: e.target.value })} 
@@ -1143,7 +1265,9 @@ export default function OnboardingPage() {
                     <tr className="border-b border-slate-150"><td className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase w-1/3 bg-slate-50 align-middle">Designation:</td><td className="px-4 py-3 text-sm text-slate-700 font-medium align-middle">{selectedRequest.designation}</td></tr>
                     <tr className="border-b border-slate-150"><td className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase w-1/3 bg-slate-50 align-middle">State:</td><td className="px-4 py-3 text-sm text-slate-700 font-medium align-middle">{selectedRequest.state || '—'}</td></tr>
                     <tr className="border-b border-slate-150"><td className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase w-1/3 bg-slate-50 align-middle">City:</td><td className="px-4 py-3 text-sm text-slate-700 font-medium align-middle">{selectedRequest.city || '—'}</td></tr>
-                    <tr className="border-b border-slate-150"><td className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase w-1/3 bg-slate-50 align-middle">Report Manager:</td><td className="px-4 py-3 text-sm text-slate-700 font-medium align-middle">{selectedRequest.reportingManager ? `${selectedRequest.reportingManager.name} (${selectedRequest.reportingManager.email})` : '—'}</td></tr>
+                    <tr className="border-b border-slate-150"><td className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase w-1/3 bg-slate-50 align-middle">Target Role:</td><td className="px-4 py-3 text-sm text-slate-700 font-medium align-middle">{selectedRequest.role ? selectedRequest.role.name : 'User'}</td></tr>
+                    <tr className="border-b border-slate-150"><td className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase w-1/3 bg-slate-50 align-middle">Reporting Manager:</td><td className="px-4 py-3 text-sm text-slate-700 font-medium align-middle">{selectedRequest.reportingManager ? `${selectedRequest.reportingManager.name} (${selectedRequest.reportingManager.email})` : '—'}</td></tr>
+                    <tr className="border-b border-slate-150"><td className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase w-1/3 bg-slate-50 align-middle">General Manager:</td><td className="px-4 py-3 text-sm text-slate-700 font-medium align-middle">{selectedRequest.generalManager ? `${selectedRequest.generalManager.name} (${selectedRequest.generalManager.email})` : '—'}</td></tr>
                     <tr className="last:border-b-0"><td className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase w-1/3 bg-slate-50 align-middle">Address:</td><td className="px-4 py-3 text-sm text-slate-700 font-medium align-middle">{selectedRequest.address || '—'}</td></tr>
                   </tbody>
                 </table>
@@ -1684,6 +1808,18 @@ export default function OnboardingPage() {
                 value={quickAssetForm.type}
                 onChange={val => setQuickAssetForm({ ...quickAssetForm, type: val })}
               />
+              {quickAssetForm.type === 'Other' && (
+                <div className="mt-2">
+                  <input
+                    type="text"
+                    className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors"
+                    placeholder="Specify custom asset type..."
+                    value={quickAssetForm.custom_type || ''}
+                    onChange={e => setQuickAssetForm({ ...quickAssetForm, custom_type: e.target.value })}
+                    required
+                  />
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-500 mb-1.5">Brand</label>

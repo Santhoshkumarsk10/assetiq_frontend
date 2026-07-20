@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 export default function Modal({ isOpen, onClose, title, children, footer, size = 'md', overflowVisible = false }) {
   if (!isOpen) return null;
 
-  const maxWidthClass = size === 'lg' ? 'max-w-[850px]' : size === 'xl' ? 'max-w-[1100px]' : 'max-w-[520px]';
+  const maxWidthClass = size === 'lg' ? 'max-w-[920px]' : size === 'xl' ? 'max-w-[1150px]' : 'max-w-[560px]';
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[500] backdrop-blur-xs px-4" onClick={onClose}>
