@@ -67,7 +67,7 @@ export default function AssetsPage() {
   const [requests, setRequests] = useState([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
-  const [requestForm, setRequestForm] = useState({ asset_name: '', asset_type: 'Laptop', quantity: 1, notes: '' });
+  const [requestForm, setRequestForm] = useState({ asset_name: '', asset_type: 'Laptop', custom_type: '', quantity: 1, notes: '' });
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [completeForm, setCompleteForm] = useState({ request_id: '', asset_tag: '', brand: '', serial_number: '', mac_address: '', specification: '', warranty: '1 Year', remarks: '' });
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -82,15 +82,19 @@ export default function AssetsPage() {
   }, []);
 
   const handleRaiseRequest = async () => {
-    if (!requestForm.asset_name || !requestForm.asset_type) {
+    const finalAssetType = requestForm.asset_type === 'Other' ? requestForm.custom_type : requestForm.asset_type;
+    if (!requestForm.asset_name || !finalAssetType || !finalAssetType.trim()) {
       showToast('Asset Name and Type are required', 'error');
       return;
     }
     try {
-      await assetApi.requestAdd(requestForm);
+      await assetApi.requestAdd({
+        ...requestForm,
+        asset_type: finalAssetType.trim()
+      });
       showToast('Asset request raised successfully', 'success');
       setShowRequestModal(false);
-      setRequestForm({ asset_name: '', asset_type: 'Laptop', quantity: 1, notes: '' });
+      setRequestForm({ asset_name: '', asset_type: 'Laptop', custom_type: '', quantity: 1, notes: '' });
       await loadRequests();
     } catch (e) {
       showToast(e.data?.error || 'Failed to raise request', 'error');
@@ -261,20 +265,24 @@ export default function AssetsPage() {
     document.body.removeChild(link);
   };
 
+  const STANDARD_ASSET_TYPES = ["Laptop", "Mobile", "Desktop", "Accessories", "Monitor", "Mobile Device"];
+
   const openAdd = () => {
     setEditingAsset(null);
-    setForm({ asset_tag: '', name: '', brand: '', type: '', serial_number: '', location_id: '', status: 'available', mac_address: '', specification: '', warranty: '', remarks: '' });
+    setForm({ asset_tag: '', name: '', brand: '', type: '', custom_type: '', serial_number: '', location_id: '', status: 'available', mac_address: '', specification: '', warranty: '', remarks: '' });
     setShowModal(true);
   };
 
   const openEdit = (asset) => {
     setEditingAsset(asset);
+    const isStandard = STANDARD_ASSET_TYPES.includes(asset.type);
     setForm({
       id: asset.id,
       asset_tag: asset.asset_tag,
       name: asset.name,
       brand: asset.brand || '',
-      type: asset.type || '',
+      type: isStandard ? asset.type || '' : 'Other',
+      custom_type: isStandard ? '' : asset.type || '',
       serial_number: asset.serial_number || '',
       status: asset.status,
       location_id: asset.location_id || '',
@@ -309,7 +317,8 @@ export default function AssetsPage() {
       showToast('Asset Name is required.', 'error');
       return;
     }
-    if (!form.type || form.type.trim() === '') {
+    const finalAssetType = form.type === 'Other' ? form.custom_type : form.type;
+    if (!finalAssetType || finalAssetType.trim() === '') {
       showToast('Asset Type is required.', 'error');
       return;
     }
@@ -320,12 +329,17 @@ export default function AssetsPage() {
 
     setSaving(true);
     try {
+      const finalAssetType = form.type === 'Other' ? form.custom_type : form.type;
+      const payload = {
+        ...form,
+        type: finalAssetType ? finalAssetType.trim() : form.type
+      };
       if (editingAsset) {
-        await assetApi.edit(form);
-        showToast('Asset updated successfully!', 'success');
+        await assetApi.update(editingAsset.id, payload);
+        showToast('Asset updated successfully', 'success');
       } else {
-        await assetApi.add(form);
-        showToast('Asset added successfully!', 'success');
+        await assetApi.add(payload);
+        showToast('Asset added successfully', 'success');
       }
       setShowModal(false);
       await loadAssets();
@@ -954,6 +968,18 @@ export default function AssetsPage() {
               placeholder="Select Type"
               onChange={val => setForm({ ...form, type: val })}
             />
+            {form.type === 'Other' && (
+              <div className="mt-2">
+                <input
+                  type="text"
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
+                  placeholder="Specify custom asset type..."
+                  value={form.custom_type || ''}
+                  onChange={e => setForm({ ...form, custom_type: e.target.value })}
+                  required
+                />
+              </div>
+            )}
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4 mb-4">
@@ -1169,6 +1195,18 @@ export default function AssetsPage() {
               value={requestForm.asset_type}
               onChange={val => setRequestForm({ ...requestForm, asset_type: val })}
             />
+            {requestForm.asset_type === 'Other' && (
+              <div className="mt-2">
+                <input
+                  type="text"
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
+                  placeholder="Specify custom asset type..."
+                  value={requestForm.custom_type || ''}
+                  onChange={e => setRequestForm({ ...requestForm, custom_type: e.target.value })}
+                  required
+                />
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Quantity</label>

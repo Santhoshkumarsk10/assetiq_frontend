@@ -28,6 +28,7 @@ export default function UsersPage() {
   const { confirm } = useConfirm();
   const { user: currentUser } = useAuth();
   const isSuperAdmin = currentUser?.role === 'Super Admin' || currentUser?.role_name === 'Super Admin';
+  const isLocationAdmin = currentUser?.role_name === 'Location Admin';
   const permissions = currentUser?.permissions || [];
   const canAdd = permissions.includes("user.add");
   const canEdit = permissions.includes("user.edit");
@@ -38,6 +39,7 @@ export default function UsersPage() {
   const [roles, setRoles] = useState([]);
   const [locations, setLocations] = useState([]);
   const [managers, setManagers] = useState([]);
+  const adminUser = managers.find((m) => m.role?.name === "Admin" || m.role?.name === "Super Admin");
 
   const loadManagers = useCallback(async () => {
     try {
@@ -199,19 +201,67 @@ export default function UsersPage() {
     (u) => u.role?.name === "Super Admin" || u.role?.name === "General Admin",
   ).length;
 
+  const applyRoleLocationDefaults = (roleId, locationId, currentForm) => {
+    const selectedRole = roles.find((r) => String(r.id) === String(roleId));
+    const roleName = selectedRole?.name || "";
+
+    const adminUser = managers.find(
+      (m) => m.role?.name === "Admin" || m.role?.name === "Super Admin",
+    );
+    const isLocationAdmin = currentUser?.role_name === 'Location Admin';
+    const locAdminUser = locationId
+      ? managers.find(
+          (m) =>
+            m.role?.name === "Location Admin" &&
+            String(m.location_id) === String(locationId),
+        )
+      : null;
+
+    let updatedReportingManager = "";
+    let updatedGeneralManager = adminUser ? adminUser.id : "";
+
+    if (isLocationAdmin && currentUser?.id) {
+      updatedReportingManager = currentUser.id;
+    } else if (roleName === "Location Admin") {
+      updatedReportingManager = editingUser ? editingUser.id : "self";
+    } else {
+      if (locAdminUser) {
+        updatedReportingManager = locAdminUser.id;
+      }
+    }
+
+    if (adminUser) {
+      updatedGeneralManager = adminUser.id;
+    }
+
+    return {
+      reporting_manager_id: updatedReportingManager,
+      general_manager_id: updatedGeneralManager,
+    };
+  };
+
   const openAdd = () => {
     setEditingUser(null);
+    const isLocationAdmin = currentUser?.role_name === 'Location Admin';
+    const defaultLocId = isLocationAdmin ? currentUser?.location_id : "";
+    const userRole = roles.find((r) => r.name === "User");
+    const adminUser = managers.find(
+      (m) => m.role?.name === "Admin" || m.role?.name === "Super Admin",
+    );
+    const defaults = applyRoleLocationDefaults(userRole?.id, defaultLocId, {});
+
     setForm({
       name: "",
       email: "",
       phone: "",
       password: "",
-      role_id: "",
-      location_id: "",
+      role_id: userRole ? userRole.id : "",
+      location_id: defaultLocId || "",
       department: "",
       designation: "",
       employee_id: "",
-      reporting_manager_id: "",
+      reporting_manager_id: isLocationAdmin && currentUser?.id ? currentUser.id : (defaults.reporting_manager_id || ""),
+      general_manager_id: defaults.general_manager_id || (adminUser ? adminUser.id : ""),
     });
     setShowModal(true);
   };
@@ -242,6 +292,7 @@ export default function UsersPage() {
       designation: user.designation || "",
       employee_id: user.employee_id || "",
       reporting_manager_id: user.reporting_manager_id || "",
+      general_manager_id: user.general_manager_id || "",
     });
     setShowModal(true);
   };
@@ -620,6 +671,11 @@ export default function UsersPage() {
                         {u.reportingManager && (
                           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-50 text-slate-600 border border-slate-200">
                             Manager: {u.reportingManager.name}
+                          </span>
+                        )}
+                        {u.generalManager && (
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                            General Manager: {u.generalManager.name}
                           </span>
                         )}
                       </div>
@@ -1023,6 +1079,7 @@ export default function UsersPage() {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         title={editingUser ? "Edit User" : "Add User"}
+        size="lg"
         footer={
           <>
             <button
@@ -1140,7 +1197,18 @@ export default function UsersPage() {
               options={roles.map((r) => ({ value: r.id, label: r.name }))}
               value={form.role_id || ""}
               placeholder="Select Role"
-              onChange={val => setForm({ ...form, role_id: val })}
+              onChange={(val) => {
+                const defaults = applyRoleLocationDefaults(
+                  val,
+                  form.location_id,
+                  form,
+                );
+                setForm({
+                  ...form,
+                  role_id: val,
+                  ...defaults,
+                });
+              }}
             />
           </div>
           <div className="mb-4">
@@ -1151,7 +1219,18 @@ export default function UsersPage() {
               options={locations.map((l) => ({ value: l.id, label: l.name }))}
               value={form.location_id || ""}
               placeholder="Select Location"
-              onChange={val => setForm({ ...form, location_id: val })}
+              onChange={(val) => {
+                const defaults = applyRoleLocationDefaults(
+                  form.role_id,
+                  val,
+                  form,
+                );
+                setForm({
+                  ...form,
+                  location_id: val,
+                  ...defaults,
+                });
+              }}
             />
           </div>
         </div>
@@ -1187,21 +1266,51 @@ export default function UsersPage() {
             />
           </div>
         </div>
-        <div className="mb-4">
-          <label className="block text-xs font-medium text-slate-500 mb-1.5">
-            Report Manager
-          </label>
-          <SearchableSelect
-            options={managers
-              .filter((m) => String(m.id) !== String(editingUser?.id))
-              .map((m) => ({
-                value: m.id,
-                label: `${m.name} (${m.designation || "No Designation"}) - ${m.email}`
-              }))}
-            value={form.reporting_manager_id || ""}
-            placeholder="Select Report Manager"
-            onChange={val => setForm({ ...form, reporting_manager_id: val })}
-          />
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="mb-4">
+            <label className="block text-xs font-medium text-slate-500 mb-1.5">
+              Reporting Manager
+            </label>
+            <SearchableSelect
+              options={
+                isLocationAdmin && currentUser?.id
+                  ? [{ value: currentUser.id, label: `${currentUser.name} (${currentUser.role_name || "Location Admin"}) - ${currentUser.email}` }]
+                  : roles.find((r) => String(r.id) === String(form.role_id))?.name === "Location Admin"
+                  ? [{ value: editingUser ? editingUser.id : "self", label: editingUser ? `${editingUser.name} (Self)` : "Self (Same User)" }]
+                  : managers
+                      .filter((m) => String(m.id) !== String(editingUser?.id))
+                      .map((m) => ({
+                        value: m.id,
+                        label: `${m.name} (${m.role?.name || m.designation || "No Designation"}) - ${m.email}`,
+                      }))
+              }
+              value={form.reporting_manager_id || ""}
+              disabled={isLocationAdmin || roles.find((r) => String(r.id) === String(form.role_id))?.name === "Location Admin"}
+              placeholder="Select Reporting Manager"
+              onChange={(val) =>
+                setForm({ ...form, reporting_manager_id: val })
+              }
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-xs font-medium text-slate-500 mb-1.5">
+              General Manager
+            </label>
+            <SearchableSelect
+              options={
+                adminUser
+                  ? [{ value: adminUser.id, label: `${adminUser.name} (${adminUser.role?.name || "Admin"}) - ${adminUser.email}` }]
+                  : managers.map((m) => ({
+                      value: m.id,
+                      label: `${m.name} (${m.role?.name || m.designation || "No Designation"}) - ${m.email}`,
+                    }))
+              }
+              value={form.general_manager_id || (adminUser ? adminUser.id : "")}
+              disabled={true}
+              placeholder="Select General Manager"
+              onChange={(val) => setForm({ ...form, general_manager_id: val })}
+            />
+          </div>
         </div>
       </Modal>
     </AppLayout>

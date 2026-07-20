@@ -46,6 +46,12 @@ export default function TicketsPage() {
   const canAdd = permissions.includes('ticket.add');
   const canEdit = permissions.includes('ticket.edit');
 
+  const userRole = user?.role || user?.role_name;
+  const isSuperAdminOrAdmin = ['Super Admin', 'Admin'].includes(userRole);
+  const isLocationAdmin = userRole === 'Location Admin';
+  const isITAdmin = userRole === 'IT Admin';
+  const isRegularUser = userRole === 'User';
+
   // List State
   const [tickets, setTickets] = useState([]);
   const [admins, setAdmins] = useState([]);
@@ -477,168 +483,222 @@ export default function TicketsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {tickets.map((tkt) => (
-                      <tr key={tkt.id} className="text-slate-700 text-sm hover:bg-slate-50/50 transition-colors">
-                        <td className="py-3.5 px-4 font-mono font-bold text-slate-900">{tkt.ticket_no}</td>
-                        <td className="py-3.5 px-4 font-medium max-w-[200px] truncate">{tkt.title}</td>
-                        <td className="py-3.5 px-4 text-xs">{t(getCategoryLabel(tkt.category))}</td>
-                        <td className="py-3.5 px-4">
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(tkt.priority)}`}>
-                            {t(getPriorityLabel(tkt.priority))}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <StatusBadge status={tkt.status} />
-                        </td>
-                        <td className="py-3.5 px-4 text-xs">
-                          {tkt.reporter ? (
-                            <div className="flex items-center gap-1">
-                              <User size={13} className="text-slate-400" />
-                              <span>{tkt.reporter.name}</span>
+                    {tickets.map((tkt) => {
+                      const canAssignThis = !['closed', 'cancelled'].includes(tkt.status) && (
+                        isSuperAdminOrAdmin || (isLocationAdmin && (!tkt.assigned_to || ['pending', 'in_progress'].includes(tkt.status)))
+                      );
+                      const canResolveThis = tkt.status === 'in_progress' && (
+                        isSuperAdminOrAdmin || (isITAdmin && parseInt(tkt.assigned_to) === parseInt(user?.id))
+                      );
+                      const canCloseThis = !['closed', 'cancelled'].includes(tkt.status) && (
+                        isSuperAdminOrAdmin ||
+                        (isITAdmin && tkt.assigned_to && parseInt(tkt.assigned_to) === parseInt(user?.id)) ||
+                        (isRegularUser && tkt.status === 'resolved' && parseInt(tkt.user_id) === parseInt(user?.id))
+                      );
+                      const canCancelThis = !['closed', 'cancelled'].includes(tkt.status) && (
+                        isSuperAdminOrAdmin ||
+                        isLocationAdmin ||
+                        (isITAdmin && tkt.assigned_to && parseInt(tkt.assigned_to) === parseInt(user?.id))
+                      );
+
+                      return (
+                        <tr key={tkt.id} className="text-slate-700 text-sm hover:bg-slate-50/50 transition-colors">
+                          <td className="py-3.5 px-4 font-mono font-bold text-slate-900">{tkt.ticket_no}</td>
+                          <td className="py-3.5 px-4 font-medium max-w-[200px] truncate">{tkt.title}</td>
+                          <td className="py-3.5 px-4 text-xs">{t(getCategoryLabel(tkt.category))}</td>
+                          <td className="py-3.5 px-4">
+                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(tkt.priority)}`}>
+                              {t(getPriorityLabel(tkt.priority))}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <StatusBadge status={tkt.status} />
+                          </td>
+                          <td className="py-3.5 px-4 text-xs">
+                            {tkt.reporter ? (
+                              <div className="flex items-center gap-1">
+                                <User size={13} className="text-slate-400" />
+                                <span>{tkt.reporter.name}</span>
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 italic">—</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 text-xs">
+                            {tkt.assignee ? (
+                              <div className="flex items-center gap-1">
+                                <User size={13} className="text-slate-400" />
+                                <span>{tkt.assignee.name}</span>
+                              </div>
+                            ) : (
+                              <span className="text-amber-600 font-medium italic">{t('unassigned')}</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 text-xs text-slate-500">
+                            {new Date(tkt.createdAt || tkt.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex justify-end gap-1 items-center">
+                              <button
+                                onClick={() => openViewDetails(tkt)}
+                                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 border-none bg-transparent cursor-pointer"
+                                title={t('view')}
+                              >
+                                <Eye size={16} />
+                              </button>
+                              {canAssignThis && (
+                                <button
+                                  onClick={() => openAssign(tkt)}
+                                  className="p-1.5 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 border-none bg-transparent cursor-pointer"
+                                  title="Assign to IT Admin"
+                                >
+                                  <UserCheck size={16} />
+                                </button>
+                              )}
+                              {canResolveThis && (
+                                <button
+                                  onClick={() => openResolve(tkt)}
+                                  className="p-1.5 text-emerald-500 hover:text-emerald-700 rounded-lg hover:bg-emerald-50 border-none bg-transparent cursor-pointer"
+                                  title="Resolve Ticket"
+                                >
+                                  <CheckCircle size={16} />
+                                </button>
+                              )}
+                              {canCancelThis && (
+                                <button
+                                  onClick={() => openCancel(tkt)}
+                                  className="p-1.5 text-rose-500 hover:text-rose-700 rounded-lg hover:bg-rose-50 border-none bg-transparent cursor-pointer"
+                                  title={t('cancel')}
+                                >
+                                  <XCircle size={16} />
+                                </button>
+                              )}
+                              {canCloseThis && (
+                                <button
+                                  onClick={() => handleClose(tkt)}
+                                  className="p-1.5 text-slate-500 hover:text-slate-700 rounded-lg hover:bg-slate-50 border-none bg-transparent cursor-pointer"
+                                  title={t('close')}
+                                >
+                                  <X size={16} />
+                                </button>
+                              )}
+                              {isITAdmin && !tkt.assigned_to && !['closed', 'cancelled'].includes(tkt.status) && (
+                                <span className="text-[10px] text-slate-400 italic bg-slate-100 px-2 py-0.5 rounded">
+                                  Awaiting Location Admin
+                                </span>
+                              )}
                             </div>
-                          ) : (
-                            <span className="text-slate-400 italic">—</span>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-4 text-xs">
-                          {tkt.assignee ? (
-                            <div className="flex items-center gap-1">
-                              <User size={13} className="text-slate-400" />
-                              <span>{tkt.assignee.name}</span>
-                            </div>
-                          ) : (
-                            <span className="text-slate-400 italic">{t('unassigned')}</span>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-4 text-xs text-slate-500">
-                          {new Date(tkt.createdAt || tkt.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="flex justify-end gap-1">
-                            <button
-                              onClick={() => openViewDetails(tkt)}
-                              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 border-none bg-transparent cursor-pointer"
-                              title={t('view')}
-                            >
-                              <Eye size={16} />
-                            </button>
-                            {canEdit && (tkt.status === 'pending' || tkt.status === 'in_progress') && (
-                              <button
-                                onClick={() => openAssign(tkt)}
-                                className="p-1.5 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 border-none bg-transparent cursor-pointer"
-                                title={t('allocate')}
-                              >
-                                <UserCheck size={16} />
-                              </button>
-                            )}
-                            {canEdit && tkt.status === 'in_progress' && (
-                              <button
-                                onClick={() => openResolve(tkt)}
-                                className="p-1.5 text-emerald-500 hover:text-emerald-700 rounded-lg hover:bg-emerald-50 border-none bg-transparent cursor-pointer"
-                                title="Resolve Ticket"
-                              >
-                                <CheckCircle size={16} />
-                              </button>
-                            )}
-                            {canEdit && !['closed', 'cancelled'].includes(tkt.status) && (
-                              <button
-                                onClick={() => openCancel(tkt)}
-                                className="p-1.5 text-rose-500 hover:text-rose-700 rounded-lg hover:bg-rose-50 border-none bg-transparent cursor-pointer"
-                                title={t('cancel')}
-                              >
-                                <XCircle size={16} />
-                              </button>
-                            )}
-                            {/* Users can close resolved tickets, Admins can close any active */}
-                            {((user?.role === 'User' && tkt.status === 'resolved' && tkt.user_id === user?.id) ||
-                              (['Super Admin', 'Admin', 'Location Admin'].includes(user?.role) && !['closed', 'cancelled'].includes(tkt.status))) && (
-                              <button
-                                onClick={() => handleClose(tkt)}
-                                className="p-1.5 text-slate-500 hover:text-slate-700 rounded-lg hover:bg-slate-50 border-none bg-transparent cursor-pointer"
-                                title={t('close')}
-                              >
-                                <X size={16} />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
 
               {/* Mobile Cards View */}
               <div className="block md:hidden space-y-4">
-                {tickets.map((tkt) => (
-                  <div key={tkt.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex flex-col gap-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="text-xs text-slate-400 font-semibold font-mono">{tkt.ticket_no}</span>
-                        <h4 className="text-sm font-bold text-slate-800 mt-0.5">{tkt.title}</h4>
-                      </div>
-                      <StatusBadge status={tkt.status} />
-                    </div>
+                {tickets.map((tkt) => {
+                  const canAssignThis = !['closed', 'cancelled'].includes(tkt.status) && (
+                    isSuperAdminOrAdmin || (isLocationAdmin && (!tkt.assigned_to || ['pending', 'in_progress'].includes(tkt.status)))
+                  );
+                  const canResolveThis = tkt.status === 'in_progress' && (
+                    isSuperAdminOrAdmin || (isITAdmin && parseInt(tkt.assigned_to) === parseInt(user?.id))
+                  );
+                  const canCloseThis = !['closed', 'cancelled'].includes(tkt.status) && (
+                    isSuperAdminOrAdmin ||
+                    (isITAdmin && tkt.assigned_to && parseInt(tkt.assigned_to) === parseInt(user?.id)) ||
+                    (isRegularUser && tkt.status === 'resolved' && parseInt(tkt.user_id) === parseInt(user?.id))
+                  );
+                  const canCancelThis = !['closed', 'cancelled'].includes(tkt.status) && (
+                    isSuperAdminOrAdmin ||
+                    isLocationAdmin ||
+                    (isITAdmin && tkt.assigned_to && parseInt(tkt.assigned_to) === parseInt(user?.id))
+                  );
 
-                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 border-t border-b border-slate-100 py-2">
-                      <div>
-                        <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('category')}</span>
-                        <span className="font-semibold text-slate-700">{t(getCategoryLabel(tkt.category))}</span>
+                  return (
+                    <div key={tkt.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex flex-col gap-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="text-xs text-slate-400 font-semibold font-mono">{tkt.ticket_no}</span>
+                          <h4 className="text-sm font-bold text-slate-800 mt-0.5">{tkt.title}</h4>
+                        </div>
+                        <StatusBadge status={tkt.status} />
                       </div>
-                      <div>
-                        <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('priority')}</span>
-                        <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${getPriorityColor(tkt.priority)}`}>
-                          {t(getPriorityLabel(tkt.priority))}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('raisedBy')}</span>
-                        <span className="font-semibold text-slate-700">{tkt.reporter?.name || '—'}</span>
-                      </div>
-                      <div>
-                        <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('assignee')}</span>
-                        <span className="font-semibold text-slate-700">{tkt.assignee?.name || t('unassigned')}</span>
-                      </div>
-                      <div className="col-span-2">
-                        <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('lastUpdated')}</span>
-                        <span className="font-semibold text-slate-700">{new Date(tkt.createdAt || tkt.created_at).toLocaleDateString()}</span>
-                      </div>
-                    </div>
 
-                    <div className="flex justify-end gap-1.5 pt-1">
-                      <button
-                        onClick={() => openViewDetails(tkt)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-650 text-xs font-bold hover:bg-slate-100 transition-colors cursor-pointer"
-                      >
-                        <Eye size={14} /> {t('view')}
-                      </button>
-                      {canEdit && (tkt.status === 'pending' || tkt.status === 'in_progress') && (
+                      <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 border-t border-b border-slate-100 py-2">
+                        <div>
+                          <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('category')}</span>
+                          <span className="font-semibold text-slate-700">{t(getCategoryLabel(tkt.category))}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('priority')}</span>
+                          <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${getPriorityColor(tkt.priority)}`}>
+                            {t(getPriorityLabel(tkt.priority))}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('raisedBy')}</span>
+                          <span className="font-semibold text-slate-700">{tkt.reporter?.name || '—'}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('assignee')}</span>
+                          <span className="font-semibold text-slate-700">{tkt.assignee?.name || t('unassigned')}</span>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('lastUpdated')}</span>
+                          <span className="font-semibold text-slate-700">{new Date(tkt.createdAt || tkt.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-1.5 pt-1 items-center">
                         <button
-                          onClick={() => openAssign(tkt)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors cursor-pointer"
+                          onClick={() => openViewDetails(tkt)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-650 text-xs font-bold hover:bg-slate-100 transition-colors cursor-pointer"
                         >
-                          <UserCheck size={14} /> {t('allocate')}
+                          <Eye size={14} /> {t('view')}
                         </button>
-                      )}
-                      {canEdit && tkt.status === 'in_progress' && (
-                        <button
-                          onClick={() => openResolve(tkt)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors cursor-pointer"
-                        >
-                          <CheckCircle size={14} /> {t('save')}
-                        </button>
-                      )}
-                      {canEdit && !['closed', 'cancelled'].includes(tkt.status) && (
-                        <button
-                          onClick={() => openCancel(tkt)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold transition-colors cursor-pointer"
-                        >
-                          <XCircle size={14} /> {t('cancel')}
-                        </button>
-                      )}
+                        {canAssignThis && (
+                          <button
+                            onClick={() => openAssign(tkt)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            <UserCheck size={14} /> Assign
+                          </button>
+                        )}
+                        {canResolveThis && (
+                          <button
+                            onClick={() => openResolve(tkt)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            <CheckCircle size={14} /> Resolve
+                          </button>
+                        )}
+                        {canCancelThis && (
+                          <button
+                            onClick={() => openCancel(tkt)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            <XCircle size={14} /> {t('cancel')}
+                          </button>
+                        )}
+                        {canCloseThis && (
+                          <button
+                            onClick={() => handleClose(tkt)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            <X size={14} /> Close
+                          </button>
+                        )}
+                        {isITAdmin && !tkt.assigned_to && !['closed', 'cancelled'].includes(tkt.status) && (
+                          <span className="text-[10px] text-slate-400 italic bg-slate-100 px-2 py-1 rounded">
+                            Awaiting Location Admin
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </>
           )}
@@ -914,20 +974,21 @@ export default function TicketsPage() {
         <Modal isOpen={showAssignModal} title={`Assign Ticket ${selectedTicket.ticket_no}`} onClose={() => setShowAssignModal(false)} overflowVisible={true}>
           <form onSubmit={handleAssignSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Select Agent / Admin *</label>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Assign to IT Admin *</label>
               <SearchableSelect
                 options={[
-                  { value: "", label: "-- Select Agent --" },
+                  { value: "", label: "-- Select IT Admin --" },
                   ...admins.map(a => ({ value: a.id, label: `${a.name} (${a.email})` }))
                 ]}
                 value={assignForm.assigned_to}
                 onChange={val => setAssignForm({ assigned_to: val })}
               />
+              <p className="text-[11px] text-slate-400 mt-1">Ticket will be assigned to the selected IT Admin to begin work and resolution.</p>
             </div>
             <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
               <button type="button" onClick={() => setShowAssignModal(false)} className="px-5 py-2.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer">Cancel</button>
               <button type="submit" disabled={submitting} className="px-5 py-2.5 border-none bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold cursor-pointer">
-                {submitting ? 'Assigning...' : 'Assign'}
+                {submitting ? 'Assigning...' : 'Assign to IT Admin'}
               </button>
             </div>
           </form>
