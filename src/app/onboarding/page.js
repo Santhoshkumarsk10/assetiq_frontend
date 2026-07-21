@@ -151,8 +151,10 @@ export default function OnboardingPage() {
   }, []);
 
   useEffect(() => {
-    loadManagers();
-    loadRoles();
+    setTimeout(()=>{
+      loadManagers();
+      loadRoles();
+    },0)
   }, [loadManagers, loadRoles]);
 
   const applyRoleLocationDefaults = (roleId, locationId, currentForm) => {
@@ -1017,6 +1019,7 @@ export default function OnboardingPage() {
         onClose={() => setShowAddModal(false)} 
         title="Start User Onboarding"
         size="lg"
+        overflowVisible={true}
         footer={<>
           <button className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors" onClick={() => setShowAddModal(false)}>Cancel</button>
           <button 
