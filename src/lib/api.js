@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5003/api';
 
 async function hashPasswordIfNeeded(password) {
   if (!password) return password;

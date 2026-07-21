@@ -73,7 +73,7 @@ export default function SearchableSelect({
               autoFocus
             />
           </div>
-          <div className="overflow-y-auto flex-1 max-h-48">
+          <div className="overflow-y-auto flex-1 max-h-48 custom-scrollbar">
             {filteredOptions.length > 0 ? (
               filteredOptions.map(opt => (
                 <div

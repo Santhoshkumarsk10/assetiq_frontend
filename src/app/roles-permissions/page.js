@@ -490,7 +490,7 @@ export default function RolesPermissionsPage() {
                 )}
               </div>
 
-              <div className="space-y-2.5 max-h-[500px] overflow-y-auto pr-1">
+              <div className="space-y-2.5 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
                 {filteredRoles.map(role => {
                   const isActive = selectedRoleId === role.id;
                   const isModified = hasChanges(role.id);
@@ -617,7 +617,7 @@ export default function RolesPermissionsPage() {
                 </div>
 
                 {/* Scopes Section */}
-                <div className="p-6 overflow-y-auto max-h-[580px] space-y-5 flex-1">
+                <div className="p-6 overflow-y-auto max-h-[580px] space-y-5 flex-1 custom-scrollbar">
                   
                   {/* Assign Permission Side Search Option */}
                   <div className="relative flex items-center gap-2.5 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/15 transition-all">
@@ -636,7 +636,7 @@ export default function RolesPermissionsPage() {
                   </div>
 
                   {isModified && (
-                    <div className="bg-amber-50/50 border border-amber-200/60 rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-amber-850">
+                    <div className="bg-amber-50/50 border border-amber-200/60 rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-amber-850 ">
                       <Info className="shrink-0 text-amber-600 mt-0.5" size={15} />
                       <div>
                         <span className="font-semibold">Unsaved configuration changes!</span> Make sure to click <span className="font-semibold">Save Changes</span> at the top to commit your permissions modification.
