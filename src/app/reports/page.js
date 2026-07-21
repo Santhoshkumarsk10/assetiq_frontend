@@ -410,176 +410,102 @@ export default function ReportsPage() {
 
   // ── EXPORTS ───────────────────────────────────────────────────────────────
 
-  const handleExportExcel = async () => {
-    try {
-      const XLSX = await import("xlsx");
-      let reportTitle = "";
-      let headers = [];
-      let data = [];
+  const getExportPayload = (format) => {
+    let reportType = "";
+    let filters = {};
 
-      if (activeTab === "inventory") {
-        reportTitle = "Asset Inventory Report";
-        headers = ["Asset Tag", "Name", "Type", "Brand", "Serial Number", "Location", "Status", "Assigned To"];
-        data = filteredAssets.map((a) => [
-          a.asset_tag,
-          a.name,
-          a.type,
-          a.brand || "—",
-          a.serial_number || "—",
-          a.location?.name || "—",
-          a.status.toUpperCase(),
-          a.allocated_user_name || "—",
-        ]);
-      } else if (activeTab === "allocations") {
-        reportTitle = "Asset In-Out Report";
-        headers = ["Asset Tag", "Allocated To", "Allocated By", "Notes", "Status", "Allocation Date", "Return Date"];
-        data = filteredAllocations.map((a) => [
-          a.asset?.asset_tag || "—",
-          a.user?.name || "—",
-          a.allocator?.name || "—",
-          a.notes || "—",
-          a.status.toUpperCase(),
-          a.created_at ? new Date(a.created_at).toLocaleDateString() : "—",
-          a.returned_at ? new Date(a.returned_at).toLocaleDateString() : "—",
-        ]);
-      } else if (activeTab === "tickets") {
-        reportTitle = "Tickets Support Report";
-        headers = ["Ticket No", "Title", "Category", "Priority", "Status", "Raised By", "Assignee", "Created Date"];
-        data = filteredTickets.map((tkt) => [
-          tkt.ticket_no,
-          tkt.title,
-          CATEGORY_LABELS[tkt.category] || tkt.category.toUpperCase(),
-          PRIORITY_LABELS[tkt.priority] || tkt.priority.toUpperCase(),
-          tkt.status.toUpperCase(),
-          tkt.reporter?.name || "—",
-          tkt.assignee?.name || "—",
-          tkt.created_at ? new Date(tkt.created_at).toLocaleDateString() : "—",
-        ]);
-      } else if (activeTab === "licenses") {
-        reportTitle = "Software License Report";
-        headers = ["Software Name", "License Key", "Assigned To", "Valid From", "Valid Until", "Status"];
-        data = filteredLicenses.map((l) => [
-          l.software_name,
-          l.license_key,
-          l.user?.name || "—",
-          l.valid_from || "—",
-          l.valid_until || "Perpetual",
-          l.status.toUpperCase(),
-        ]);
-      } else if (activeTab === "audit") {
-        reportTitle = "System Audit Trail Report";
-        headers = ["Timestamp", "Performed By", "Action", "Details"];
-        data = filteredAuditLogs.map((l) => [
-          l.created_at ? new Date(l.created_at).toLocaleString() : "—",
-          l.user?.name || "System",
-          l.action,
-          l.details,
-        ]);
-      }
-
-      const sheetData = [headers, ...data];
-      const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
-      
-      const fileDate = new Date().toISOString().split("T")[0];
-      XLSX.writeFile(workbook, `${reportTitle.toLowerCase().replace(/ /g, "_")}_${fileDate}.xlsx`);
-    } catch (err) {
-      console.error("Excel Export Error: ", err);
+    if (activeTab === "inventory") {
+      reportType = "inventory";
+      filters = {
+        search: searchQuery,
+        location_id: selectedLocation,
+        type: selectedType,
+        status: selectedStatus,
+        startDate,
+        endDate,
+      };
+    } else if (activeTab === "allocations") {
+      reportType = "allocations";
+      filters = {
+        search: searchQuery,
+        status: selectedStatus,
+        startDate,
+        endDate,
+      };
+    } else if (activeTab === "tickets") {
+      reportType = "tickets";
+      filters = {
+        search: ticketSearch,
+        category: ticketCategory,
+        priority: ticketPriority,
+        status: ticketStatus,
+        location_id: ticketLocation,
+        startDate,
+        endDate,
+      };
+    } else if (activeTab === "licenses") {
+      reportType = "licenses";
+      filters = {
+        search: licenseSearch,
+        status: licenseStatus,
+        startDate,
+        endDate,
+      };
+    } else if (activeTab === "audit") {
+      reportType = "audit-logs";
+      filters = {
+        search: searchQuery,
+        action: selectedAction,
+        startDate,
+        endDate,
+      };
     }
+
+    return {
+      reportType,
+      format,
+      ...filters
+    };
   };
 
-  const handleExportPDF = async () => {
+  const handleExport = async (format) => {
+    setLoading(true);
     try {
-      const { jsPDF } = await import("jspdf");
-      await import("jspdf-autotable");
+      const payload = getExportPayload(format);
+      const token = typeof window !== 'undefined' ? localStorage.getItem('assetiq_token') : null;
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
-      const doc = new jsPDF("landscape");
-      
-      doc.setFontSize(18);
-      doc.setTextColor(16, 185, 129); // emerald-500
-      let reportTitle = "";
-      let headers = [];
-      let data = [];
-
-      if (activeTab === "inventory") {
-        reportTitle = "Asset Inventory Report";
-        headers = [["Asset Tag", "Name", "Type", "Brand", "Serial Number", "Location", "Status", "Assigned To"]];
-        data = filteredAssets.map((a) => [
-          a.asset_tag,
-          a.name,
-          a.type,
-          a.brand || "—",
-          a.serial_number || "—",
-          a.location?.name || "—",
-          a.status.toUpperCase(),
-          a.allocated_user_name || "—",
-        ]);
-      } else if (activeTab === "allocations") {
-        reportTitle = "Asset In/Out Report";
-        headers = [["Asset Tag", "Allocated To", "Allocated By", "Notes", "Status", "Allocation Date", "Return Date"]];
-        data = filteredAllocations.map((a) => [
-          a.asset?.asset_tag || "—",
-          a.user?.name || "—",
-          a.allocator?.name || "—",
-          a.notes || "—",
-          a.status.toUpperCase(),
-          a.created_at ? new Date(a.created_at).toLocaleDateString() : "—",
-          a.returned_at ? new Date(a.returned_at).toLocaleDateString() : "—",
-        ]);
-      } else if (activeTab === "tickets") {
-        reportTitle = "Tickets Support Report";
-        headers = [["Ticket No", "Title", "Category", "Priority", "Status", "Raised By", "Assignee", "Created Date"]];
-        data = filteredTickets.map((tkt) => [
-          tkt.ticket_no,
-          tkt.title,
-          CATEGORY_LABELS[tkt.category] || tkt.category.toUpperCase(),
-          PRIORITY_LABELS[tkt.priority] || tkt.priority.toUpperCase(),
-          tkt.status.toUpperCase(),
-          tkt.reporter?.name || "—",
-          tkt.assignee?.name || "—",
-          tkt.created_at ? new Date(tkt.created_at).toLocaleDateString() : "—",
-        ]);
-      } else if (activeTab === "licenses") {
-        reportTitle = "Software License Report";
-        headers = [["Software Name", "License Key", "Assigned To", "Valid From", "Valid Until", "Status"]];
-        data = filteredLicenses.map((l) => [
-          l.software_name,
-          l.license_key,
-          l.user?.name || "—",
-          l.valid_from || "—",
-          l.valid_until || "Perpetual",
-          l.status.toUpperCase(),
-        ]);
-      } else if (activeTab === "audit") {
-        reportTitle = "System Audit Trail Report";
-        headers = [["Timestamp", "Performed By", "Action", "Details"]];
-        data = filteredAuditLogs.map((l) => [
-          l.created_at ? new Date(l.created_at).toLocaleString() : "—",
-          l.user?.name || "System",
-          l.action,
-          l.details,
-        ]);
-      }
-
-      doc.text(reportTitle, 14, 15);
-      doc.setFontSize(10);
-      doc.setTextColor(100);
-      doc.text(`Generated on: ${new Date().toLocaleString()} | Total Records: ${data.length}`, 14, 22);
-
-      doc.autoTable({
-        head: headers,
-        body: data,
-        startY: 28,
-        theme: "striped",
-        headStyles: { fillColor: [16, 185, 129] },
-        styles: { fontSize: 8 },
+      const res = await fetch(`${API_BASE}/reports/export`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(payload),
       });
 
-      const fileDate = new Date().toISOString().split("T")[0];
-      doc.save(`${reportTitle.toLowerCase().replace(/ /g, "_")}_${fileDate}.pdf`);
+      if (!res.ok) {
+        throw new Error("Export request failed");
+      }
+
+      const blob = await res.blob();
+      
+      const ext = format === "excel" ? "xlsx" : "pdf";
+      const filename = `${payload.reportType}_report_${new Date().toISOString().split("T")[0]}.${ext}`;
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error("PDF Export Error: ", err);
+      console.error("Export Error: ", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -686,7 +612,7 @@ export default function ReportsPage() {
               <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
             </button>
             <button
-              onClick={handleExportExcel}
+              onClick={() => handleExport("excel")}
               disabled={loading}
               className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer transition-all shadow-sm disabled:opacity-50"
             >
@@ -694,7 +620,7 @@ export default function ReportsPage() {
               Export Excel
             </button>
             <button
-              onClick={handleExportPDF}
+              onClick={() => handleExport("pdf")}
               disabled={loading}
               className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer transition-all shadow-sm disabled:opacity-50"
             >
