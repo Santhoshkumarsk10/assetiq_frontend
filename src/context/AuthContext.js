@@ -6,23 +6,16 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // M-01 Fix: No longer reads from localStorage.
+  // Session is restored via the httpOnly cookie automatically sent to /auth/me.
   useEffect(() => {
     const timer = setTimeout(() => {
-      const saved = localStorage.getItem('assetiq_token');
-      if (saved) {
-        setToken(saved);
-        authApi.me().then(data => {
-          setUser(data.user);
-        }).catch(() => {
-          localStorage.removeItem('assetiq_token');
-          setToken(null);
-        }).finally(() => setLoading(false));
-      } else {
-        setLoading(false);
-      }
+      authApi.me()
+        .then(data => setUser(data.user))
+        .catch(() => setUser(null))
+        .finally(() => setLoading(false));
     }, 0);
     return () => clearTimeout(timer);
   }, []);
@@ -32,24 +25,22 @@ export function AuthProvider({ children }) {
     if (data.mfaRequired) {
       return data;
     }
-    localStorage.setItem('assetiq_token', data.token);
-    setToken(data.token);
+    // M-01 Fix: Do NOT store token in localStorage.
+    // The backend sets an httpOnly cookie; all subsequent requests use that cookie.
     setUser(data.user);
     return data;
   }, []);
 
-  const verifyMfaChallenge = useCallback(async (tempToken, otp, mfaSecret) => {
-    const data = await authApi.verifyMfa({ tempToken, otp, mfaSecret });
-    localStorage.setItem('assetiq_token', data.token);
-    setToken(data.token);
+  const verifyMfaChallenge = useCallback(async (tempToken, otp) => {
+    // H-03 Fix: mfaSecret is no longer sent from the client — backend reads from DB
+    const data = await authApi.verifyMfa({ tempToken, otp });
     setUser(data.user);
     return data;
   }, []);
 
   const logout = useCallback(async () => {
     try { await authApi.logout(); } catch (e) { /* ignore */ }
-    localStorage.removeItem('assetiq_token');
-    setToken(null);
+    // M-01 Fix: No localStorage to clear.
     setUser(null);
   }, []);
 
@@ -57,7 +48,16 @@ export function AuthProvider({ children }) {
     setUser(updatedUser);
   }, []);
 
-  const value = { user, token, loading, login, logout, verifyMfaChallenge, updateLocalUser, isAuthenticated: !!token };
+  const value = {
+    user,
+    loading,
+    login,
+    logout,
+    verifyMfaChallenge,
+    updateLocalUser,
+    isAuthenticated: !!user,
+    // 'token' is intentionally removed — auth is cookie-based
+  };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
