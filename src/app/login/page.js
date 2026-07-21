@@ -16,7 +16,8 @@ export default function LoginPage() {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaSetup, setMfaSetup] = useState(false);
   const [qrCode, setQrCode] = useState('');
-  const [mfaSecret, setMfaSecret] = useState('');
+  // H-03 Fix: mfaSecret is no longer stored/sent from the client.
+  // The backend stores the pending TOTP secret in the DB on first setup.
   const [tempToken, setTempToken] = useState('');
   const [otp, setOtp] = useState('');
 
@@ -34,7 +35,7 @@ export default function LoginPage() {
         setMfaSetup(data.mfaSetup);
         if (data.mfaSetup) {
           setQrCode(data.qrCode);
-          setMfaSecret(data.secret);
+          // H-03 Fix: secret is no longer returned from the API
         }
         setTempToken(data.tempToken);
       } else {
@@ -52,7 +53,8 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await verifyMfaChallenge(tempToken, otp, mfaSetup ? mfaSecret : undefined);
+      // H-03 Fix: No longer pass mfaSecret — backend reads it from DB
+      await verifyMfaChallenge(tempToken, otp);
       router.push('/dashboard');
     } catch (err) {
       setError(err.data?.error || 'Invalid authenticator code. Please try again.');

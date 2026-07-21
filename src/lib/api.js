@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5003/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 async function hashPasswordIfNeeded(password) {
   if (!password) return password;
@@ -11,14 +11,18 @@ async function hashPasswordIfNeeded(password) {
   return password;
 }
 
+/**
+ * M-01 Fix: All requests now use `credentials: 'include'` so the httpOnly
+ * session cookie is sent automatically with every request. The Authorization
+ * header is intentionally removed — cookie-based auth is more secure because
+ * the token is not accessible to JavaScript (httpOnly).
+ */
 export async function apiRequest(endpoint, options = {}) {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('assetiq_token') : null;
-
   const config = {
-    method: 'POST',
+    method: options.method || 'POST',
+    credentials: 'include',          // Send httpOnly cookie with every request
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
     ...(options.body ? { body: JSON.stringify(options.body) } : {}),
@@ -196,4 +200,3 @@ export const reportApi = {
   licenses: (body) => apiRequest('/reports/licenses', { body }),
   auditLogs: (body) => apiRequest('/reports/audit-logs', { body }),
 };
-
