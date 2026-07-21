@@ -4,7 +4,7 @@ import AppLayout from "@/components/AppLayout";
 import SearchableSelect from "@/components/SearchableSelect";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { assetApi, auditApi, ticketApi, licenseApi } from "@/lib/api";
+import { reportApi } from "@/lib/api";
 import {
   BarChart,
   Bar,
@@ -222,10 +222,11 @@ export default function ReportsPage() {
   const loadInventoryData = useCallback(async () => {
     setLoading(true);
     try {
-      const assetsData = await assetApi.list({ paginate: false });
+      const assetsData = await reportApi.inventory({ paginate: false });
+      const allocationsData = await reportApi.allocations({ paginate: false });
       setAssets(assetsData.assets || []);
-      setAllocationHistory(assetsData.allocationHistory || []);
       setLocations(assetsData.locations || []);
+      setAllocationHistory(allocationsData.allocations || []);
     } catch (e) {
       console.error("Error loading inventory data:", e);
     }
@@ -235,7 +236,7 @@ export default function ReportsPage() {
   const loadAuditData = useCallback(async () => {
     setLoading(true);
     try {
-      const auditData = await auditApi.list({ paginate: false }).catch(() => ({ logs: [] }));
+      const auditData = await reportApi.auditLogs({ paginate: false }).catch(() => ({ logs: [] }));
       setAuditLogs(auditData.logs || []);
     } catch (e) {
       console.error("Error loading audit data:", e);
@@ -246,7 +247,7 @@ export default function ReportsPage() {
   const loadTicketsData = useCallback(async () => {
     setLoading(true);
     try {
-      const ticketsData = await ticketApi.list({ limit: 999999 });
+      const ticketsData = await reportApi.tickets({ paginate: false });
       setTickets(ticketsData.tickets || []);
     } catch (e) {
       console.error("Error loading tickets data:", e);
@@ -257,7 +258,7 @@ export default function ReportsPage() {
   const loadLicensesData = useCallback(async () => {
     setLoading(true);
     try {
-      const licensesData = await licenseApi.list({ paginate: false });
+      const licensesData = await reportApi.licenses({ paginate: false });
       setLicenses(licensesData.licenses || []);
     } catch (e) {
       console.error("Error loading licenses data:", e);

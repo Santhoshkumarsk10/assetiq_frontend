@@ -187,3 +187,13 @@ export const ticketApi = {
   listComments: (ticketId) => apiRequest('/tickets/comment/list', { body: { ticket_id: ticketId } }),
   myAssets: () => apiRequest('/tickets/my-assets', {}),
 };
+
+// Reports
+export const reportApi = {
+  inventory: (body) => apiRequest('/reports/inventory', { body }),
+  allocations: (body) => apiRequest('/reports/allocations', { body }),
+  tickets: (body) => apiRequest('/reports/tickets', { body }),
+  licenses: (body) => apiRequest('/reports/licenses', { body }),
+  auditLogs: (body) => apiRequest('/reports/audit-logs', { body }),
+};
+
