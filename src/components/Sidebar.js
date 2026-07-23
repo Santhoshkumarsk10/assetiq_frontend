@@ -46,11 +46,11 @@ export default function Sidebar({ isOpen }) {
       icon: BarChart2, 
       permissions: ['asset.list'],
       children: [
-        { href: '/reports/inventory', labelKey: 'assetInventorySummary', permissions: ['asset.list'] },
-        { href: '/reports/allocations', labelKey: 'assetInOutReports', permissions: ['asset.list'] },
-        { href: '/reports/tickets', labelKey: 'ticketsReports', permissions: ['ticket.list'] },
-        { href: '/reports/licenses', labelKey: 'licenseReports', permissions: ['asset.list'] },
-        { href: '/reports/audit', labelKey: 'systemAuditTrail', permissions: ['auditlog.list'] }
+        { href: '/reports/inventory', labelKey: 'Asset Inventory Summary', permissions: ['asset.list'] },
+        { href: '/reports/allocations', labelKey: 'Asset In-Out Reports', permissions: ['asset.list'] },
+        { href: '/reports/tickets', labelKey: 'Tickets Reports', permissions: ['ticket.list'] },
+        { href: '/reports/licenses', labelKey: 'License Reports', permissions: ['asset.list'] },
+        { href: '/reports/audit', labelKey: 'System AuditTrail', permissions: ['auditlog.list'] }
       ]
     },
     { href: '/tickets', labelKey: 'tickets', icon: Ticket, permissions: ['ticket.list'] }
