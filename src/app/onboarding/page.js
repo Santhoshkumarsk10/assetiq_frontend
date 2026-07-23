@@ -547,13 +547,17 @@ export default function OnboardingPage() {
     setSubmitting(true);
     try {
       const res = await onboardingApi.step5({ id: selectedRequest.id });
-      setGeneratedCredentials(res.credentials);
+      // C-04 Fix: Backend no longer returns a plaintext password.
+      // It returns a setup_url and official_email instead.
+      setGeneratedCredentials({
+        email: res.official_email,
+        setup_url: res.setup_url
+      });
       setWizardStepData(prev => ({
         ...prev,
-        official_email: res.credentials.email,
-        password: res.credentials.password
+        official_email: res.official_email
       }));
-      showToast('Account activated successfully!', 'success');
+      showToast('Account activated! Setup link generated.', 'success');
       await loadData();
     } catch (e) {
       showToast(e.data?.error || 'Failed to activate employee account', 'error');
@@ -561,20 +565,20 @@ export default function OnboardingPage() {
     setSubmitting(false);
   };
 
-  // Step 6: Dispatch welcome email
+  // Step 6: Dispatch account setup email
   const handleStep6Submit = async () => {
     setSubmitting(true);
     try {
+      // C-04 Fix: Only pass the official_email. Backend reads the setup token from DB.
       await onboardingApi.step6({
         id: selectedRequest.id,
-        official_email: wizardStepData.official_email,
-        password: wizardStepData.password
+        official_email: wizardStepData.official_email
       });
       setShowWizardModal(false);
       await loadData();
-      showToast('Onboarding successfully completed! Welcome credentials dispatched.', 'success');
+      showToast('Onboarding complete! Account setup email dispatched to employee.', 'success');
     } catch (e) {
-      showToast(e.data?.error || 'Failed to send credentials welcome email', 'error');
+      showToast(e.data?.error || 'Failed to send account setup email', 'error');
     }
     setSubmitting(false);
   };
@@ -1595,7 +1599,7 @@ export default function OnboardingPage() {
                       <div>
                         <div className="p-4 border border-emerald-250 rounded-xl bg-emerald-50/40 text-sm">
                           <h4 className="text-emerald-800 font-bold text-xs uppercase tracking-wider mb-3">
-                            ✓ Account Activated! Temporarily Generated Credentials:
+                            ✓ Account Activated! Setup Link Generated:
                           </h4>
                           <table className="w-full border-collapse">
                             <tbody>
@@ -1604,8 +1608,11 @@ export default function OnboardingPage() {
                                 <td className="py-2 text-sm text-emerald-900 font-semibold font-mono align-middle">{generatedCredentials.email}</td>
                               </tr>
                               <tr>
-                                <td className="py-2 text-xs font-semibold text-emerald-600/70 w-1/3 align-middle">One-Time Pass:</td>
-                                <td className="py-2 text-sm text-rose-600 font-semibold font-mono align-middle">{generatedCredentials.password}</td>
+                                <td className="py-2 text-xs font-semibold text-emerald-600/70 w-1/3 align-middle">Setup Link:</td>
+                                <td className="py-2 text-xs text-slate-600 font-mono align-middle break-all">
+                                  {/* C-04: Setup link is for reference only — employee activates via personal email */}
+                                  <span className="text-emerald-700">Employee will receive a setup link via their personal email in the next step.</span>
+                                </td>
                               </tr>
                             </tbody>
                           </table>
@@ -1615,7 +1622,7 @@ export default function OnboardingPage() {
                             className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors w-full mt-4" 
                             onClick={() => openWizard(selectedRequest.id)}
                           >
-                            Proceed to Step 6 (Send Welcome Email)
+                            Proceed to Step 6 (Send Setup Email)
                           </button>
                         )}
                       </div>

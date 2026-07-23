@@ -10,6 +10,12 @@ import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, Cart
 
 const PIE_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
+const formatDate = (dateVal) => {
+  if (!dateVal) return '—';
+  const d = new Date(dateVal);
+  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
+};
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const { t } = useLanguage();
@@ -387,7 +393,7 @@ export default function DashboardPage() {
                       <h4 className="text-sm font-semibold text-slate-800 line-clamp-1">{ticket.title}</h4>
                       <div className="flex justify-between text-xs text-slate-500 mt-1">
                         <span>By: <span className="font-semibold text-slate-700">{ticket.user?.name || 'Unknown'}</span></span>
-                        <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
+                        <span>{formatDate(ticket.createdAt || ticket.created_at)}</span>
                       </div>
                     </div>
                   ))}
@@ -425,7 +431,7 @@ export default function DashboardPage() {
                       <h4 className="text-sm font-semibold text-slate-800 line-clamp-1">{req.asset_name} (Qty: {req.quantity})</h4>
                       <div className="flex justify-between text-xs text-slate-500 mt-1">
                         <span>By: <span className="font-semibold text-slate-700">{req.requester?.name || 'Unknown'}</span></span>
-                        <span>{new Date(req.created_at).toLocaleDateString()}</span>
+                        <span>{formatDate(req.createdAt || req.created_at)}</span>
                       </div>
                     </div>
                   ))}
@@ -465,7 +471,7 @@ export default function DashboardPage() {
                       <h4 className="text-sm font-semibold text-slate-800 line-clamp-1">{lic.software_name}</h4>
                       <div className="flex justify-between text-xs text-slate-500 mt-1">
                         <span>User: <span className="font-semibold text-slate-700">{lic.user?.name || 'Unassigned'}</span></span>
-                        <span>Expires: {lic.valid_until ? new Date(lic.valid_until).toLocaleDateString() : 'Never'}</span>
+                        <span>Expires: {lic.valid_until ? formatDate(lic.valid_until) : 'Never'}</span>
                       </div>
                     </div>
                   ))}
@@ -502,10 +508,10 @@ export default function DashboardPage() {
                           {ren.status}
                         </span>
                       </div>
-                      <h4 className="text-sm font-semibold text-slate-800 line-clamp-1">Proposed Extension: {ren.proposed_valid_until ? new Date(ren.proposed_valid_until).toLocaleDateString() : 'N/A'}</h4>
+                      <h4 className="text-sm font-semibold text-slate-800 line-clamp-1">Proposed Extension: {ren.proposed_valid_until ? formatDate(ren.proposed_valid_until) : 'N/A'}</h4>
                       <div className="flex justify-between text-xs text-slate-500 mt-1">
                         <span>By: <span className="font-semibold text-slate-700">{ren.requester?.name || 'Unknown'}</span></span>
-                        <span>{new Date(ren.created_at).toLocaleDateString()}</span>
+                        <span>{formatDate(ren.createdAt || ren.created_at)}</span>
                       </div>
                     </div>
                   ))}

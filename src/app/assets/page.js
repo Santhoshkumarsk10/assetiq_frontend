@@ -1143,7 +1143,7 @@ export default function AssetsPage() {
                 <p><strong>Assigned To:</strong> {viewingAsset?.allocated_user_name}</p>
                 {viewingAsset?.allocations && viewingAsset.allocations[0] && (
                   <>
-                    <p><strong>Assigned On:</strong> {new Date(viewingAsset.allocations[0].created_at).toLocaleDateString()}</p>
+                    <p><strong>Assigned On:</strong> {new Date(viewingAsset.allocations[0].createdAt || viewingAsset.allocations[0].created_at || viewingAsset.allocations[0].allocated_at).toLocaleDateString()}</p>
                     {viewingAsset.allocations[0].notes && <p><strong>Notes:</strong> {viewingAsset.allocations[0].notes}</p>}
                   </>
                 )}
