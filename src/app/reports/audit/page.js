@@ -11,6 +11,7 @@ import {
   Search,
   Download,
   RefreshCw,
+  X,
 } from "lucide-react";
 
 function TablePagination({ currentPage, totalItems, limit, onPageChange, onLimitChange }) {
@@ -88,6 +89,7 @@ export default function AuditReportPage() {
   const [loading, setLoading] = useState(true);
 
   // Filters State
+  const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAction, setSelectedAction] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -97,27 +99,34 @@ export default function AuditReportPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Reset page to 1 when filters change
   useEffect(() => {
-    setTimeout(()=>{
-      setPage(1);
-    },0)
+    setPage(1);
   }, [searchQuery, selectedAction, startDate, endDate]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await reportApi.auditLogs({ paginate: false });
+      const data = await reportApi.auditLogs({
+        page,
+        limit,
+        search: searchQuery,
+        action: selectedAction,
+        startDate,
+        endDate
+      });
       setAuditLogs(data.logs || []);
+      setTotalItems(data.pagination?.total || data.total || 0);
     } catch (e) {
       console.error("Error loading audit data:", e);
     }
     setLoading(false);
-  }, []);
+  }, [page, limit, searchQuery, selectedAction, startDate, endDate]);
 
   useEffect(() => {
-    setTimeout(()=>{
-      loadData();
-    },0)
+    loadData();
   }, [loadData]);
 
   const handleExport = async (format) => {
@@ -165,24 +174,6 @@ export default function AuditReportPage() {
     }
   };
 
-  // Filtering Logic
-  const filteredAuditLogs = auditLogs.filter((log) => {
-    const matchesSearch =
-      searchQuery === "" ||
-      log.action?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.details?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.user?.name?.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesAction =
-      selectedAction === "" || log.action?.includes(selectedAction);
-
-    const logDate = log.created_at ? new Date(log.created_at) : null;
-    const matchesStart = startDate === "" || !logDate || logDate >= new Date(startDate);
-    const matchesEnd = endDate === "" || !logDate || logDate <= new Date(endDate + "T23:59:59");
-
-    return matchesSearch && matchesAction && matchesStart && matchesEnd;
-  });
-
   return (
     <AppLayout>
       <div className="mx-auto space-y-6 mb-6">
@@ -211,14 +202,38 @@ export default function AuditReportPage() {
         {/* Filters */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 bg-slate-50 border border-slate-100 p-4 rounded-xl shadow-xs items-center">
           <div className="lg:col-span-6 relative h-10 flex items-center">
-            <Search size={16} className="absolute left-3 text-slate-400" />
+            <Search 
+              size={16} 
+              className="absolute left-3 text-slate-400 cursor-pointer hover:text-emerald-600 transition-colors" 
+              onClick={() => setSearchQuery(searchInput)}
+              title="Click to search"
+            />
             <input
               type="text"
-              placeholder="Search audit trail logs by action description, details, or operator name..."
-              className="w-full h-full pl-9 pr-4 border border-slate-200 rounded-lg text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search audit trail logs by action description, details, or operator name (Press Enter)..."
+              className="w-full h-full pl-9 pr-9 border border-slate-200 rounded-lg text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  setSearchQuery(searchInput);
+                }
+              }}
             />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchInput("");
+                  setSearchQuery("");
+                }}
+                className="absolute right-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+                title="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
           <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
             <SearchableSelect
@@ -257,12 +272,12 @@ export default function AuditReportPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredAuditLogs.length === 0 ? (
+                {auditLogs.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="text-center py-10 text-slate-400 text-xs">No matching system audit logs found.</td>
                   </tr>
                 ) : (
-                  filteredAuditLogs.slice((page - 1) * limit, page * limit).map((log) => (
+                  auditLogs.map((log) => (
                     <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-5 py-4 text-xs text-slate-650 font-bold">
                         {log.created_at ? new Date(log.created_at).toLocaleString() : "—"}
@@ -292,10 +307,10 @@ export default function AuditReportPage() {
           </div>
 
           <div className="block md:hidden divide-y divide-slate-100">
-            {filteredAuditLogs.length === 0 ? (
+            {auditLogs.length === 0 ? (
               <div className="text-center py-10 text-slate-400 text-xs">No matching system audit logs found.</div>
             ) : (
-              filteredAuditLogs.slice((page - 1) * limit, page * limit).map((log) => (
+              auditLogs.map((log) => (
                 <div key={log.id} className="p-4 flex flex-col gap-3">
                   <div className="flex justify-between items-start">
                     <div>
@@ -316,7 +331,7 @@ export default function AuditReportPage() {
 
           <TablePagination
             currentPage={page}
-            totalItems={filteredAuditLogs.length}
+            totalItems={totalItems}
             limit={limit}
             onPageChange={setPage}
             onLimitChange={setLimit}

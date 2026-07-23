@@ -11,6 +11,7 @@ import {
   Search,
   Download,
   RefreshCw,
+  X,
 } from "lucide-react";
 
 const STATUS_COLORS = {
@@ -93,6 +94,7 @@ export default function AllocationsReportPage() {
   const [loading, setLoading] = useState(true);
 
   // Filters State
+  const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -102,27 +104,34 @@ export default function AllocationsReportPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Reset page to 1 when filters change
   useEffect(() => {
-    setTimeout(()=>{
-      setPage(1);
-    },0)
+    setPage(1);
   }, [searchQuery, selectedStatus, startDate, endDate]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await reportApi.allocations({ paginate: false });
+      const data = await reportApi.allocations({
+        page,
+        limit,
+        search: searchQuery,
+        status: selectedStatus,
+        startDate,
+        endDate
+      });
       setAllocationHistory(data.allocations || []);
+      setTotalItems(data.pagination?.total || data.total || 0);
     } catch (e) {
       console.error("Error loading allocations data:", e);
     }
     setLoading(false);
-  }, []);
+  }, [page, limit, searchQuery, selectedStatus, startDate, endDate]);
 
   useEffect(() => {
-    setTimeout(()=>{
-      loadData();
-    },0)
+    loadData();
   }, [loadData]);
 
   const handleExport = async (format) => {
@@ -170,25 +179,6 @@ export default function AllocationsReportPage() {
     }
   };
 
-  // Filtering Logic
-  const filteredAllocations = allocationHistory.filter((alloc) => {
-    const matchesSearch =
-      searchQuery === "" ||
-      alloc.asset?.asset_tag?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      alloc.asset?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      alloc.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      alloc.allocator?.name?.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesStatus =
-      selectedStatus === "" || alloc.status === selectedStatus;
-
-    const allocDate = alloc.created_at ? new Date(alloc.created_at) : null;
-    const matchesStart = startDate === "" || !allocDate || allocDate >= new Date(startDate);
-    const matchesEnd = endDate === "" || !allocDate || allocDate <= new Date(endDate + "T23:59:59");
-
-    return matchesSearch && matchesStatus && matchesStart && matchesEnd;
-  });
-
   return (
     <AppLayout>
       <div className="mx-auto space-y-6 mb-6">
@@ -217,14 +207,38 @@ export default function AllocationsReportPage() {
         {/* Filters */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 bg-slate-50 border border-slate-100 p-4 rounded-xl shadow-xs items-center">
           <div className="lg:col-span-6 relative h-10 flex items-center">
-            <Search size={16} className="absolute left-3 text-slate-400" />
+            <Search 
+              size={16} 
+              className="absolute left-3 text-slate-400 cursor-pointer hover:text-emerald-600 transition-colors" 
+              onClick={() => setSearchQuery(searchInput)}
+              title="Click to search"
+            />
             <input
               type="text"
-              placeholder="Search allocation by asset tag, employee, allocator..."
-              className="w-full h-full pl-9 pr-4 border border-slate-200 rounded-lg text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search allocation by asset tag, employee, allocator (Press Enter)..."
+              className="w-full h-full pl-9 pr-9 border border-slate-200 rounded-lg text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  setSearchQuery(searchInput);
+                }
+              }}
             />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchInput("");
+                  setSearchQuery("");
+                }}
+                className="absolute right-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+                title="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
           <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
             <SearchableSelect
@@ -263,12 +277,12 @@ export default function AllocationsReportPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredAllocations.length === 0 ? (
+                {allocationHistory.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="text-center py-10 text-slate-400 text-xs">No allocations logs found.</td>
                   </tr>
                 ) : (
-                  filteredAllocations.slice((page - 1) * limit, page * limit).map((alloc) => (
+                  allocationHistory.map((alloc) => (
                     <tr key={alloc.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-5 py-4 text-xs font-bold text-slate-800 font-mono">
                         {alloc.asset?.asset_tag || "—"}
@@ -309,10 +323,10 @@ export default function AllocationsReportPage() {
           </div>
 
           <div className="block md:hidden divide-y divide-slate-100">
-            {filteredAllocations.length === 0 ? (
+            {allocationHistory.length === 0 ? (
               <div className="text-center py-10 text-slate-400 text-xs">No allocations logs found.</div>
             ) : (
-              filteredAllocations.slice((page - 1) * limit, page * limit).map((alloc) => (
+              allocationHistory.map((alloc) => (
                 <div key={alloc.id} className="p-4 flex flex-col gap-3">
                   <div className="flex justify-between items-start">
                     <div>
@@ -355,7 +369,7 @@ export default function AllocationsReportPage() {
 
           <TablePagination
             currentPage={page}
-            totalItems={filteredAllocations.length}
+            totalItems={totalItems}
             limit={limit}
             onPageChange={setPage}
             onLimitChange={setLimit}

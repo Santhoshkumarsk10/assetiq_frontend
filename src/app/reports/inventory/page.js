@@ -29,6 +29,7 @@ import {
   Download,
   RefreshCw,
   Layers,
+  X,
 } from "lucide-react";
 
 const COLORS = [
@@ -124,6 +125,7 @@ export default function InventoryReportPage() {
   const [loading, setLoading] = useState(true);
 
   // Filters State
+  const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
   const [selectedType, setSelectedType] = useState("");
@@ -135,28 +137,39 @@ export default function InventoryReportPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
+  const [totalItems, setTotalItems] = useState(0);
+  const [summary, setSummary] = useState(null);
+
+  // Reset page to 1 when filters change
   useEffect(() => {
-    setTimeout(()=>{
-      setPage(1);
-    },0)
+    setPage(1);
   }, [searchQuery, selectedLocation, selectedType, selectedStatus, startDate, endDate]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const assetsData = await reportApi.inventory({ paginate: false });
+      const assetsData = await reportApi.inventory({
+        page,
+        limit,
+        search: searchQuery,
+        location_id: selectedLocation,
+        type: selectedType,
+        status: selectedStatus,
+        startDate,
+        endDate
+      });
       setAssets(assetsData.assets || []);
       setLocations(assetsData.locations || []);
+      setTotalItems(assetsData.pagination?.total || assetsData.total || 0);
+      setSummary(assetsData.summary || null);
     } catch (e) {
       console.error("Error loading inventory data:", e);
     }
     setLoading(false);
-  }, []);
+  }, [page, limit, searchQuery, selectedLocation, selectedType, selectedStatus, startDate, endDate]);
 
   useEffect(() => {
-    setTimeout(()=>{
-      loadData();
-    },0)
+    loadData();
   }, [loadData]);
 
   const handleExport = async (format) => {
@@ -206,42 +219,13 @@ export default function InventoryReportPage() {
     }
   };
 
-  // Filtering Logic
-  const filteredAssets = assets.filter((asset) => {
-    const matchesSearch =
-      searchQuery === "" ||
-      asset.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      asset.asset_tag?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      asset.serial_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      asset.brand?.toLowerCase().includes(searchQuery.toLowerCase());
+  // Metrics (prefer server-side summary, fallback to active state)
+  const totalAssetsCount = summary?.totalAssetsCount ?? totalItems;
+  const availableAssetsCount = summary?.availableAssetsCount ?? assets.filter((a) => a.status === "available").length;
+  const allocatedAssetsCount = summary?.allocatedAssetsCount ?? assets.filter((a) => a.status === "allocated").length;
+  const maintenanceAssetsCount = summary?.maintenanceAssetsCount ?? assets.filter((a) => a.status === "maintenance").length;
 
-    const matchesLocation =
-      selectedLocation === "" || String(asset.location_id) === selectedLocation;
-    const matchesType = selectedType === "" || asset.type === selectedType;
-    const matchesStatus =
-      selectedStatus === "" || asset.status === selectedStatus;
-
-    const assetDate = asset.created_at ? new Date(asset.created_at) : null;
-    const matchesStart = startDate === "" || !assetDate || assetDate >= new Date(startDate);
-    const matchesEnd = endDate === "" || !assetDate || assetDate <= new Date(endDate + "T23:59:59");
-
-    return matchesSearch && matchesLocation && matchesType && matchesStatus && matchesStart && matchesEnd;
-  });
-
-  // Metrics
-  const totalAssetsCount = assets.length;
-  const availableAssetsCount = assets.filter((a) => a.status === "available").length;
-  const allocatedAssetsCount = assets.filter((a) => a.status === "allocated").length;
-  const maintenanceAssetsCount = assets.filter((a) => a.status === "maintenance").length;
-
-  const typeMap = {};
-  assets.forEach((a) => {
-    typeMap[a.type] = (typeMap[a.type] || 0) + 1;
-  });
-  const typeBreakdownData = Object.keys(typeMap).map((key) => ({
-    name: key,
-    value: typeMap[key],
-  }));
+  const typeBreakdownData = summary?.typeBreakdownData || [];
 
   const statusBreakdownData = [
     { name: "Available", value: availableAssetsCount },
@@ -399,14 +383,38 @@ export default function InventoryReportPage() {
         {/* Filters */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 bg-slate-50 border border-slate-100 p-4 rounded-xl shadow-xs items-center">
           <div className="lg:col-span-4 relative h-10 flex items-center">
-            <Search size={16} className="absolute left-3 text-slate-400" />
+            <Search 
+              size={16} 
+              className="absolute left-3 text-slate-400 cursor-pointer hover:text-emerald-600 transition-colors" 
+              onClick={() => setSearchQuery(searchInput)}
+              title="Click to search"
+            />
             <input
               type="text"
-              placeholder="Search by tag, name, brand, serial..."
-              className="w-full h-full pl-9 pr-4 border border-slate-200 rounded-lg text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by tag, name, brand, serial (Press Enter)..."
+              className="w-full h-full pl-9 pr-9 border border-slate-200 rounded-lg text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  setSearchQuery(searchInput);
+                }
+              }}
             />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchInput("");
+                  setSearchQuery("");
+                }}
+                className="absolute right-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+                title="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
           <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-4 gap-2 w-full">
             <SearchableSelect
@@ -466,12 +474,12 @@ export default function InventoryReportPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredAssets.length === 0 ? (
+                {assets.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="text-center py-10 text-slate-400 text-xs">No assets found.</td>
                   </tr>
                 ) : (
-                  filteredAssets.slice((page - 1) * limit, page * limit).map((asset) => (
+                  assets.map((asset) => (
                     <tr key={asset.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-5 py-4 text-xs font-bold text-slate-800 font-mono">{asset.asset_tag}</td>
                       <td className="px-5 py-4">
@@ -502,10 +510,10 @@ export default function InventoryReportPage() {
           </div>
 
           <div className="block md:hidden divide-y divide-slate-100">
-            {filteredAssets.length === 0 ? (
+            {assets.length === 0 ? (
               <div className="text-center py-10 text-slate-400 text-xs">No assets found.</div>
             ) : (
-              filteredAssets.slice((page - 1) * limit, page * limit).map((asset) => (
+              assets.map((asset) => (
                 <div key={asset.id} className="p-4 flex flex-col gap-3">
                   <div className="flex justify-between items-start">
                     <div>
@@ -548,7 +556,7 @@ export default function InventoryReportPage() {
 
           <TablePagination
             currentPage={page}
-            totalItems={filteredAssets.length}
+            totalItems={totalItems}
             limit={limit}
             onPageChange={setPage}
             onLimitChange={setLimit}
