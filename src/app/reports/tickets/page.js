@@ -28,6 +28,7 @@ import {
   Zap,
   CheckCircle,
   AlertTriangle,
+  X,
 } from "lucide-react";
 
 const COLORS = [
@@ -139,6 +140,7 @@ export default function TicketsReportPage() {
   const [loading, setLoading] = useState(true);
 
   // Filters State
+  const [searchInput, setSearchInput] = useState("");
   const [ticketSearch, setTicketSearch] = useState("");
   const [ticketCategory, setTicketCategory] = useState("");
   const [ticketPriority, setTicketPriority] = useState("");
@@ -151,28 +153,40 @@ export default function TicketsReportPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
+  const [totalItems, setTotalItems] = useState(0);
+  const [summary, setSummary] = useState(null);
+
+  // Reset page to 1 when filters change
   useEffect(() => {
-    setTimeout(()=>{
-      setPage(1);
-    },0)
+    setPage(1);
   }, [ticketSearch, ticketCategory, ticketPriority, ticketStatus, ticketLocation, startDate, endDate]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await reportApi.tickets({ paginate: false });
+      const data = await reportApi.tickets({
+        page,
+        limit,
+        search: ticketSearch,
+        category: ticketCategory,
+        priority: ticketPriority,
+        status: ticketStatus,
+        location_id: ticketLocation,
+        startDate,
+        endDate
+      });
       setTickets(data.tickets || []);
       setLocations(data.locations || []);
+      setTotalItems(data.pagination?.total || data.total || 0);
+      setSummary(data.summary || null);
     } catch (e) {
       console.error("Error loading tickets data:", e);
     }
     setLoading(false);
-  }, []);
+  }, [page, limit, ticketSearch, ticketCategory, ticketPriority, ticketStatus, ticketLocation, startDate, endDate]);
 
   useEffect(() => {
-    setTimeout(()=>{
-      loadData();
-    },0)
+    loadData();
   }, [loadData]);
 
   const handleExport = async (format) => {
@@ -223,47 +237,17 @@ export default function TicketsReportPage() {
     }
   };
 
-  // Filtering Logic
-  const filteredTickets = tickets.filter((tkt) => {
-    const matchesSearch =
-      ticketSearch === "" ||
-      tkt.ticket_no?.toLowerCase().includes(ticketSearch.toLowerCase()) ||
-      tkt.title?.toLowerCase().includes(ticketSearch.toLowerCase()) ||
-      tkt.description?.toLowerCase().includes(ticketSearch.toLowerCase()) ||
-      tkt.reporter?.name?.toLowerCase().includes(ticketSearch.toLowerCase()) ||
-      tkt.assignee?.name?.toLowerCase().includes(ticketSearch.toLowerCase());
-
-    const matchesCategory =
-      ticketCategory === "" || tkt.category === ticketCategory;
-    const matchesPriority =
-      ticketPriority === "" || tkt.priority === ticketPriority;
-    const matchesStatus =
-      ticketStatus === "" || tkt.status === ticketStatus;
-    const matchesLocation =
-      ticketLocation === "" || String(tkt.location_id) === ticketLocation;
-
-    const tktDate = tkt.created_at ? new Date(tkt.created_at) : null;
-    const matchesStart = startDate === "" || !tktDate || tktDate >= new Date(startDate);
-    const matchesEnd = endDate === "" || !tktDate || tktDate <= new Date(endDate + "T23:59:59");
-
-    return matchesSearch && matchesCategory && matchesPriority && matchesStatus && matchesLocation && matchesStart && matchesEnd;
-  });
-
   // Metrics
-  const totalTicketsCount = tickets.length;
-  const pendingTicketsCount = tickets.filter(t => t.status === "pending").length;
-  const progressTicketsCount = tickets.filter(t => t.status === "in_progress").length;
-  const resolvedTicketsCount = tickets.filter(t => t.status === "resolved").length;
-  const closedTicketsCount = tickets.filter(t => t.status === "closed").length;
+  const totalTicketsCount = summary?.totalTicketsCount ?? totalItems;
+  const pendingTicketsCount = summary?.pendingTicketsCount ?? tickets.filter(t => t.status === "pending").length;
+  const progressTicketsCount = summary?.progressTicketsCount ?? tickets.filter(t => t.status === "in_progress").length;
+  const resolvedTicketsCount = summary?.resolvedTicketsCount ?? tickets.filter(t => t.status === "resolved").length;
+  const closedTicketsCount = summary?.closedTicketsCount ?? tickets.filter(t => t.status === "closed").length;
 
-  const ticketPriorityMap = {};
-  tickets.forEach((t) => {
-    const prioLabel = PRIORITY_LABELS[t.priority] || t.priority?.toUpperCase() || "MEDIUM";
-    ticketPriorityMap[prioLabel] = (ticketPriorityMap[prioLabel] || 0) + 1;
-  });
-  const ticketPriorityBreakdown = Object.keys(ticketPriorityMap).map((key) => ({
-    name: key,
-    value: ticketPriorityMap[key],
+  const priorityRawMap = summary?.ticketPriorityMap || {};
+  const ticketPriorityBreakdown = Object.keys(priorityRawMap).map((key) => ({
+    name: PRIORITY_LABELS[key] || key?.toUpperCase() || "MEDIUM",
+    value: priorityRawMap[key],
   }));
 
   const ticketStatusBreakdown = [
@@ -271,7 +255,7 @@ export default function TicketsReportPage() {
     { name: "In Progress", value: progressTicketsCount },
     { name: "Resolved", value: resolvedTicketsCount },
     { name: "Closed", value: closedTicketsCount },
-    { name: "Cancelled", value: tickets.filter(t => t.status === "cancelled").length }
+    { name: "Cancelled", value: summary?.cancelledTicketsCount || 0 }
   ].filter(item => item.value > 0);
 
   return (
@@ -434,14 +418,38 @@ export default function TicketsReportPage() {
         {/* Filters */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 bg-slate-50 border border-slate-100 p-4 rounded-xl shadow-xs items-center">
           <div className="lg:col-span-3 relative h-10 flex items-center">
-            <Search size={16} className="absolute left-3 text-slate-400" />
+            <Search 
+              size={16} 
+              className="absolute left-3 text-slate-400 cursor-pointer hover:text-emerald-600 transition-colors" 
+              onClick={() => setTicketSearch(searchInput)}
+              title="Click to search"
+            />
             <input
               type="text"
-              placeholder="Search by ticket no, title, reporter, assignee..."
-              className="w-full h-full pl-9 pr-4 border border-slate-200 rounded-lg text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800"
-              value={ticketSearch}
-              onChange={(e) => setTicketSearch(e.target.value)}
+              placeholder="Search by ticket no, title, reporter, assignee (Press Enter)..."
+              className="w-full h-full pl-9 pr-9 border border-slate-200 rounded-lg text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  setTicketSearch(searchInput);
+                }
+              }}
             />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchInput("");
+                  setTicketSearch("");
+                }}
+                className="absolute right-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+                title="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
           <div className="lg:col-span-9 grid grid-cols-1 sm:grid-cols-5 gap-2 w-full">
             <SearchableSelect
@@ -515,12 +523,12 @@ export default function TicketsReportPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredTickets.length === 0 ? (
+                {tickets.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="text-center py-10 text-slate-400 text-xs">No matching tickets logs found.</td>
                   </tr>
                 ) : (
-                  filteredTickets.slice((page - 1) * limit, page * limit).map((tkt) => (
+                  tickets.map((tkt) => (
                     <tr key={tkt.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-5 py-4 text-xs font-bold text-slate-800 font-mono">{tkt.ticket_no}</td>
                       <td className="px-5 py-4 text-xs text-slate-800 font-bold max-w-[200px] truncate" title={tkt.title}>{tkt.title}</td>
@@ -562,10 +570,10 @@ export default function TicketsReportPage() {
           </div>
 
           <div className="block md:hidden divide-y divide-slate-100">
-            {filteredTickets.length === 0 ? (
+            {tickets.length === 0 ? (
               <div className="text-center py-10 text-slate-400 text-xs">No matching tickets logs found.</div>
             ) : (
-              filteredTickets.slice((page - 1) * limit, page * limit).map((tkt) => (
+              tickets.map((tkt) => (
                 <div key={tkt.id} className="p-4 flex flex-col gap-3">
                   <div className="flex justify-between items-start">
                     <div>
@@ -608,7 +616,7 @@ export default function TicketsReportPage() {
 
           <TablePagination
             currentPage={page}
-            totalItems={filteredTickets.length}
+            totalItems={totalItems}
             limit={limit}
             onPageChange={setPage}
             onLimitChange={setLimit}

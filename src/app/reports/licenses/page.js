@@ -28,6 +28,7 @@ import {
   Zap,
   CheckCircle,
   AlertTriangle,
+  X,
 } from "lucide-react";
 
 const COLORS = [
@@ -121,6 +122,7 @@ export default function LicensesReportPage() {
   const [loading, setLoading] = useState(true);
 
   // Filters State
+  const [searchInput, setSearchInput] = useState("");
   const [licenseSearch, setLicenseSearch] = useState("");
   const [licenseStatus, setLicenseStatus] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -130,27 +132,36 @@ export default function LicensesReportPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
+  const [totalItems, setTotalItems] = useState(0);
+  const [summary, setSummary] = useState(null);
+
+  // Reset page to 1 when filters change
   useEffect(() => {
-    setTimeout(()=>{
-      setPage(1);
-    },0)
+    setPage(1);
   }, [licenseSearch, licenseStatus, startDate, endDate]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await reportApi.licenses({ paginate: false });
+      const data = await reportApi.licenses({
+        page,
+        limit,
+        search: licenseSearch,
+        status: licenseStatus,
+        startDate,
+        endDate
+      });
       setLicenses(data.licenses || []);
+      setTotalItems(data.pagination?.total || data.total || 0);
+      setSummary(data.summary || null);
     } catch (e) {
       console.error("Error loading licenses data:", e);
     }
     setLoading(false);
-  }, []);
+  }, [page, limit, licenseSearch, licenseStatus, startDate, endDate]);
 
   useEffect(() => {
-    setTimeout(()=>{
-      loadData();
-    },0)
+    loadData();
   }, [loadData]);
 
   const handleExport = async (format) => {
@@ -198,38 +209,16 @@ export default function LicensesReportPage() {
     }
   };
 
-  // Filtering Logic
-  const filteredLicenses = licenses.filter((license) => {
-    const matchesSearch =
-      licenseSearch === "" ||
-      license.software_name?.toLowerCase().includes(licenseSearch.toLowerCase()) ||
-      license.license_key?.toLowerCase().includes(licenseSearch.toLowerCase()) ||
-      license.user?.name?.toLowerCase().includes(licenseSearch.toLowerCase());
-
-    const matchesStatus =
-      licenseStatus === "" || license.status === licenseStatus;
-
-    const untilDate = license.valid_until ? new Date(license.valid_until) : null;
-    const matchesStart = startDate === "" || !untilDate || untilDate >= new Date(startDate);
-    const matchesEnd = endDate === "" || !untilDate || untilDate <= new Date(endDate + "T23:59:59");
-
-    return matchesSearch && matchesStatus && matchesStart && matchesEnd;
-  });
-
   // Metrics
-  const totalLicensesCount = licenses.length;
-  const activeLicensesCount = licenses.filter(l => l.status === "active").length;
-  const availableLicensesCount = licenses.filter(l => l.status === "available").length;
-  const expiredLicensesCount = licenses.filter(l => l.status === "expired").length;
+  const totalLicensesCount = summary?.totalLicensesCount ?? totalItems;
+  const activeLicensesCount = summary?.activeLicensesCount ?? licenses.filter(l => l.status === "active").length;
+  const availableLicensesCount = summary?.availableLicensesCount ?? licenses.filter(l => l.status === "available").length;
+  const expiredLicensesCount = summary?.expiredLicensesCount ?? licenses.filter(l => l.status === "expired").length;
 
-  const licenseSoftwareMap = {};
-  licenses.forEach((l) => {
-    const softName = l.software_name || "Unknown Software";
-    licenseSoftwareMap[softName] = (licenseSoftwareMap[softName] || 0) + 1;
-  });
-  const licenseSoftwareBreakdown = Object.keys(licenseSoftwareMap).map((key) => ({
+  const rawSoftwareMap = summary?.licenseSoftwareMap || {};
+  const licenseSoftwareBreakdown = Object.keys(rawSoftwareMap).map((key) => ({
     name: key,
-    value: licenseSoftwareMap[key],
+    value: rawSoftwareMap[key],
   }));
 
   const licenseStatusBreakdown = [
@@ -388,14 +377,38 @@ export default function LicensesReportPage() {
         {/* Filters */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 bg-slate-50 border border-slate-100 p-4 rounded-xl shadow-xs items-center">
           <div className="lg:col-span-6 relative h-10 flex items-center">
-            <Search size={16} className="absolute left-3 text-slate-400" />
+            <Search 
+              size={16} 
+              className="absolute left-3 text-slate-400 cursor-pointer hover:text-emerald-600 transition-colors" 
+              onClick={() => setLicenseSearch(searchInput)}
+              title="Click to search"
+            />
             <input
               type="text"
-              placeholder="Search license by key, software name, employee..."
-              className="w-full h-full pl-9 pr-4 border border-slate-200 rounded-lg text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800"
-              value={licenseSearch}
-              onChange={(e) => setLicenseSearch(e.target.value)}
+              placeholder="Search license by key, software name, employee (Press Enter)..."
+              className="w-full h-full pl-9 pr-9 border border-slate-200 rounded-lg text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  setLicenseSearch(searchInput);
+                }
+              }}
             />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchInput("");
+                  setLicenseSearch("");
+                }}
+                className="absolute right-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+                title="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
           <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
             <SearchableSelect
@@ -434,12 +447,12 @@ export default function LicensesReportPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredLicenses.length === 0 ? (
+                {licenses.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="text-center py-10 text-slate-400 text-xs">No matching software license logs found.</td>
                   </tr>
                 ) : (
-                  filteredLicenses.slice((page - 1) * limit, page * limit).map((license) => (
+                  licenses.map((license) => (
                     <tr key={license.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-5 py-4 text-xs text-slate-800 font-bold">{license.software_name}</td>
                       <td className="px-5 py-4 text-xs font-bold text-slate-500 font-mono">{license.license_key}</td>
@@ -473,10 +486,10 @@ export default function LicensesReportPage() {
           </div>
 
           <div className="block md:hidden divide-y divide-slate-100">
-            {filteredLicenses.length === 0 ? (
+            {licenses.length === 0 ? (
               <div className="text-center py-10 text-slate-400 text-xs">No matching software license logs found.</div>
             ) : (
-              filteredLicenses.slice((page - 1) * limit, page * limit).map((license) => (
+              licenses.map((license) => (
                 <div key={license.id} className="p-4 flex flex-col gap-3">
                   <div className="flex justify-between items-start">
                     <div>
@@ -515,7 +528,7 @@ export default function LicensesReportPage() {
 
           <TablePagination
             currentPage={page}
-            totalItems={filteredLicenses.length}
+            totalItems={totalItems}
             limit={limit}
             onPageChange={setPage}
             onLimitChange={setLimit}
