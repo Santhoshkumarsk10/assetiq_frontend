@@ -1,5 +1,7 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
+
+
 async function hashPasswordIfNeeded(password) {
   if (!password) return password;
   if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
