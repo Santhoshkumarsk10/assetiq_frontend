@@ -142,7 +142,9 @@ export default function InventoryReportPage() {
 
   // Reset page to 1 when filters change
   useEffect(() => {
-    setPage(1);
+    setTimeout(()=>{
+      setPage(1);
+    },0)
   }, [searchQuery, selectedLocation, selectedType, selectedStatus, startDate, endDate]);
 
   const loadData = useCallback(async () => {
@@ -169,7 +171,9 @@ export default function InventoryReportPage() {
   }, [page, limit, searchQuery, selectedLocation, selectedType, selectedStatus, startDate, endDate]);
 
   useEffect(() => {
-    loadData();
+    setTimeout(()=>{
+      loadData();
+    },0)
   }, [loadData]);
 
   const handleExport = async (format) => {
