@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import AppLayout from "@/components/AppLayout";
 import SearchableSelect from "@/components/SearchableSelect";
 import ExportDropdown from "@/components/ExportDropdown";
@@ -83,8 +84,9 @@ function TablePagination({ currentPage, totalItems, limit, onPageChange, onLimit
   );
 }
 
-export default function AuditReportPage() {
+function AuditReportPageInner() {
   const { t } = useLanguage();
+  const searchParams = useSearchParams();
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -94,6 +96,60 @@ export default function AuditReportPage() {
   const [selectedAction, setSelectedAction] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    let filters = null;
+    const stored = sessionStorage.getItem("report_filters_audit");
+    if (stored) {
+      try {
+        filters = JSON.parse(stored);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    if (filters) {
+      const action = filters.action || "";
+      const search = filters.search || "";
+      const start = filters.startDate || filters.start || "";
+      const end = filters.endDate || filters.end || "";
+
+      if (action) setSelectedAction(action);
+      if (search) {
+        setSearchInput(search);
+        setSearchQuery(search);
+      }
+      if (start) setStartDate(start);
+      if (end) setEndDate(end);
+    } else if (searchParams) {
+      const action = searchParams.get("action") || "";
+      const search = searchParams.get("search") || "";
+      const start = searchParams.get("startDate") || searchParams.get("start") || "";
+      const end = searchParams.get("endDate") || searchParams.get("end") || "";
+
+      if (action) setSelectedAction(action);
+      if (search) {
+        setSearchInput(search);
+        setSearchQuery(search);
+      }
+      if (start) setStartDate(start);
+      if (end) setEndDate(end);
+    }
+    initialized.current = true;
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!initialized.current) return;
+    const filters = {
+      action: selectedAction,
+      search: searchQuery,
+      startDate,
+      endDate
+    };
+    sessionStorage.setItem("report_filters_audit", JSON.stringify(filters));
+  }, [selectedAction, searchQuery, startDate, endDate]);
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -155,7 +211,7 @@ export default function AuditReportPage() {
       if (!res.ok) throw new Error("Export failed");
 
       const blob = await res.blob();
-      const ext = format === "excel" ? "xlsx" : "pdf";
+      const ext = format === "excel" ? "xlsx" : format === "pdf" ? "pdf" : "csv";
       const filename = `audit_logs_report_${new Date().toISOString().split("T")[0]}.${ext}`;
       
       const url = window.URL.createObjectURL(blob);
@@ -338,5 +394,17 @@ export default function AuditReportPage() {
         </div>
       </div>
     </AppLayout>
+  );
+}
+
+export default function AuditReportPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-8 text-center text-sm text-slate-500 font-semibold bg-white rounded-2xl border border-slate-100 m-6">
+        Loading system audit trail reports...
+      </div>
+    }>
+      <AuditReportPageInner />
+    </Suspense>
   );
 }

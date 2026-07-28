@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import AppLayout from "@/components/AppLayout";
 import SearchableSelect from "@/components/SearchableSelect";
 import ExportDropdown from "@/components/ExportDropdown";
@@ -116,8 +117,9 @@ function TablePagination({ currentPage, totalItems, limit, onPageChange, onLimit
   );
 }
 
-export default function LicensesReportPage() {
+function LicensesReportPageInner() {
   const { t } = useLanguage();
+  const searchParams = useSearchParams();
   const [licenses, setLicenses] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -127,6 +129,60 @@ export default function LicensesReportPage() {
   const [licenseStatus, setLicenseStatus] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    let filters = null;
+    const stored = sessionStorage.getItem("report_filters_licenses");
+    if (stored) {
+      try {
+        filters = JSON.parse(stored);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    if (filters) {
+      const status = filters.status || "";
+      const search = filters.search || filters.software || "";
+      const start = filters.startDate || filters.start || "";
+      const end = filters.endDate || filters.end || "";
+
+      if (status) setLicenseStatus(status);
+      if (search) {
+        setSearchInput(search);
+        setLicenseSearch(search);
+      }
+      if (start) setStartDate(start);
+      if (end) setEndDate(end);
+    } else if (searchParams) {
+      const status = searchParams.get("status") || "";
+      const search = searchParams.get("search") || searchParams.get("software") || "";
+      const start = searchParams.get("startDate") || searchParams.get("start") || "";
+      const end = searchParams.get("endDate") || searchParams.get("end") || "";
+
+      if (status) setLicenseStatus(status);
+      if (search) {
+        setSearchInput(search);
+        setLicenseSearch(search);
+      }
+      if (start) setStartDate(start);
+      if (end) setEndDate(end);
+    }
+    initialized.current = true;
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!initialized.current) return;
+    const filters = {
+      status: licenseStatus,
+      search: licenseSearch,
+      startDate,
+      endDate
+    };
+    sessionStorage.setItem("report_filters_licenses", JSON.stringify(filters));
+  }, [licenseStatus, licenseSearch, startDate, endDate]);
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -190,7 +246,7 @@ export default function LicensesReportPage() {
       if (!res.ok) throw new Error("Export failed");
 
       const blob = await res.blob();
-      const ext = format === "excel" ? "xlsx" : "pdf";
+      const ext = format === "excel" ? "xlsx" : format === "pdf" ? "pdf" : "csv";
       const filename = `licenses_report_${new Date().toISOString().split("T")[0]}.${ext}`;
       
       const url = window.URL.createObjectURL(blob);
@@ -412,7 +468,7 @@ export default function LicensesReportPage() {
           <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
             <SearchableSelect
               options={[
-                { value: "", label: "All Statuses" },
+                { value: "", label: "All Status" },
                 { value: "available", label: "Available" },
                 { value: "active", label: "Active (Assigned)" },
                 { value: "expired", label: "Expired" }
@@ -535,5 +591,17 @@ export default function LicensesReportPage() {
         </div>
       </div>
     </AppLayout>
+  );
+}
+
+export default function LicensesReportPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-8 text-center text-sm text-slate-500 font-semibold bg-white rounded-2xl border border-slate-100 m-6">
+        Loading software licenses reports...
+      </div>
+    }>
+      <LicensesReportPageInner />
+    </Suspense>
   );
 }

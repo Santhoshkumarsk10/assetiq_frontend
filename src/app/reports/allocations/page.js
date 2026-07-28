@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import AppLayout from "@/components/AppLayout";
 import SearchableSelect from "@/components/SearchableSelect";
 import ExportDropdown from "@/components/ExportDropdown";
@@ -88,8 +89,9 @@ function TablePagination({ currentPage, totalItems, limit, onPageChange, onLimit
   );
 }
 
-export default function AllocationsReportPage() {
+function AllocationsReportPageInner() {
   const { t } = useLanguage();
+  const searchParams = useSearchParams();
   const [allocationHistory, setAllocationHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -99,6 +101,49 @@ export default function AllocationsReportPage() {
   const [selectedStatus, setSelectedStatus] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    let filters = null;
+    const stored = sessionStorage.getItem("report_filters_allocations");
+    if (stored) {
+      try {
+        filters = JSON.parse(stored);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    if (filters) {
+      const status = filters.status || "";
+      const start = filters.startDate || filters.start || "";
+      const end = filters.endDate || filters.end || "";
+
+      if (status) setSelectedStatus(status);
+      if (start) setStartDate(start);
+      if (end) setEndDate(end);
+    } else if (searchParams) {
+      const status = searchParams.get("status") || "";
+      const start = searchParams.get("startDate") || searchParams.get("start") || "";
+      const end = searchParams.get("endDate") || searchParams.get("end") || "";
+
+      if (status) setSelectedStatus(status);
+      if (start) setStartDate(start);
+      if (end) setEndDate(end);
+    }
+    initialized.current = true;
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!initialized.current) return;
+    const filters = {
+      status: selectedStatus,
+      startDate,
+      endDate
+    };
+    sessionStorage.setItem("report_filters_allocations", JSON.stringify(filters));
+  }, [selectedStatus, startDate, endDate]);
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -160,7 +205,7 @@ export default function AllocationsReportPage() {
       if (!res.ok) throw new Error("Export failed");
 
       const blob = await res.blob();
-      const ext = format === "excel" ? "xlsx" : "pdf";
+      const ext = format === "excel" ? "xlsx" : format === "pdf" ? "pdf" : "csv";
       const filename = `allocations_report_${new Date().toISOString().split("T")[0]}.${ext}`;
       
       const url = window.URL.createObjectURL(blob);
@@ -242,7 +287,7 @@ export default function AllocationsReportPage() {
           <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
             <SearchableSelect
               options={[
-                { value: "", label: "All Statuses" },
+                { value: "", label: "All Status" },
                 { value: "active", label: "Active (Assigned)" },
                 { value: "returned", label: "Returned" }
               ]}
@@ -376,5 +421,17 @@ export default function AllocationsReportPage() {
         </div>
       </div>
     </AppLayout>
+  );
+}
+
+export default function AllocationsReportPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-8 text-center text-sm text-slate-500 font-semibold bg-white rounded-2xl border border-slate-100 m-6">
+        Loading asset allocations reports...
+      </div>
+    }>
+      <AllocationsReportPageInner />
+    </Suspense>
   );
 }

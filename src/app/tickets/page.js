@@ -6,7 +6,19 @@ import StatusBadge from '@/components/StatusBadge';
 import SearchableSelect from '@/components/SearchableSelect';
 import { ticketApi } from '@/lib/api';
 import { socket } from '@/lib/socket';
-import { Search, Plus, Eye, UserCheck, CheckCircle, XCircle, X, Calendar, User, MessageSquare, Send, AlertTriangle, ArrowRight, ShieldAlert } from 'lucide-react';
+import { Search, Plus, Eye, UserCheck, CheckCircle, XCircle, X, Calendar, User, MessageSquare, Send, AlertTriangle, ArrowRight, ShieldAlert, Zap, FileText, Layers, Filter } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Cell,
+  PieChart,
+  Pie,
+} from "recharts";
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { useAuth } from '@/context/AuthContext';
@@ -17,7 +29,8 @@ const CATEGORIES = [
   { value: 'software_issue', label: 'Software Issue' },
   { value: 'lost_stolen', label: 'Lost / Stolen' },
   { value: 'physical_damage', label: 'Physical Damage' },
-  { value: 'general_it', label: 'General IT' }
+  { value: 'general_it', label: 'General IT' },
+  { value: 'other', label: 'Other' }
 ];
 
 const PRIORITIES = [
@@ -65,6 +78,7 @@ export default function TicketsPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [summary, setSummary] = useState(null);
 
   // Modals
   const [showRaiseModal, setShowRaiseModal] = useState(false);
@@ -104,6 +118,7 @@ export default function TicketsPage() {
   });
 
   const [submitting, setSubmitting] = useState(false);
+  const [otherCategory, setOtherCategory] = useState('');
   const commentsEndRef = useRef(null);
 
   // Load Tickets
@@ -120,6 +135,7 @@ export default function TicketsPage() {
       });
       setTickets(data.tickets || []);
       setAdmins(data.admins || []);
+      setSummary(data.summary || null);
       if (data.pagination) {
         setTotal(data.pagination.total);
         setTotalPages(data.pagination.totalPages);
@@ -131,7 +147,41 @@ export default function TicketsPage() {
     setLoading(false);
   }, [page, limit, search, statusFilter, priorityFilter, categoryFilter, showToast]);
 
+  const initialized = useRef(false);
+
   // Initial & Filter load
+  useEffect(() => {
+    const stored = sessionStorage.getItem("ticket_list_filters");
+    if (stored) {
+      try {
+        const filters = JSON.parse(stored);
+        if (filters.search !== undefined) {
+          setSearch(filters.search);
+          setSearchInput(filters.search);
+        }
+        if (filters.statusFilter !== undefined) setStatusFilter(filters.statusFilter);
+        if (filters.priorityFilter !== undefined) setPriorityFilter(filters.priorityFilter);
+        if (filters.categoryFilter !== undefined) setCategoryFilter(filters.categoryFilter);
+        if (filters.page !== undefined) setPage(filters.page);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    initialized.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!initialized.current) return;
+    const filters = {
+      search,
+      statusFilter,
+      priorityFilter,
+      categoryFilter,
+      page
+    };
+    sessionStorage.setItem("ticket_list_filters", JSON.stringify(filters));
+  }, [search, statusFilter, priorityFilter, categoryFilter, page]);
+
   useEffect(() => {
     loadTickets();
   }, [page, search, statusFilter, priorityFilter, categoryFilter, loadTickets]);
@@ -186,6 +236,7 @@ export default function TicketsPage() {
       title: '',
       description: ''
     });
+    setOtherCategory('');
     setShowRaiseModal(true);
   };
 
@@ -199,12 +250,20 @@ export default function TicketsPage() {
       showToast('Description is required.', 'error');
       return;
     }
+    if (raiseForm.category === 'other' && !otherCategory.trim()) {
+      showToast('Please specify the category.', 'error');
+      return;
+    }
+
+    const categoryValue = raiseForm.category === 'other'
+      ? otherCategory.trim()
+      : raiseForm.category;
 
     setSubmitting(true);
     try {
       await ticketApi.raise({
         asset_id: raiseForm.asset_id || null,
-        category: raiseForm.category,
+        category: categoryValue,
         priority: raiseForm.priority,
         title: raiseForm.title,
         description: raiseForm.description
@@ -382,6 +441,41 @@ export default function TicketsPage() {
     }
   };
 
+  const totalTicketsCount = summary?.totalTicketsCount ?? total;
+  const pendingTicketsCount = summary?.pendingTicketsCount ?? 0;
+  const progressTicketsCount = summary?.progressTicketsCount ?? 0;
+  const resolvedTicketsCount = summary?.resolvedTicketsCount ?? 0;
+  const closedTicketsCount = summary?.closedTicketsCount ?? 0;
+
+  const PRIORITY_LABELS = {
+    low: "LOW",
+    medium: "MEDIUM",
+    high: "HIGH",
+    critical: "CRITICAL"
+  };
+  const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
+  const STATUS_COLORS = {
+    pending: "#f59e0b",
+    in_progress: "#3b82f6",
+    resolved: "#10b981",
+    closed: "#64748b",
+    cancelled: "#ef4444"
+  };
+
+  const priorityRawMap = summary?.ticketPriorityMap || {};
+  const ticketPriorityBreakdown = Object.keys(priorityRawMap).map((key) => ({
+    name: PRIORITY_LABELS[key] || key?.toUpperCase() || "MEDIUM",
+    value: priorityRawMap[key],
+  }));
+
+  const ticketStatusBreakdown = [
+    { name: "Pending", value: pendingTicketsCount },
+    { name: "In Progress", value: progressTicketsCount },
+    { name: "Resolved", value: resolvedTicketsCount },
+    { name: "Closed", value: closedTicketsCount },
+    { name: "Cancelled", value: summary?.cancelledTicketsCount || 0 }
+  ].filter(item => item.value > 0);
+
   return (
     <AppLayout>
       <div className="flex justify-between items-start mb-6">
@@ -397,6 +491,173 @@ export default function TicketsPage() {
             <Plus size={18} /> Raise Ticket
           </button>
         )}
+      </div>
+
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div
+          onClick={() => { setStatusFilter(""); setPage(1); }}
+          className={`p-4 border rounded-2xl flex items-center gap-3 cursor-pointer transition-all hover:scale-102 active:scale-98 shadow-2xs ${
+            statusFilter === ""
+              ? "border-slate-400 bg-slate-100 ring-2 ring-slate-100"
+              : "border-slate-100 bg-slate-50/50 hover:bg-slate-50"
+          }`}
+        >
+          <div className="w-10 h-10 bg-slate-200/50 rounded-xl flex items-center justify-center text-slate-600">
+            <FileText size={18} />
+          </div>
+          <div>
+            <div className="text-xl font-bold text-slate-800">{totalTicketsCount}</div>
+            <div className="text-[10px] text-slate-455 font-bold uppercase tracking-wider">Total Tickets</div>
+          </div>
+        </div>
+
+        <div
+          onClick={() => { setStatusFilter("pending"); setPage(1); }}
+          className={`p-4 border rounded-2xl flex items-center gap-3 cursor-pointer transition-all hover:scale-102 active:scale-98 shadow-2xs ${
+            statusFilter === "pending"
+              ? "border-amber-400 bg-amber-50/70 ring-2 ring-amber-100"
+              : "border-amber-100 bg-amber-50/30 hover:bg-amber-50/50"
+          }`}
+        >
+          <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center">
+            <AlertTriangle size={18} />
+          </div>
+          <div>
+            <div className="text-xl font-bold text-amber-700">{pendingTicketsCount}</div>
+            <div className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">Pending</div>
+          </div>
+        </div>
+
+        <div
+          onClick={() => { setStatusFilter("in_progress"); setPage(1); }}
+          className={`p-4 border rounded-2xl flex items-center gap-3 cursor-pointer transition-all hover:scale-102 active:scale-98 shadow-2xs ${
+            statusFilter === "in_progress"
+              ? "border-blue-400 bg-blue-50/70 ring-2 ring-blue-100"
+              : "border-blue-100 bg-blue-50/30 hover:bg-blue-50/50"
+          }`}
+        >
+          <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
+            <Zap size={18} />
+          </div>
+          <div>
+            <div className="text-xl font-bold text-blue-700">{progressTicketsCount}</div>
+            <div className="text-[10px] text-blue-500 font-bold uppercase tracking-wider">In Progress</div>
+          </div>
+        </div>
+
+        <div
+          onClick={() => { setStatusFilter("resolved"); setPage(1); }}
+          className={`p-4 border rounded-2xl flex items-center gap-3 cursor-pointer transition-all hover:scale-102 active:scale-98 shadow-2xs ${
+            statusFilter === "resolved"
+              ? "border-emerald-400 bg-emerald-50/70 ring-2 ring-emerald-100"
+              : "border-emerald-100 bg-emerald-50/30 hover:bg-emerald-50/50"
+          }`}
+        >
+          <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center">
+            <CheckCircle size={18} />
+          </div>
+          <div>
+            <div className="text-xl font-bold text-emerald-700">{resolvedTicketsCount}</div>
+            <div className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">Resolved</div>
+          </div>
+        </div>
+
+        <div
+          onClick={() => { setStatusFilter("closed"); setPage(1); }}
+          className={`p-4 border rounded-2xl flex items-center gap-3 cursor-pointer transition-all hover:scale-102 active:scale-98 shadow-2xs ${
+            statusFilter === "closed"
+              ? "border-slate-400 bg-slate-200/80 ring-2 ring-slate-200"
+              : "border-slate-100 bg-slate-50/80 hover:bg-slate-100/50"
+          }`}
+        >
+          <div className="w-10 h-10 bg-slate-200 text-slate-500 rounded-xl flex items-center justify-center">
+            <CheckCircle size={18} />
+          </div>
+          <div>
+            <div className="text-xl font-bold text-slate-700">{closedTicketsCount}</div>
+            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Closed</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="p-5 border border-slate-100 rounded-2xl bg-white space-y-4 shadow-sm">
+          <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+            <Layers size={16} className="text-slate-400" /> Tickets Priority Breakdown
+          </h3>
+          <div className="h-64">
+            {ticketPriorityBreakdown.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-xs text-slate-400 font-bold">No data available</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={ticketPriorityBreakdown}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" fontSize={11} stroke="#94a3b8" />
+                  <YAxis fontSize={11} stroke="#94a3b8" allowDecimals={false} />
+                  <Tooltip cursor={{ fill: "#f8fafc" }} />
+                  <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={45}>
+                    {ticketPriorityBreakdown.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        <div className="p-5 border border-slate-100 rounded-2xl bg-white space-y-4 shadow-sm">
+          <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+            <Filter size={16} className="text-slate-400" /> Ticket Status Share
+          </h3>
+          <div className="h-64 flex flex-col sm:flex-row items-center justify-center gap-4">
+            {ticketStatusBreakdown.length === 0 ? (
+              <div className="text-xs text-slate-400 font-bold">No data available</div>
+            ) : (
+              <>
+                <div className="flex-1 h-full w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={ticketStatusBreakdown}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {ticketStatusBreakdown.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={STATUS_COLORS[entry.name.toLowerCase().replace(" ", "_")] || COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex flex-col gap-2.5 shrink-0 self-center">
+                  {ticketStatusBreakdown.map((entry, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs">
+                      <span
+                        className="w-3.5 h-3.5 rounded-md"
+                        style={{
+                          backgroundColor: STATUS_COLORS[entry.name.toLowerCase().replace(" ", "_")] || COLORS[idx % COLORS.length],
+                        }}
+                      />
+                      <span className="font-semibold text-slate-655">{entry.name}:</span>
+                      <span className="font-extrabold text-slate-800">{entry.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Filters and Search */}
@@ -421,7 +682,7 @@ export default function TicketsPage() {
 
           <SearchableSelect
             options={[
-              { value: "", label: "All Statuses" },
+              { value: "", label: "All Status" },
               { value: "pending", label: "Pending Approval" },
               { value: "in_progress", label: "In Progress" },
               { value: "resolved", label: "Resolved" },
@@ -755,8 +1016,21 @@ export default function TicketsPage() {
                 <SearchableSelect
                   options={CATEGORIES}
                   value={raiseForm.category}
-                  onChange={val => setRaiseForm({ ...raiseForm, category: val })}
+                  onChange={val => {
+                    setRaiseForm({ ...raiseForm, category: val });
+                    if (val !== 'other') setOtherCategory('');
+                  }}
                 />
+                {raiseForm.category === 'other' && (
+                  <input
+                    type="text"
+                    placeholder="Please specify the category..."
+                    value={otherCategory}
+                    onChange={e => setOtherCategory(e.target.value)}
+                    className="mt-2 w-full text-sm border border-emerald-300 rounded-xl px-4 py-2.5 outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 text-slate-800 bg-emerald-50/30 placeholder-slate-400"
+                    autoFocus
+                  />
+                )}
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Priority *</label>

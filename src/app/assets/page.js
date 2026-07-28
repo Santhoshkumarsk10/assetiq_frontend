@@ -576,7 +576,7 @@ export default function AssetsPage() {
           />
           <SearchableSelect
             options={[
-              { value: "", label: "All Statuses" },
+              { value: "", label: "All Status" },
               { value: "available", label: "Available" },
               { value: "allocated", label: "In Use" },
               { value: "maintenance", label: "Under Repair" }
