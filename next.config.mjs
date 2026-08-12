@@ -5,10 +5,11 @@ const nextConfig = {
   devIndicators: false,
   allowedDevOrigins: ['*.ngrok-free.dev'],
   async rewrites() {
+    const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:5003';
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:5003/api/:path*',
+        destination: `${backendUrl}/api/:path*`,
       },
     ];
   },
