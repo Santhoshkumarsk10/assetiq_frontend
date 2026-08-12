@@ -225,8 +225,6 @@ export default function LoginPage() {
                   <div className="flex flex-col items-center bg-slate-50 border border-slate-100 rounded-2xl p-5 mb-6 text-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={qrCode} alt="MFA QR Code" className="w-40 h-40 border border-slate-200 bg-white p-1 rounded-xl shadow-sm" />
-                    <div className="mt-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider">Manual Code</div>
-                    <code className="mt-1 px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 font-mono tracking-wider">{mfaSecret}</code>
                   </div>
                 )}
 
