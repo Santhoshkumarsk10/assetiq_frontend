@@ -23,7 +23,8 @@ export default function Sidebar({ isOpen }) {
       '/reports/allocations',
       '/reports/tickets',
       '/reports/licenses',
-      '/reports/audit'
+      '/reports/audit',
+      '/reports/custom-builder'
     ];
     if (reportsChildren.some(href => pathname === href)) {
       initial['reports'] = true;
@@ -50,7 +51,8 @@ export default function Sidebar({ isOpen }) {
         { href: '/reports/allocations', labelKey: 'Asset In-Out Reports', permissions: ['asset.list'] },
         { href: '/reports/tickets', labelKey: 'Tickets Reports', permissions: ['ticket.list'] },
         { href: '/reports/licenses', labelKey: 'License Reports', permissions: ['asset.list'] },
-        { href: '/reports/audit', labelKey: 'System AuditTrail', permissions: ['auditlog.list'] }
+        { href: '/reports/audit', labelKey: 'System AuditTrail', permissions: ['auditlog.list'] },
+        { href: '/reports/custom-builder', labelKey: 'Custom Report Builder', permissions: ['asset.list'] }
       ]
     },
     { href: '/tickets', labelKey: 'tickets', icon: Ticket, permissions: ['ticket.list'] }
