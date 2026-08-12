@@ -319,7 +319,7 @@ export default function LicensePage() {
 
           <SearchableSelect
             options={[
-              { value: "", label: "All Statuses" },
+              { value: "", label: "All Status" },
               { value: "available", label: "Available" },
               { value: "active", label: "Active" },
               { value: "expired", label: "Expired" }

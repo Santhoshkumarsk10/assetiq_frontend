@@ -51,6 +51,16 @@ export default function ExportDropdown({ onExport, disabled = false }) {
             <FileText size={16} className="text-rose-600 shrink-0" />
             PDF
           </button>
+          <button
+            onClick={() => {
+              onExport('csv');
+              setIsOpen(false);
+            }}
+            className="w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 text-left border-none bg-transparent cursor-pointer font-medium"
+          >
+            <FileText size={16} className="text-blue-600 shrink-0" />
+            CSV
+          </button>
         </div>
       )}
     </div>

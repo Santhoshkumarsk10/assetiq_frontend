@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import AppLayout from "@/components/AppLayout";
 import SearchableSelect from "@/components/SearchableSelect";
 import ExportDropdown from "@/components/ExportDropdown";
@@ -118,8 +119,9 @@ function TablePagination({ currentPage, totalItems, limit, onPageChange, onLimit
   );
 }
 
-export default function InventoryReportPage() {
+function InventoryReportPageInner() {
   const { t } = useLanguage();
+  const searchParams = useSearchParams();
   const [assets, setAssets] = useState([]);
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -132,6 +134,67 @@ export default function InventoryReportPage() {
   const [selectedStatus, setSelectedStatus] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    let filters = null;
+    const storedInventory = sessionStorage.getItem("report_filters_inventory");
+    const storedMaintenance = sessionStorage.getItem("report_filters_maintenance");
+
+    if (storedInventory) {
+      try {
+        filters = JSON.parse(storedInventory);
+      } catch (e) {
+        console.error(e);
+      }
+    } else if (storedMaintenance) {
+      try {
+        filters = JSON.parse(storedMaintenance);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    if (filters) {
+      const location = filters.location_id || filters.location || "";
+      const type = filters.type || "";
+      const status = filters.status || "";
+      const start = filters.startDate || filters.start || "";
+      const end = filters.endDate || filters.end || "";
+
+      if (location) setSelectedLocation(location);
+      if (type) setSelectedType(type);
+      if (status) setSelectedStatus(status);
+      if (start) setStartDate(start);
+      if (end) setEndDate(end);
+    } else if (searchParams) {
+      const location = searchParams.get("location_id") || searchParams.get("location") || "";
+      const type = searchParams.get("type") || "";
+      const status = searchParams.get("status") || "";
+      const start = searchParams.get("startDate") || searchParams.get("start") || "";
+      const end = searchParams.get("endDate") || searchParams.get("end") || "";
+
+      if (location) setSelectedLocation(location);
+      if (type) setSelectedType(type);
+      if (status) setSelectedStatus(status);
+      if (start) setStartDate(start);
+      if (end) setEndDate(end);
+    }
+    initialized.current = true;
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!initialized.current) return;
+    const filters = {
+      location_id: selectedLocation,
+      type: selectedType,
+      status: selectedStatus,
+      startDate,
+      endDate
+    };
+    sessionStorage.setItem("report_filters_inventory", JSON.stringify(filters));
+  }, [selectedLocation, selectedType, selectedStatus, startDate, endDate]);
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -204,7 +267,7 @@ export default function InventoryReportPage() {
       if (!res.ok) throw new Error("Export failed");
 
       const blob = await res.blob();
-      const ext = format === "excel" ? "xlsx" : "pdf";
+      const ext = format === "excel" ? "xlsx" : format === "pdf" ? "pdf" : "csv";
       const filename = `inventory_report_${new Date().toISOString().split("T")[0]}.${ext}`;
       
       const url = window.URL.createObjectURL(blob);
@@ -443,7 +506,7 @@ export default function InventoryReportPage() {
             />
             <SearchableSelect
               options={[
-                { value: "", label: "All Statuses" },
+                { value: "", label: "All Status" },
                 { value: "available", label: "Available" },
                 { value: "allocated", label: "Allocated" },
                 { value: "maintenance", label: "Maintenance" },
@@ -567,5 +630,17 @@ export default function InventoryReportPage() {
         </div>
       </div>
     </AppLayout>
+  );
+}
+
+export default function InventoryReportPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-8 text-center text-sm text-slate-500 font-semibold bg-white rounded-2xl border border-slate-100 m-6">
+        Loading inventory reports...
+      </div>
+    }>
+      <InventoryReportPageInner />
+    </Suspense>
   );
 }

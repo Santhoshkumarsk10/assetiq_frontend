@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import {
-  LayoutDashboard, Settings2, Users, ClipboardList,
+  LayoutDashboard, Users, ClipboardList,
   MapPin, LogOut, Package, Shield, UserCheck, BarChart2, KeyRound, Ticket,
   ChevronDown
 } from 'lucide-react';
@@ -41,7 +41,7 @@ export default function Sidebar({ isOpen }) {
     { href: '/roles-permissions', labelKey: 'rolesPermissions', icon: Shield, permissions: ['role.list'] },
     { href: '/audit-logs', labelKey: 'auditLogs', icon: ClipboardList, permissions: ['auditlog.list'] },
     { 
-      href: '/reports/inventory', 
+      href: '/reports', 
       labelKey: 'reports', 
       icon: BarChart2, 
       permissions: ['asset.list'],
@@ -75,11 +75,12 @@ export default function Sidebar({ isOpen }) {
     <aside className={`fixed top-0 bottom-0 bg-white border-r border-slate-200 flex flex-col z-[100] transition-all duration-300 ${
       isOpen ? 'w-[220px] left-0' : 'w-[80px] -left-20 lg:left-0'
     }`}>
-      <div className={`p-5 pb-4 flex items-center gap-2 border-b border-slate-100 ${isOpen ? '' : 'justify-center px-2'}`}>
-        <div className="w-8 h-8 bg-emerald-50 rounded-lg flex shrink-0 items-center justify-center text-emerald-600">
-          <Settings2 size={20} />
-        </div>
-        {isOpen && <h1 className="text-md font-bold text-slate-900 overflow-hidden whitespace-nowrap">AUX Asset<span className="text-emerald-500">CARE</span></h1>}
+      <div className={`p-3 flex items-center border-b border-slate-100 ${isOpen ? 'justify-start pl-5' : 'justify-center'}`} style={{ height: '60px' }}>
+        {isOpen ? (
+          <img src="/images/option 1.png" alt="Auxinzio AssetCare" className="h-9 w-full object-contain" />
+        ) : (
+          <img src="/images/option 1.png" alt="Auxinzio AssetCare" className="h-8 w-8 object-cover object-left" />
+        )}
       </div>
 
       <nav className="flex-1 py-3 overflow-y-auto custom-scrollbar">
@@ -132,6 +133,11 @@ export default function Sidebar({ isOpen }) {
                   href={item.href}
                   className={linkClass}
                   title={!isOpen ? t(item.labelKey) : undefined}
+                  onClick={() => {
+                    if (item.href === '/tickets') {
+                      sessionStorage.removeItem('ticket_list_filters');
+                    }
+                  }}
                 >
                   <Icon size={20} className="shrink-0" />
                   {isOpen && <span className="overflow-hidden whitespace-nowrap">{t(item.labelKey)}</span>}
@@ -152,6 +158,13 @@ export default function Sidebar({ isOpen }) {
                                 ? 'text-emerald-600 font-bold bg-emerald-50/50' 
                                 : 'text-slate-500'
                             }`}
+                            onClick={() => {
+                              const reportId = child.href.split("/").pop();
+                              sessionStorage.removeItem(`report_filters_${reportId}`);
+                              if (reportId === "inventory") {
+                                sessionStorage.removeItem(`report_filters_maintenance`);
+                              }
+                            }}
                           >
                             <span className="overflow-hidden whitespace-nowrap">{t(child.labelKey)}</span>
                           </Link>
