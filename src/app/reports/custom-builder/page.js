@@ -57,6 +57,8 @@ export default function CustomReportBuilder() {
   const [scheduleName, setScheduleName] = useState("");
   const [scheduleFreq, setScheduleFreq] = useState("monthly");
   const [scheduleTime, setScheduleTime] = useState("09:00");
+  const [scheduleRunDay, setScheduleRunDay] = useState("monday");
+  const [scheduleRunDate, setScheduleRunDate] = useState("1");
   const [scheduleEmails, setScheduleEmails] = useState("");
   const [scheduleFormat, setScheduleFormat] = useState("pdf");
   const [scheduleActive, setScheduleActive] = useState(true);
@@ -322,17 +324,50 @@ export default function CustomReportBuilder() {
     setActiveModal("send");
   };
 
-  const handleSendEmail = () => {
+  const handleSendEmail = async () => {
     if (!emailTo.trim()) {
       showToast("Please enter at least one recipient email.", "error");
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const headers = activeCols.map((c) => c.label);
+      const body = getExportRows();
+
+      const payload = {
+        reportType: "custom",
+        reportName: reportName,
+        format: emailFormat,
+        headers,
+        data: body,
+        emailTo,
+        emailNote,
+      };
+
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
+
+      const res = await fetch(`${API_BASE}/reports/send-email`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to send email");
+      }
+
+      showToast(`Custom report successfully sent to: ${emailTo}`, "success");
       setActiveModal(null);
-      showToast(`Custom report sent to: ${emailTo}`);
-    }, 1500);
+    } catch (err) {
+      console.error("Email Send Error: ", err);
+      showToast(err.message || "Failed to send email report.", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Schedule Modal launchers
@@ -340,13 +375,15 @@ export default function CustomReportBuilder() {
     setScheduleName(`Automated ${reportName}`);
     setScheduleFreq("monthly");
     setScheduleTime("09:00");
+    setScheduleRunDay("monday");
+    setScheduleRunDate("1");
     setScheduleEmails("");
     setScheduleFormat("pdf");
     setScheduleActive(true);
     setActiveModal("schedule");
   };
 
-  const handleSaveSchedule = () => {
+  const handleSaveSchedule = async () => {
     if (!scheduleName.trim()) {
       showToast("Please enter a schedule name.", "error");
       return;
@@ -355,25 +392,35 @@ export default function CustomReportBuilder() {
       showToast("Please enter recipient emails.", "error");
       return;
     }
+    if (scheduleFreq === "weekly" && !scheduleRunDay) {
+      showToast("Please select a day of the week.", "error");
+      return;
+    }
+    if (scheduleFreq === "monthly" && !scheduleRunDate) {
+      showToast("Please select a day of the month.", "error");
+      return;
+    }
 
-    const newSchedule = {
-      id: Date.now().toString(),
-      reportId: `custom_${dataSource}`,
-      reportTitle: reportName,
-      name: scheduleName,
-      frequency: scheduleFreq,
-      runTime: scheduleTime,
-      recipients: scheduleEmails,
-      format: scheduleFormat,
-      active: scheduleActive,
-      lastRun: "Never",
-    };
+    try {
+      const payload = {
+        reportId: `custom_${dataSource}`,
+        reportTitle: reportName,
+        name: scheduleName,
+        frequency: scheduleFreq,
+        runTime: scheduleTime,
+        recipients: scheduleEmails,
+        format: scheduleFormat,
+        runDay: scheduleFreq === "weekly" ? scheduleRunDay : null,
+        runDate: scheduleFreq === "monthly" ? parseInt(scheduleRunDate, 10) : null
+      };
 
-    const existing = JSON.parse(localStorage.getItem("automated_schedules") || "[]");
-    localStorage.setItem("automated_schedules", JSON.stringify([newSchedule, ...existing]));
-
-    setActiveModal(null);
-    showToast("Automated schedule configured successfully!");
+      await reportApi.createSchedule(payload);
+      setActiveModal(null);
+      showToast("Automated schedule configured successfully!", "success");
+    } catch (err) {
+      console.error("Failed to configure schedule: ", err);
+      showToast(err.message || "Failed to configure automated schedule.", "error");
+    }
   };
 
   return (
@@ -881,6 +928,43 @@ export default function CustomReportBuilder() {
                   />
                 </div>
               </div>
+
+              {scheduleFreq === "weekly" && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-600">Day of Week</label>
+                  <SearchableSelect
+                    options={[
+                      { value: "monday", label: "Monday" },
+                      { value: "tuesday", label: "Tuesday" },
+                      { value: "wednesday", label: "Wednesday" },
+                      { value: "thursday", label: "Thursday" },
+                      { value: "friday", label: "Friday" },
+                      { value: "saturday", label: "Saturday" },
+                      { value: "sunday", label: "Sunday" },
+                    ]}
+                    value={scheduleRunDay}
+                    onChange={setScheduleRunDay}
+                  />
+                </div>
+              )}
+
+              {scheduleFreq === "monthly" && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-600">Day of Month</label>
+                  <SearchableSelect
+                    options={Array.from({ length: 31 }, (_, i) => ({
+                      value: String(i + 1),
+                      label: `${i + 1}${
+                        (i + 1) === 1 || (i + 1) === 21 || (i + 1) === 31 ? "st" :
+                        (i + 1) === 2 || (i + 1) === 22 ? "nd" :
+                        (i + 1) === 3 || (i + 1) === 23 ? "rd" : "th"
+                      } Day`
+                    }))}
+                    value={scheduleRunDate}
+                    onChange={setScheduleRunDate}
+                  />
+                </div>
+              )}
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-slate-600">Recipient Emails</label>

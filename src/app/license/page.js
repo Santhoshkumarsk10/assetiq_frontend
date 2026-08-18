@@ -4,6 +4,7 @@ import AppLayout from '@/components/AppLayout';
 import Modal from '@/components/Modal';
 import StatusBadge from '@/components/StatusBadge';
 import SearchableSelect from '@/components/SearchableSelect';
+import DatePicker from '@/components/DatePicker';
 import { licenseApi } from '@/lib/api';
 import { socket } from '@/lib/socket';
 import { Search, Plus, Eye, Pencil, Trash2, KeyRound, X, Calendar, User, RefreshCw, CheckCircle, XCircle, Bell } from 'lucide-react';
@@ -60,7 +61,8 @@ export default function LicensePage() {
     valid_until: '',
     assigned_user_id: '',
     status: 'available',
-    notes: ''
+    notes: '',
+    license_type: 'validity'
   });
 
   // Renewal state
@@ -139,7 +141,8 @@ export default function LicensePage() {
       valid_until: '',
       assigned_user_id: '',
       status: 'available',
-      notes: ''
+      notes: '',
+      license_type: 'validity'
     });
     setShowModal(true);
   };
@@ -150,11 +153,12 @@ export default function LicensePage() {
       id: license.id,
       software_name: license.software_name || '',
       license_key: license.license_key || '',
-      valid_from: license.valid_from || '',
-      valid_until: license.valid_until || '',
+      valid_from: license.valid_from ? license.valid_from.split('T')[0] : '',
+      valid_until: license.valid_until ? license.valid_until.split('T')[0] : '',
       assigned_user_id: license.assigned_user_id || '',
       status: license.status || 'available',
-      notes: license.notes || ''
+      notes: license.notes || '',
+      license_type: license.license_type || 'validity'
     });
     setShowModal(true);
   };
@@ -200,6 +204,15 @@ export default function LicensePage() {
       await loadLicenses();
     } catch (e) {
       showToast(e.data?.error || 'Failed to delete software license.', 'error');
+    }
+  };
+
+  const handleTriggerTest = async () => {
+    try {
+      await licenseApi.triggerTest();
+      showToast('Test notification triggered successfully! Check your email & device alerts.', 'success');
+    } catch (e) {
+      showToast(e.data?.error || 'Failed to trigger test notification.', 'error');
     }
   };
 
@@ -286,12 +299,20 @@ export default function LicensePage() {
               </button>
             )}
             {canAdd && (
-              <button
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
-                onClick={openAdd}
-              >
-                <Plus size={18} /> Add License
-              </button>
+              <>
+                <button
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-medium cursor-pointer border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors"
+                  onClick={handleTriggerTest}
+                >
+                  <Bell size={16} className="text-slate-500" /> Test Alert
+                </button>
+                <button
+                  className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+                  onClick={openAdd}
+                >
+                  <Plus size={18} /> Add License
+                </button>
+              </>
             )}
           </div>
         )}
@@ -346,6 +367,7 @@ export default function LicensePage() {
                     <tr className="border-b border-slate-100 text-slate-400 text-xs font-semibold uppercase tracking-wider">
                       <th className="py-3 px-4">{t('software')}</th>
                       <th className="py-3 px-4">{t('licenseKey')}</th>
+                      <th className="py-3 px-4">Type</th>
                       <th className="py-3 px-4">{t('assignedTo')}</th>
                       <th className="py-3 px-4">{t('validUntil')}</th>
                       <th className="py-3 px-4">{t('status')}</th>
@@ -357,6 +379,9 @@ export default function LicensePage() {
                       <tr key={license.id} className="text-slate-700 text-sm hover:bg-slate-50/50 transition-colors">
                         <td className="py-3.5 px-4 font-semibold text-slate-900">{license.software_name}</td>
                         <td className="py-3.5 px-4 font-mono text-xs text-slate-500">{license.license_key.substring(0, 12)}...</td>
+                        <td className="py-3.5 px-4">
+                          <span className="capitalize font-semibold text-slate-600">{license.license_type || 'validity'}</span>
+                        </td>
                         <td className="py-3.5 px-4">
                           {license.user ? (
                             <div className="flex items-center gap-1.5">
@@ -452,10 +477,14 @@ export default function LicensePage() {
                       <StatusBadge status={license.status} />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 border-t border-b border-slate-100 py-2">
+                    <div className="grid grid-cols-3 gap-2 text-xs text-slate-500 border-t border-b border-slate-100 py-2">
                       <div>
                         <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('assignedTo')}</span>
-                        <span className="font-semibold text-slate-700">{license.user?.name || t('unassigned')}</span>
+                        <span className="font-semibold text-slate-700 truncate block max-w-[80px]">{license.user?.name || t('unassigned')}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-slate-400 font-bold uppercase">Type</span>
+                        <span className="font-semibold text-slate-700 capitalize">{license.license_type || 'validity'}</span>
                       </div>
                       <div>
                         <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('validUntil')}</span>
@@ -568,23 +597,49 @@ export default function LicensePage() {
               />
             </div>
 
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">License Type</label>
+              <div className="flex gap-4 p-1.5 bg-slate-50 rounded-xl border border-slate-100">
+                <label className="flex-1 flex items-center justify-center gap-2 text-sm text-slate-700 cursor-pointer py-1.5 rounded-lg hover:bg-white transition-all">
+                  <input
+                    type="radio"
+                    name="license_type"
+                    value="validity"
+                    checked={form.license_type === 'validity'}
+                    onChange={() => setForm({ ...form, license_type: 'validity' })}
+                    className="accent-emerald-600"
+                  />
+                  Validity
+                </label>
+                <label className="flex-1 flex items-center justify-center gap-2 text-sm text-slate-700 cursor-pointer py-1.5 rounded-lg hover:bg-white transition-all">
+                  <input
+                    type="radio"
+                    name="license_type"
+                    value="subscription"
+                    checked={form.license_type === 'subscription'}
+                    onChange={() => setForm({ ...form, license_type: 'subscription' })}
+                    className="accent-emerald-600"
+                  />
+                  Subscription
+                </label>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Valid From</label>
-                <input
-                  type="date"
+                <DatePicker
                   value={form.valid_from}
-                  onChange={(e) => setForm({ ...form, valid_from: e.target.value })}
-                  className="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 text-slate-800"
+                  onChange={(dateStr) => setForm({ ...form, valid_from: dateStr })}
+                  placeholder="Select Start Date"
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Valid Until</label>
-                <input
-                  type="date"
+                <DatePicker
                   value={form.valid_until}
-                  onChange={(e) => setForm({ ...form, valid_until: e.target.value })}
-                  className="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 text-slate-800"
+                  onChange={(dateStr) => setForm({ ...form, valid_until: dateStr })}
+                  placeholder="Select End Date"
                 />
               </div>
             </div>
@@ -671,19 +726,25 @@ export default function LicensePage() {
                 <span className="block mt-1 font-mono text-sm text-slate-800 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 select-all">{viewingLicense.license_key}</span>
               </div>
               <div>
+                <span className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">License Type</span>
+                <span className="block mt-2 text-sm font-semibold text-slate-800 capitalize">{viewingLicense.license_type || 'Validity'}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              <div>
                 <span className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Duration / Validity</span>
                 <span className="block mt-2 text-sm text-slate-800">
                   {viewingLicense.valid_from ? `${viewingLicense.valid_from} to ` : ''}
                   {viewingLicense.valid_until ? viewingLicense.valid_until : 'Perpetual (No Expiration)'}
                 </span>
               </div>
-            </div>
-
-            <div className="pt-2">
-              <span className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Assigned User</span>
-              <span className="block mt-2 text-sm text-slate-800">
-                {viewingLicense.user ? `${viewingLicense.user.name} (${viewingLicense.user.email})` : <span className="text-slate-400 italic">None</span>}
-              </span>
+              <div>
+                <span className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Assigned User</span>
+                <span className="block mt-2 text-sm text-slate-800">
+                  {viewingLicense.user ? `${viewingLicense.user.name} (${viewingLicense.user.email})` : <span className="text-slate-400 italic">None</span>}
+                </span>
+              </div>
             </div>
 
             {viewingLicense.notes && (
@@ -714,11 +775,10 @@ export default function LicensePage() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Proposed New Valid Until</label>
-              <input
-                type="date"
+              <DatePicker
                 value={renewalForm.proposed_valid_until}
-                onChange={e => setRenewalForm({ ...renewalForm, proposed_valid_until: e.target.value })}
-                className="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-slate-800"
+                onChange={dateStr => setRenewalForm({ ...renewalForm, proposed_valid_until: dateStr })}
+                placeholder="Select Proposed End Date"
               />
             </div>
             <div>

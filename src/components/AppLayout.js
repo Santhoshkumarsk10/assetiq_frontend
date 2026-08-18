@@ -20,6 +20,80 @@ export default function AppLayout({ children }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  // Register Firebase Service Worker
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+
+    navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      .then((registration) => {
+        console.log('[SW] Service worker registered successfully:', registration.scope);
+      })
+      .catch((err) => {
+        console.error('[SW ERROR] Service worker registration failed:', err);
+      });
+  }, []);
+
+  // Request FCM token when authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const fetchFcmToken = async () => {
+        try {
+          const { requestForToken } = await import('@/lib/firebase');
+          const token = await requestForToken();
+          if (token) {
+            const cachedToken = localStorage.getItem('last_fcm_token');
+            if (cachedToken !== token) {
+              const { userApi } = await import('@/lib/api');
+              await userApi.updateFcmToken(token);
+              localStorage.setItem('last_fcm_token', token);
+              console.log('[FIREBASE] Registered FCM Token on backend.');
+            } else {
+              console.log('[FIREBASE] FCM Token is already up-to-date (cached locally).');
+            }
+          }
+        } catch (err) {
+          console.error('[FCM REGISTRATION ERROR]', err);
+        }
+      };
+      // Short delay to let Service Worker get ready
+      const timer = setTimeout(fetchFcmToken, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated, user]);
+
+  // Listen for foreground Firebase Cloud Messages and display native system alerts
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
+    let unsubscribe = () => {};
+
+    const setupListener = async () => {
+      try {
+        const { registerOnMessage } = await import('@/lib/firebase');
+        unsubscribe = registerOnMessage((payload) => {
+          console.log('[FIREBASE] Foreground message received: ', payload);
+          if (payload && payload.notification) {
+            // Show native OS/system notification
+            if (Notification.permission === 'granted') {
+              new Notification(payload.notification.title, {
+                body: payload.notification.body,
+                icon: '/icon.png'
+              });
+            }
+          }
+        });
+      } catch (err) {
+        console.error('[FCM FOREGROUND LISTENER ERROR]', err);
+      }
+    };
+
+    setupListener();
+
+    return () => {
+      unsubscribe();
+    };
+  }, [isAuthenticated, user]);
+
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 1024) {
