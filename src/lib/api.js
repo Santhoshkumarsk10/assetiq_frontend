@@ -108,7 +108,19 @@ export async function apiRequest(endpoint, options = {}) {
   };
 
   const res = await fetch(`${API_BASE}${endpoint}`, config);
-  const data = await res.json();
+
+  // Safely parse: if the server returns an HTML error page (e.g. 404/502 from
+  // a missing route or a downed ngrok tunnel) res.json() would throw a
+  // SyntaxError before we can handle the HTTP status. Check Content-Type first.
+  const contentType = res.headers.get('content-type') || '';
+  let data;
+  if (contentType.includes('application/json')) {
+    data = await res.json();
+  } else {
+    const text = await res.text();
+    // If non-OK, wrap the raw text into an error object
+    data = res.ok ? {} : { error: `Server returned non-JSON response (${res.status}): ${text.slice(0, 200)}` };
+  }
 
   if (!res.ok) {
     const error = new Error(data.error || 'Request failed');
@@ -184,6 +196,7 @@ export const userApi = {
   verifyReturn: (allocationId) => apiRequest('/users/offboard-verify', { body: { allocation_id: allocationId } }),
   toggleMfa: (body) => apiRequest('/users/mfa-toggle', { body }),
   managers: () => apiRequest('/users/managers'),
+  updateFcmToken: (fcmToken) => apiRequest('/users/update-fcm-token', { body: { fcm_token: fcmToken } }),
 };
 
 // Assets
@@ -249,6 +262,7 @@ export const licenseApi = {
   listRenewals: (body) => apiRequest('/licenses/renewal/list', { body }),
   decideRenewal: (body) => apiRequest('/licenses/renewal/decide', { body }),
   notifyUser: (license_id) => apiRequest('/licenses/renewal/notify-user', { body: { license_id } }),
+  triggerTest: () => apiRequest('/licenses/test-notification', {}),
 };
 
 // In-app Notifications
@@ -278,4 +292,9 @@ export const reportApi = {
   tickets: (body) => apiRequest('/reports/tickets', { body }),
   licenses: (body) => apiRequest('/reports/licenses', { body }),
   auditLogs: (body) => apiRequest('/reports/audit-logs', { body }),
+  listSchedules: () => apiRequest('/reports/schedules/list', { method: 'POST', body: {} }),
+  createSchedule: (body) => apiRequest('/reports/schedules', { body }),
+  updateSchedule: (id, body) => apiRequest(`/reports/schedules/${id}`, { method: 'PUT', body }),
+  deleteSchedule: (id) => apiRequest(`/reports/schedules/${id}`, { method: 'DELETE' }),
+  runSchedule: (id) => apiRequest(`/reports/schedules/${id}/run`, { method: 'POST', body: {} }),
 };

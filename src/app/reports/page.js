@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import AppLayout from "@/components/AppLayout";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { dashboardApi, auditApi, locationApi } from "@/lib/api";
+import { dashboardApi, auditApi, locationApi, reportApi } from "@/lib/api";
 import SearchableSelect from "@/components/SearchableSelect";
 import DateRangePicker from "@/components/DateRangePicker";
 import {
@@ -267,6 +267,8 @@ export default function ReportsDashboard() {
   const [scheduleName, setScheduleName] = useState("");
   const [scheduleFreq, setScheduleFreq] = useState("monthly");
   const [scheduleTime, setScheduleTime] = useState("09:00");
+  const [scheduleRunDay, setScheduleRunDay] = useState("monday");
+  const [scheduleRunDate, setScheduleRunDate] = useState("1");
   const [scheduleEmails, setScheduleEmails] = useState("");
   const [scheduleFormat, setScheduleFormat] = useState("pdf");
   const [scheduleActive, setScheduleActive] = useState(true);
@@ -334,6 +336,8 @@ export default function ReportsDashboard() {
     setScheduleName(`Scheduled ${report.title}`);
     setScheduleFreq("monthly");
     setScheduleTime("09:00");
+    setScheduleRunDay("monday");
+    setScheduleRunDate("1");
     setScheduleEmails("");
     setScheduleFormat("pdf");
     setScheduleActive(true);
@@ -341,7 +345,7 @@ export default function ReportsDashboard() {
   };
 
   // Save Automated Schedule
-  const handleSaveSchedule = () => {
+  const handleSaveSchedule = async () => {
     if (!scheduleName.trim()) {
       showToast("Please enter a schedule name.", "error");
       return;
@@ -350,26 +354,35 @@ export default function ReportsDashboard() {
       showToast("Please enter recipient emails.", "error");
       return;
     }
+    if (scheduleFreq === "weekly" && !scheduleRunDay) {
+      showToast("Please select a day of the week.", "error");
+      return;
+    }
+    if (scheduleFreq === "monthly" && !scheduleRunDate) {
+      showToast("Please select a day of the month.", "error");
+      return;
+    }
 
-    const newSchedule = {
-      id: Date.now().toString(),
-      reportId: selectedReport.id,
-      reportTitle: selectedReport.title,
-      name: scheduleName,
-      frequency: scheduleFreq,
-      runTime: scheduleTime,
-      recipients: scheduleEmails,
-      format: scheduleFormat,
-      active: scheduleActive,
-      lastRun: "Never",
-    };
+    try {
+      const payload = {
+        reportId: selectedReport.id,
+        reportTitle: selectedReport.title,
+        name: scheduleName,
+        frequency: scheduleFreq,
+        runTime: scheduleTime,
+        recipients: scheduleEmails,
+        format: scheduleFormat,
+        runDay: scheduleFreq === "weekly" ? scheduleRunDay : null,
+        runDate: scheduleFreq === "monthly" ? parseInt(scheduleRunDate, 10) : null
+      };
 
-    // Save to localStorage
-    const existing = JSON.parse(localStorage.getItem("automated_schedules") || "[]");
-    localStorage.setItem("automated_schedules", JSON.stringify([newSchedule, ...existing]));
-
-    setActiveModal(null);
-    showToast("Schedule automated successfully!");
+      await reportApi.createSchedule(payload);
+      setActiveModal(null);
+      showToast("Schedule automated successfully!");
+    } catch (err) {
+      console.error("Failed to create schedule: ", err);
+      showToast(err.message || "Failed to create schedule.", "error");
+    }
   };
 
   return (
@@ -759,6 +772,43 @@ export default function ReportsDashboard() {
                   </div>
                 </div>
               </div>
+
+              {scheduleFreq === "weekly" && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-600">Day of Week</label>
+                  <SearchableSelect
+                    options={[
+                      { value: "monday", label: "Monday" },
+                      { value: "tuesday", label: "Tuesday" },
+                      { value: "wednesday", label: "Wednesday" },
+                      { value: "thursday", label: "Thursday" },
+                      { value: "friday", label: "Friday" },
+                      { value: "saturday", label: "Saturday" },
+                      { value: "sunday", label: "Sunday" },
+                    ]}
+                    value={scheduleRunDay}
+                    onChange={setScheduleRunDay}
+                  />
+                </div>
+              )}
+
+              {scheduleFreq === "monthly" && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-600">Day of Month</label>
+                  <SearchableSelect
+                    options={Array.from({ length: 31 }, (_, i) => ({
+                      value: String(i + 1),
+                      label: `${i + 1}${
+                        (i + 1) === 1 || (i + 1) === 21 || (i + 1) === 31 ? "st" :
+                        (i + 1) === 2 || (i + 1) === 22 ? "nd" :
+                        (i + 1) === 3 || (i + 1) === 23 ? "rd" : "th"
+                      } Day`
+                    }))}
+                    value={scheduleRunDate}
+                    onChange={setScheduleRunDate}
+                  />
+                </div>
+              )}
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-slate-600">Recipient Emails</label>
