@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import AppLayout from "@/components/AppLayout";
 import SearchableSelect from "@/components/SearchableSelect";
+import { reportApi } from "@/lib/api";
 import {
   ArrowLeft,
   Calendar,
@@ -28,6 +29,8 @@ export default function ScheduledReportsManager() {
   const [newReportType, setNewReportType] = useState("inventory");
   const [newFreq, setNewFreq] = useState("monthly");
   const [newTime, setNewTime] = useState("09:00");
+  const [newRunDay, setNewRunDay] = useState("monday");
+  const [newRunDate, setNewRunDate] = useState("1");
   const [newEmails, setNewEmails] = useState("");
   const [newFormat, setNewFormat] = useState("pdf");
 
@@ -44,10 +47,31 @@ export default function ScheduledReportsManager() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // Load schedules from localStorage
-  const loadSchedules = () => {
-    const data = JSON.parse(localStorage.getItem("automated_schedules") || "[]");
-    setSchedules(data);
+  // Load schedules from backend API
+  const loadSchedules = async () => {
+    try {
+      const res = await reportApi.listSchedules();
+      if (res && res.schedules) {
+        const normalized = res.schedules.map(s => ({
+          id: s.id,
+          reportId: s.report_id,
+          reportTitle: s.report_title,
+          name: s.name,
+          frequency: s.frequency,
+          runTime: s.run_time,
+          recipients: s.recipients,
+          format: s.format,
+          active: s.active,
+          lastRun: s.last_run,
+          runDay: s.run_day,
+          runDate: s.run_date
+        }));
+        setSchedules(normalized);
+      }
+    } catch (err) {
+      console.error("Failed to load schedules: ", err);
+      showToast(err.message || "Failed to load automated schedules.", "error");
+    }
   };
 
   useEffect(() => {
@@ -55,50 +79,59 @@ export default function ScheduledReportsManager() {
   }, []);
 
   // Toggle Schedule Active Status
-  const handleToggleActive = (id) => {
-    const updated = schedules.map((s) => {
-      if (s.id === id) {
-        const nextState = !s.active;
-        showToast(
-          `Schedule "${s.name}" is now ${nextState ? "Active" : "Paused"}.`,
-          nextState ? "success" : "info"
-        );
-        return { ...s, active: nextState };
-      }
-      return s;
-    });
-    localStorage.setItem("automated_schedules", JSON.stringify(updated));
-    setSchedules(updated);
+  const handleToggleActive = async (id) => {
+    const target = schedules.find((s) => s.id === id);
+    if (!target) return;
+    const nextState = !target.active;
+
+    try {
+      await reportApi.updateSchedule(id, { active: nextState });
+      showToast(
+        `Schedule "${target.name}" is now ${nextState ? "Active" : "Paused"}.`,
+        nextState ? "success" : "info"
+      );
+      setSchedules(schedules.map(s => s.id === id ? { ...s, active: nextState } : s));
+    } catch (err) {
+      console.error("Failed to toggle status: ", err);
+      showToast("Failed to toggle schedule status.", "error");
+    }
   };
 
   // Delete Schedule
-  const handleDeleteSchedule = (id) => {
+  const handleDeleteSchedule = async (id) => {
     const target = schedules.find((s) => s.id === id);
-    const updated = schedules.filter((s) => s.id !== id);
-    localStorage.setItem("automated_schedules", JSON.stringify(updated));
-    setSchedules(updated);
-    showToast(`Deleted schedule: "${target?.name}"`);
+    if (!target) return;
+
+    try {
+      await reportApi.deleteSchedule(id);
+      showToast(`Deleted schedule: "${target.name}"`);
+      setSchedules(schedules.filter(s => s.id !== id));
+    } catch (err) {
+      console.error("Failed to delete schedule: ", err);
+      showToast("Failed to delete schedule.", "error");
+    }
   };
 
   // Trigger Schedule Run Now
-  const handleRunNow = (id) => {
+  const handleRunNow = async (id) => {
+    const target = schedules.find((s) => s.id === id);
+    if (!target) return;
+
     setLoadingScheduleId(id);
-    setTimeout(() => {
-      const updated = schedules.map((s) => {
-        if (s.id === id) {
-          showToast(`Report successfully generated and emailed to: ${s.recipients}`);
-          return { ...s, lastRun: new Date().toLocaleString() };
-        }
-        return s;
-      });
-      localStorage.setItem("automated_schedules", JSON.stringify(updated));
-      setSchedules(updated);
+    try {
+      const res = await reportApi.runSchedule(id);
+      showToast(`Report successfully generated and emailed to: ${target.recipients}`);
+      setSchedules(schedules.map(s => s.id === id ? { ...s, lastRun: res.last_run || new Date().toLocaleString() } : s));
+    } catch (err) {
+      console.error("Failed to run schedule: ", err);
+      showToast(err.message || "Failed to run schedule.", "error");
+    } finally {
       setLoadingScheduleId(null);
-    }, 1500);
+    }
   };
 
   // Create Direct Schedule
-  const handleCreateSchedule = () => {
+  const handleCreateSchedule = async () => {
     if (!newScheduleName.trim()) {
       showToast("Please enter a schedule name.", "error");
       return;
@@ -107,31 +140,54 @@ export default function ScheduledReportsManager() {
       showToast("Please enter recipient emails.", "error");
       return;
     }
+    if (newFreq === "weekly" && !newRunDay) {
+      showToast("Please select a day of the week.", "error");
+      return;
+    }
+    if (newFreq === "monthly" && !newRunDate) {
+      showToast("Please select a day of the month.", "error");
+      return;
+    }
 
-    const newSchedule = {
-      id: Date.now().toString(),
-      reportId: newReportType,
-      reportTitle: reportTypeLabels[newReportType] || "Custom Report",
-      name: newScheduleName,
-      frequency: newFreq,
-      runTime: newTime,
-      recipients: newEmails,
-      format: newFormat,
-      active: true,
-      lastRun: "Never",
-    };
+    try {
+      const payload = {
+        reportId: newReportType,
+        reportTitle: reportTypeLabels[newReportType] || "Custom Report",
+        name: newScheduleName,
+        frequency: newFreq,
+        runTime: newTime,
+        recipients: newEmails,
+        format: newFormat,
+        runDay: newFreq === "weekly" ? newRunDay : null,
+        runDate: newFreq === "monthly" ? parseInt(newRunDate, 10) : null
+      };
 
-    const existing = JSON.parse(localStorage.getItem("automated_schedules") || "[]");
-    const updated = [newSchedule, ...existing];
-    localStorage.setItem("automated_schedules", JSON.stringify(updated));
-    setSchedules(updated);
-
-    setShowCreateModal(false);
-    showToast("Schedule automated successfully!");
-
-    // Reset fields
-    setNewScheduleName("");
-    setNewEmails("");
+      const res = await reportApi.createSchedule(payload);
+      if (res && res.schedule) {
+        const fresh = {
+          id: res.schedule.id,
+          reportId: res.schedule.report_id,
+          reportTitle: res.schedule.report_title,
+          name: res.schedule.name,
+          frequency: res.schedule.frequency,
+          runTime: res.schedule.run_time,
+          recipients: res.schedule.recipients,
+          format: res.schedule.format,
+          active: res.schedule.active,
+          lastRun: res.schedule.last_run || "Never",
+          runDay: res.schedule.run_day,
+          runDate: res.schedule.run_date
+        };
+        setSchedules([fresh, ...schedules]);
+        setShowCreateModal(false);
+        showToast("Schedule automated successfully!");
+        setNewScheduleName("");
+        setNewEmails("");
+      }
+    } catch (err) {
+      console.error("Failed to create schedule: ", err);
+      showToast(err.message || "Failed to create schedule.", "error");
+    }
   };
 
   return (
@@ -199,7 +255,9 @@ export default function ScheduledReportsManager() {
                       <td className="px-5 py-4 font-bold text-slate-800">{s.name}</td>
                       <td className="px-5 py-4 font-semibold text-slate-600">{s.reportTitle}</td>
                       <td className="px-5 py-4 font-semibold text-slate-550 capitalize">
-                        {s.frequency} at {s.runTime}
+                        {s.frequency === 'weekly' && s.runDay ? `Weekly on ${s.runDay} at ${s.runTime}` :
+                         s.frequency === 'monthly' && s.runDate ? `Monthly on Day ${s.runDate} at ${s.runTime}` :
+                         `${s.frequency} at ${s.runTime}`}
                       </td>
                       <td className="px-5 py-4 font-medium text-slate-500 truncate max-w-[180px]" title={s.recipients}>
                         {s.recipients}
@@ -345,6 +403,43 @@ export default function ScheduledReportsManager() {
                   />
                 </div>
               </div>
+
+              {newFreq === "weekly" && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-600">Day of Week</label>
+                  <SearchableSelect
+                    options={[
+                      { value: "monday", label: "Monday" },
+                      { value: "tuesday", label: "Tuesday" },
+                      { value: "wednesday", label: "Wednesday" },
+                      { value: "thursday", label: "Thursday" },
+                      { value: "friday", label: "Friday" },
+                      { value: "saturday", label: "Saturday" },
+                      { value: "sunday", label: "Sunday" },
+                    ]}
+                    value={newRunDay}
+                    onChange={setNewRunDay}
+                  />
+                </div>
+              )}
+
+              {newFreq === "monthly" && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-600">Day of Month</label>
+                  <SearchableSelect
+                    options={Array.from({ length: 31 }, (_, i) => ({
+                      value: String(i + 1),
+                      label: `${i + 1}${
+                        (i + 1) === 1 || (i + 1) === 21 || (i + 1) === 31 ? "st" :
+                        (i + 1) === 2 || (i + 1) === 22 ? "nd" :
+                        (i + 1) === 3 || (i + 1) === 23 ? "rd" : "th"
+                      } Day`
+                    }))}
+                    value={newRunDate}
+                    onChange={setNewRunDate}
+                  />
+                </div>
+              )}
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-slate-600">Recipient Emails</label>

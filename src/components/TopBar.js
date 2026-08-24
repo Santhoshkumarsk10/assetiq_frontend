@@ -59,11 +59,28 @@ export default function TopBar({ isOpen, toggleSidebar }) {
   const themeDropRef = useRef(null);
   const notifDropRef = useRef(null);
 
-  const loadNotifications = useCallback(async () => {
+  const loadNotifications = useCallback(async (force = false) => {
     try {
+      if (typeof window !== 'undefined') {
+        const cachedData = localStorage.getItem('cached_notifications');
+        const cachedTime = localStorage.getItem('cached_notifications_time');
+        
+        if (!force && cachedData && cachedTime && (Date.now() - parseInt(cachedTime, 10) < 60 * 1000)) {
+          const parsed = JSON.parse(cachedData);
+          setNotifications(parsed.notifications || []);
+          setUnreadCount(parsed.unreadCount || 0);
+          return;
+        }
+      }
+
       const data = await notificationApi.list();
       setNotifications(data.notifications || []);
       setUnreadCount(data.unreadCount || 0);
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cached_notifications', JSON.stringify(data));
+        localStorage.setItem('cached_notifications_time', Date.now().toString());
+      }
     } catch (e) {
       // Silently fail – non-critical
     }
@@ -76,13 +93,25 @@ export default function TopBar({ isOpen, toggleSidebar }) {
     if (user?.id && socket) {
       socket.emit('join_user_room', user.id);
       socket.on('new_notification', (notif) => {
-        setNotifications(prev => [notif, ...prev]);
+        setNotifications(prev => {
+          const updated = [notif, ...prev];
+          if (typeof window !== 'undefined') {
+            const cached = localStorage.getItem('cached_notifications');
+            if (cached) {
+              const parsed = JSON.parse(cached);
+              parsed.notifications = [notif, ...(parsed.notifications || [])];
+              parsed.unreadCount = (parsed.unreadCount || 0) + 1;
+              localStorage.setItem('cached_notifications', JSON.stringify(parsed));
+            }
+          }
+          return updated;
+        });
         setUnreadCount(prev => prev + 1);
       });
     }
 
     // Poll every 2 minutes as fallback
-    const interval = setInterval(loadNotifications, 2 * 60 * 1000);
+    const interval = setInterval(() => loadNotifications(true), 2 * 60 * 1000);
     return () => {
       clearInterval(interval);
       if (socket) socket.off('new_notification');
@@ -112,6 +141,9 @@ export default function TopBar({ isOpen, toggleSidebar }) {
       await notificationApi.markRead({ mark_all: true });
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setUnreadCount(0);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('cached_notifications_time');
+      }
     } catch (e) { /* silent */ }
   };
 
@@ -120,6 +152,9 @@ export default function TopBar({ isOpen, toggleSidebar }) {
       await notificationApi.markRead({ notification_id: id });
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('cached_notifications_time');
+      }
     } catch (e) { /* silent */ }
   };
 
@@ -232,7 +267,7 @@ export default function TopBar({ isOpen, toggleSidebar }) {
         {/* Notification Bell */}
         <div ref={notifDropRef} className="relative">
           <button
-            onClick={() => { setShowNotifDropdown(!showNotifDropdown); if (!showNotifDropdown) loadNotifications(); }}
+            onClick={() => { setShowNotifDropdown(!showNotifDropdown); if (!showNotifDropdown) loadNotifications(true); }}
             className="relative w-[34px] h-[34px] p-0 flex items-center justify-center rounded-lg border-none bg-transparent cursor-pointer text-slate-400 hover:bg-slate-100 hover:text-slate-800 transition-colors"
           >
             <Bell size={20} />
