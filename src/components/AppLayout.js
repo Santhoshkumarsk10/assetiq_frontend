@@ -1,5 +1,6 @@
 'use client';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
@@ -16,6 +17,7 @@ const routePermissions = {
 
 export default function AppLayout({ children }) {
   const { isAuthenticated, loading, user } = useAuth();
+  const { isAuxinzio } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -66,7 +68,7 @@ export default function AppLayout({ children }) {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className={`flex min-h-screen ${isAuxinzio ? 'bg-[#f4f6fb]' : 'bg-slate-50'}`}>
       <Sidebar isOpen={sidebarOpen} />
       {sidebarOpen && (
         <div 

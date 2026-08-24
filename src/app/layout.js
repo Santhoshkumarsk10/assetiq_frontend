@@ -3,6 +3,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { ConfirmProvider } from '@/context/ConfirmContext';
 import { LanguageProvider } from '@/context/LanguageContext';
+import { ThemeProvider } from '@/context/ThemeContext';
 
 export const metadata = {
   title: 'Aux AssetCare - Enterprise IT Asset Management',
@@ -16,15 +17,17 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <ToastProvider>
-          <ConfirmProvider>
-            <AuthProvider>
-              <LanguageProvider>
-                {children}
-              </LanguageProvider>
-            </AuthProvider>
-          </ConfirmProvider>
-        </ToastProvider>
+        <ThemeProvider>
+          <ToastProvider>
+            <ConfirmProvider>
+              <AuthProvider>
+                <LanguageProvider>
+                  {children}
+                </LanguageProvider>
+              </AuthProvider>
+            </ConfirmProvider>
+          </ToastProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

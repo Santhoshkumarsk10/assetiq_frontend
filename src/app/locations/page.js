@@ -3,11 +3,13 @@ import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import Modal from '@/components/Modal';
 import SearchableSelect from '@/components/SearchableSelect';
+import LocationSticker from '@/components/LocationSticker';
 import { locationApi } from '@/lib/api';
-import { Search, Plus, Pencil, Trash2, MapPin, X } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, MapPin, X, Globe, Phone } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { useAuth } from '@/context/AuthContext';
+import { getLocationSticker } from '@/lib/locationStickers';
 
 export default function LocationsPage() {
   const { showToast } = useToast();
@@ -30,7 +32,7 @@ export default function LocationsPage() {
 
   // Pagination states
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(12);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -42,7 +44,9 @@ export default function LocationsPage() {
         setTotal(data.pagination.total);
         setTotalPages(data.pagination.totalPages);
       }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
     setLoading(false);
   }, [page, limit, search]);
 
@@ -57,7 +61,7 @@ export default function LocationsPage() {
         const data = await locationApi.list({ page: 1, limit: 10, search: searchInput, paginate: true });
         const results = [];
         const seen = new Set();
-        (data.locations || []).forEach(loc => {
+        (data.locations || []).forEach((loc) => {
           if (loc.name && loc.name.toLowerCase().includes(searchInput.toLowerCase()) && !seen.has(`name:${loc.name}`)) {
             seen.add(`name:${loc.name}`);
             results.push({ type: 'name', value: loc.name, label: loc.name });
@@ -117,16 +121,18 @@ export default function LocationsPage() {
 
     setSaving(true);
     try {
-      if (editingLoc) { 
-        await locationApi.edit(form); 
+      if (editingLoc) {
+        await locationApi.edit(form);
         showToast('Location updated successfully!', 'success');
-      } else { 
-        await locationApi.add(form); 
+      } else {
+        await locationApi.add(form);
         showToast('Location added successfully!', 'success');
       }
       setShowModal(false);
       await loadLocations();
-    } catch (e) { showToast(e.data?.error || 'Failed to save', 'error'); }
+    } catch (e) {
+      showToast(e.data?.error || 'Failed to save', 'error');
+    }
     setSaving(false);
   };
 
@@ -136,34 +142,45 @@ export default function LocationsPage() {
       await locationApi.delete(id);
       showToast(`Location "${name}" deleted successfully!`, 'success');
       await loadLocations();
-    } catch (e) { showToast(e.data?.error || 'Failed to delete', 'error'); }
+    } catch (e) {
+      showToast(e.data?.error || 'Failed to delete', 'error');
+    }
   };
 
   return (
     <AppLayout>
-      <div className="flex justify-between items-start mb-6">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Master Data</h1>
-          <p className="text-slate-500 text-sm mt-1">Manage system reference data</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Master Data</h1>
+          <p className="text-slate-500 text-sm mt-1">Manage system locations & geographic hubs</p>
         </div>
         {canAdd && (
-          <button className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors" onClick={openAdd}><Plus size={18} /> Add New</button>
+          <button
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm hover:shadow transition-all duration-200"
+            onClick={openAdd}
+          >
+            <Plus size={18} /> Add New Location
+          </button>
         )}
       </div>
 
-      <div className="flex gap-2 mb-5">
-        <button className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-emerald-600 text-white border-none cursor-pointer">
-          Locations <span className="bg-white/30 px-2 py-0.5 rounded-full ml-1.5 text-[11px]">{total}</span>
+      {/* Tabs / Subheader Bar */}
+      <div className="flex gap-2 mb-6">
+        <button className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-emerald-600 text-white border-none cursor-pointer shadow-xs">
+          Locations <span className="bg-white/25 px-2 py-0.5 rounded-full ml-1 text-[11px] font-bold">{total}</span>
         </button>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
-        <div className="flex gap-4 items-center mb-5">
-          <div className="flex-1 relative">
-            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-2.5">
+      {/* Main Container */}
+      <div className="space-y-6">
+        {/* Search & Filter Bar */}
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs flex flex-col md:flex-row gap-4 items-center justify-between">
+          <div className="w-full md:flex-1 relative">
+            <div className="flex items-center gap-2 bg-slate-50/70 border border-slate-200/80 rounded-xl px-4 py-2.5 focus-within:border-emerald-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-100 transition-all">
               <Search size={18} className="text-slate-400 shrink-0" />
               <input
-                placeholder="Search locations..."
+                placeholder="Search locations by name..."
                 value={searchInput}
                 onChange={(e) => handleSearchInputChange(e.target.value)}
                 onKeyDown={(e) => {
@@ -179,18 +196,17 @@ export default function LocationsPage() {
               />
               {searchInput && (
                 <button
-                  onClick={() => {
-                    handleSearchInputChange('');
-                  }}
-                  className="text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer border-none bg-transparent"
+                  onClick={() => handleSearchInputChange('')}
+                  className="text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer border-none bg-transparent p-0.5 rounded"
                 >
                   <X size={16} />
                 </button>
               )}
             </div>
 
+            {/* Suggestions Dropdown */}
             {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto py-1">
+              <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto py-1.5 divide-y divide-slate-50">
                 {suggestions.map((item, idx) => (
                   <button
                     key={idx}
@@ -200,95 +216,203 @@ export default function LocationsPage() {
                       setPage(1);
                       setShowSuggestions(false);
                     }}
-                    className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex flex-col gap-0.5 border-none bg-transparent cursor-pointer"
+                    className="w-full text-left px-4 py-2.5 hover:bg-emerald-50/50 transition-colors flex flex-col gap-0.5 border-none bg-transparent cursor-pointer"
                   >
                     <span className="text-[10px] text-emerald-600 font-bold tracking-wider uppercase">{item.type}</span>
-                    <span className="text-sm text-slate-700 font-medium">{item.label}</span>
+                    <span className="text-sm text-slate-800 font-semibold">{item.label}</span>
                   </button>
                 ))}
               </div>
             )}
           </div>
-          <SearchableSelect
-            options={[
-              { value: 5, label: "5 per page" },
-              { value: 10, label: "10 per page" },
-              { value: 20, label: "20 per page" },
-              { value: 50, label: "50 per page" }
-            ]}
-            value={limit}
-            onChange={val => setLimit(val)}
-            className="w-[150px]"
-          />
+
+          <div className="w-full md:w-auto flex items-center justify-end gap-3">
+            <SearchableSelect
+              options={[
+                { value: 6, label: '6 per page' },
+                { value: 9, label: '9 per page' },
+                { value: 12, label: '12 per page' },
+                { value: 24, label: '24 per page' },
+                { value: 48, label: '48 per page' },
+              ]}
+              value={limit}
+              onChange={(val) => {
+                setLimit(val);
+                setPage(1);
+              }}
+              className="w-full md:w-[150px]"
+            />
+          </div>
         </div>
 
+        {/* Card Grid Layout */}
         {loading ? (
-          <div className="flex items-center justify-center p-15 text-slate-400 gap-2.5 text-sm">
-            <div className="w-6 h-6 border-3 border-slate-200 border-t-emerald-500 rounded-full animate-spin" /> Loading locations...
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-20 flex flex-col items-center justify-center text-slate-400 gap-3 text-sm shadow-xs">
+            <div className="w-8 h-8 border-3 border-slate-200 border-t-emerald-500 rounded-full animate-spin" />
+            <span>Loading locations...</span>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-15 px-5 text-slate-400 flex flex-col items-center justify-center">
-            <MapPin size={48} className="mb-3 opacity-40" />
-            <p className="text-sm">No locations found</p>
+          <div className="bg-white border border-slate-200/90 rounded-2xl py-20 px-6 text-center text-slate-400 flex flex-col items-center justify-center shadow-xs">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-500 flex items-center justify-center mb-4">
+              <MapPin size={32} />
+            </div>
+            <h3 className="text-base font-bold text-slate-800">No locations found</h3>
+            <p className="text-xs text-slate-500 mt-1 max-w-sm">
+              {search ? `No locations matched "${search}". Try searching for something else.` : 'Get started by adding your first location hub.'}
+            </p>
+            {search && (
+              <button
+                onClick={() => {
+                  setSearch('');
+                  setSearchInput('');
+                  setPage(1);
+                }}
+                className="mt-4 text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-4 py-2 rounded-lg cursor-pointer transition-colors"
+              >
+                Clear Search Filter
+              </button>
+            )}
           </div>
         ) : (
-          filtered.map((loc) => (
-            <div key={loc.id} className="flex items-center justify-between px-5 py-4 border-b border-slate-100 last:border-b-0">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                <div>
-                  <div className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-                    {loc.name}
-                    {loc.country_code && (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">
-                        {loc.country_code}
-                      </span>
-                    )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filtered.map((loc) => {
+              const sticker = getLocationSticker(loc.name);
+              const isActive = loc.is_active !== false && loc.status !== 'inactive';
+
+              return (
+                <div
+                  key={loc.id}
+                  className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden"
+                >
+                  {/* Top Header inside Card */}
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      {/* Left: Country / Region Pill */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {sticker?.country ? (
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${sticker.badgeBg}`}>
+                            {sticker.country}
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border bg-slate-50 text-slate-600 border-slate-200">
+                            Global
+                          </span>
+                        )}
+                        {loc.country_code && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200/70">
+                            <Phone size={10} className="text-slate-400" />
+                            {loc.country_code}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Right: Active/Inactive Status Badge */}
+                      <div className="shrink-0">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold transition-colors ${
+                            isActive
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
+                              : 'bg-slate-100 text-slate-600 border border-slate-200'
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isActive
+                                ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]'
+                                : 'bg-slate-400'
+                            }`}
+                          />
+                          {isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Hero Die-Cut Travel Sticker Showcase */}
+                    <div className="h-44 w-full flex items-center justify-center my-2 relative">
+                      <LocationSticker locationName={loc.name} />
+                    </div>
+
+                    {/* Location Name & Details */}
+                    <div className="mt-2 text-center">
+                      <h3 className="text-base font-bold text-slate-900 group-hover:text-emerald-700 transition-colors tracking-tight line-clamp-1">
+                        {loc.name}
+                      </h3>
+                      <div className="text-xs text-slate-500 mt-1 flex items-center justify-center gap-1 min-h-[34px] px-2 text-center">
+                        <MapPin size={13} className="text-slate-400 shrink-0 self-start mt-0.5" />
+                        <span className="line-clamp-2 leading-relaxed">
+                          {loc.address || 'No address specified'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-xs text-slate-400 mt-0.5">{loc.address || 'No address specified'}</div>
+
+                  {/* Card Bottom / Footer with Action Buttons */}
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <div className="text-[11px] font-medium text-slate-400 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      ID #{loc.id || '—'}
+                    </div>
+
+                    {/* Action buttons (Edit & Delete - show on hover) */}
+                    <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200">
+                      {canEdit && (
+                        <button
+                          onClick={() => openEdit(loc)}
+                          title="Edit Location"
+                          className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 flex items-center justify-center transition-all cursor-pointer shadow-2xs hover:scale-105"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={() => handleDelete(loc.id, loc.name)}
+                          title="Delete Location"
+                          className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 flex items-center justify-center transition-all cursor-pointer shadow-2xs hover:scale-105"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="flex gap-1">
-                {canEdit && (
-                  <button className="w-[34px] h-[34px] p-0 inline-flex items-center justify-center rounded-lg border-none bg-transparent cursor-pointer text-slate-400 hover:bg-slate-100 hover:text-slate-800 transition-colors" onClick={() => openEdit(loc)}><Pencil size={16} /></button>
-                )}
-                {canDelete && (
-                  <button className="w-[34px] h-[34px] p-0 inline-flex items-center justify-center rounded-lg border-none bg-transparent cursor-pointer text-slate-400 hover:bg-slate-100 hover:text-slate-800 transition-colors" onClick={() => handleDelete(loc.id, loc.name)}><Trash2 size={16} /></button>
-                )}
-              </div>
-            </div>
-          ))
+              );
+            })}
+          </div>
         )}
 
         {/* Pagination Controls */}
         {totalPages > 1 && (
-          <div className="flex justify-between items-center mt-5 pt-4 border-t border-slate-200">
-            <div className="text-sm text-slate-500">
-              Showing {Math.min((page - 1) * limit + 1, total)} to {Math.min(page * limit, total)} of {total} entries
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="text-xs text-slate-500 font-medium">
+              Showing <span className="font-semibold text-slate-700">{Math.min((page - 1) * limit + 1, total)}</span> to{' '}
+              <span className="font-semibold text-slate-700">{Math.min(page * limit, total)}</span> of{' '}
+              <span className="font-semibold text-slate-700">{total}</span> entries
             </div>
-            <div className="flex gap-1.5">
-              <button 
-                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" 
-                onClick={() => setPage(p => Math.max(p - 1, 1))} 
+            <div className="flex items-center gap-1.5">
+              <button
+                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                onClick={() => setPage((p) => Math.max(p - 1, 1))}
                 disabled={page === 1}
               >
                 Previous
               </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                <button 
-                  key={p} 
-                  className={page === p 
-                    ? "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white cursor-pointer" 
-                    : "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer"
-                  } 
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  className={
+                    page === p
+                      ? 'px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white cursor-pointer shadow-xs'
+                      : 'px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer transition-colors'
+                  }
                   onClick={() => setPage(p)}
                 >
                   {p}
                 </button>
               ))}
-              <button 
-                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" 
-                onClick={() => setPage(p => Math.min(p + 1, totalPages))} 
+              <button
+                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
                 disabled={page === totalPages}
               >
                 Next
@@ -298,22 +422,56 @@ export default function LocationsPage() {
         )}
       </div>
 
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editingLoc ? 'Edit Location' : 'Add Location'}
-        footer={<>
-          <button className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors" onClick={() => setShowModal(false)}>Cancel</button>
-          <button className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
-        </>}>
+      {/* Add / Edit Location Modal */}
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingLoc ? 'Edit Location' : 'Add Location'}
+        footer={
+          <>
+            <button
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-medium cursor-pointer border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors"
+              onClick={() => setShowModal(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm hover:shadow transition-all"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          </>
+        }
+      >
         <div className="mb-4">
-          <label className="block text-xs font-medium text-slate-500 mb-1.5">Location Name *</label>
-          <input className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value.replace(/[^a-zA-Z0-9\s]/g, '') })} required />
+          <label className="block text-xs font-semibold text-slate-600 mb-1.5">Location Name *</label>
+          <input
+            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 placeholder-slate-400 transition-all"
+            value={form.name || ''}
+            placeholder="e.g. Bangalore, Mumbai, London"
+            onChange={(e) => setForm({ ...form, name: e.target.value.replace(/[^a-zA-Z0-9\s]/g, '') })}
+            required
+          />
         </div>
         <div className="mb-4">
-          <label className="block text-xs font-medium text-slate-500 mb-1.5">Country Code (e.g. +91)</label>
-          <input className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" placeholder="e.g. +91" value={form.country_code || ''} onChange={(e) => setForm({ ...form, country_code: e.target.value.replace(/[^0-9+]/g, '').slice(0, 7) })} />
+          <label className="block text-xs font-semibold text-slate-600 mb-1.5">Country Code (e.g. +91, +44, +971)</label>
+          <input
+            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 placeholder-slate-400 transition-all"
+            placeholder="e.g. +91"
+            value={form.country_code || ''}
+            onChange={(e) => setForm({ ...form, country_code: e.target.value.replace(/[^0-9+]/g, '').slice(0, 7) })}
+          />
         </div>
         <div className="mb-4">
-          <label className="block text-xs font-medium text-slate-500 mb-1.5">Address</label>
-          <input className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" value={form.address || ''} onChange={(e) => setForm({ ...form, address: e.target.value.replace(/[^a-zA-Z0-9\s,.-]/g, '') })} />
+          <label className="block text-xs font-semibold text-slate-600 mb-1.5">Address</label>
+          <input
+            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 placeholder-slate-400 transition-all"
+            placeholder="Building, Street, City"
+            value={form.address || ''}
+            onChange={(e) => setForm({ ...form, address: e.target.value.replace(/[^a-zA-Z0-9\s,.-]/g, '') })}
+          />
         </div>
       </Modal>
     </AppLayout>

@@ -3,9 +3,10 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
+import { useTheme, availableThemes } from '@/context/ThemeContext';
 import { notificationApi } from '@/lib/api';
 import { socket } from '@/lib/socket';
-import { Bell, Menu, Globe, X, CheckCheck, AlertTriangle, RefreshCw, CheckCircle, XCircle, Info } from 'lucide-react';
+import { Bell, Menu, Globe, X, CheckCheck, AlertTriangle, RefreshCw, CheckCircle, XCircle, Info, Palette, Check } from 'lucide-react';
 
 const languagesList = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
@@ -45,14 +46,17 @@ function timeAgo(dateStr) {
 export default function TopBar({ isOpen, toggleSidebar }) {
   const { user, logout } = useAuth();
   const { language, changeLanguage, t } = useLanguage();
+  const { theme, setTheme, isAuxinzio } = useTheme();
   const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showLangDropdown, setShowLangDropdown] = useState(false);
+  const [showThemeDropdown, setShowThemeDropdown] = useState(false);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const dropRef = useRef(null);
   const langDropRef = useRef(null);
+  const themeDropRef = useRef(null);
   const notifDropRef = useRef(null);
 
   const loadNotifications = useCallback(async () => {
@@ -89,6 +93,7 @@ export default function TopBar({ isOpen, toggleSidebar }) {
     const handler = (e) => {
       if (dropRef.current && !dropRef.current.contains(e.target)) setShowDropdown(false);
       if (langDropRef.current && !langDropRef.current.contains(e.target)) setShowLangDropdown(false);
+      if (themeDropRef.current && !themeDropRef.current.contains(e.target)) setShowThemeDropdown(false);
       if (notifDropRef.current && !notifDropRef.current.contains(e.target)) setShowNotifDropdown(false);
     };
     document.addEventListener('mousedown', handler);
@@ -133,7 +138,63 @@ export default function TopBar({ isOpen, toggleSidebar }) {
           <Menu size={18} />
         </button>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
+        {/* Theme Switcher */}
+        <div ref={themeDropRef} className="relative">
+          <button
+            onClick={() => setShowThemeDropdown(!showThemeDropdown)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all cursor-pointer text-xs sm:text-sm font-semibold ${
+              isAuxinzio
+                ? 'border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 shadow-2xs'
+                : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-800'
+            }`}
+            title="Switch Theme"
+          >
+            <Palette size={16} className={isAuxinzio ? 'text-purple-600' : 'text-slate-500'} />
+            <span className="hidden sm:inline">
+              {availableThemes.find(tItem => tItem.id === theme)?.name || 'Theme'}
+            </span>
+          </button>
+          {showThemeDropdown && (
+            <div className="absolute top-11 right-0 bg-white border border-slate-200 rounded-xl shadow-xl min-w-[210px] z-[200] p-1.5 divide-y divide-slate-100">
+              <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Choose Theme
+              </div>
+              <div className="py-1">
+                {availableThemes.map((tItem) => {
+                  const isActive = theme === tItem.id;
+                  return (
+                    <button
+                      key={tItem.id}
+                      className={`flex items-center justify-between gap-3 px-3 py-2 text-sm w-full text-left rounded-lg cursor-pointer transition-colors bg-transparent border-none ${
+                        isActive
+                          ? 'bg-purple-50 text-purple-900 font-semibold'
+                          : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                      onClick={() => {
+                        setTheme(tItem.id);
+                        setShowThemeDropdown(false);
+                      }}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className="w-3 h-3 rounded-full shrink-0 shadow-2xs"
+                          style={{ backgroundColor: tItem.color }}
+                        />
+                        <div>
+                          <div className="text-xs font-bold leading-none">{tItem.name}</div>
+                          <div className="text-[10px] text-slate-400 mt-0.5">{tItem.description}</div>
+                        </div>
+                      </div>
+                      {isActive && <Check size={14} className="text-purple-600 shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Language Selector */}
         <div ref={langDropRef} className="relative">
           <button
