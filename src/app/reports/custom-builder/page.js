@@ -425,50 +425,42 @@ export default function CustomReportBuilder() {
 
   return (
     <AppLayout>
-      <div className="mx-auto space-y-6 mb-6">
+      <div className="mx-auto space-y-4 mb-5 -mt-3 sm:-mt-4">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-xs">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs">
+          <div className="flex items-center gap-3">
             <Link
               href="/reports"
-              className="p-2 border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl transition-colors cursor-pointer"
+              className="p-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl transition-colors cursor-pointer"
             >
               <ArrowLeft size={16} />
             </Link>
             <div>
-              <h1 className="text-2xl font-extrabold text-slate-800 flex items-center gap-2">
-                <Sliders size={22} className="text-emerald-600" /> Custom Report Builder
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                <Sliders size={20} className="text-emerald-600" /> Custom Report Builder
               </h1>
-              <p className="text-slate-500 text-sm mt-1">
-                Build tailored asset & tickets reports with custom column filters and live preview.
+              <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
+                Build tailored asset &amp; tickets reports with custom column filters and live preview.
               </p>
             </div>
-          </div>
-          <div>
-            <button
-              onClick={() => showToast("Features unlocked! You are currently on the Enterprise tier.", "success")}
-              className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
-            >
-              <Sparkles size={14} /> Upgrade to Pro
-            </button>
           </div>
         </div>
 
         {/* Builder Configuration Panel */}
-        <div className="bg-white border border-slate-150 rounded-2xl p-6 shadow-xs space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-600">Report Name</label>
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-slate-600">Report Name</label>
               <input
                 type="text"
                 value={reportName}
                 onChange={(e) => setReportName(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-850 font-bold"
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-slate-900 font-semibold"
               />
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-600">Data Source</label>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-slate-600">Data Source</label>
               <SearchableSelect
                 options={[
                   { value: "assets", label: "Assets Inventory" },
@@ -482,8 +474,8 @@ export default function CustomReportBuilder() {
               />
             </div>
 
-            <div className="flex flex-col gap-1.5 col-span-2">
-              <label className="text-xs font-bold text-slate-600">Date Range (Optional)</label>
+            <div className="flex flex-col gap-1 col-span-1 md:col-span-2">
+              <label className="text-xs font-semibold text-slate-600">Date Range (Optional)</label>
               <DateRangePicker
                 startDate={startDate}
                 endDate={endDate}
@@ -496,10 +488,10 @@ export default function CustomReportBuilder() {
           </div>
 
           {/* Conditional Filters Based on Data Source */}
-          <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl space-y-4">
-            <h4 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">Source Filters</h4>
+          <div className="bg-slate-50/80 border border-slate-200/80 p-3.5 rounded-xl space-y-2.5">
+            <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Source Filters</h4>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
               {dataSource === "assets" && (
                 <>
                   <div className="flex flex-col gap-1">
@@ -644,19 +636,19 @@ export default function CustomReportBuilder() {
           </div>
 
           {/* Columns selection pills */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold text-slate-600">Columns to Include in Report</h4>
-            <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
+            <h4 className="text-xs font-semibold text-slate-700">Columns to Include in Report</h4>
+            <div className="flex flex-wrap gap-1.5">
               {columnsConfig[dataSource].map((col) => {
                 const isActive = selectedColumns[dataSource].includes(col.id);
                 return (
                   <button
                     key={col.id}
                     onClick={() => handleToggleColumn(col.id)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer border transition-all ${
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer border transition-all ${
                       isActive
-                        ? "bg-emerald-50 border-emerald-350 text-emerald-700 shadow-2xs"
-                        : "bg-white border-slate-200 text-slate-500 hover:border-slate-350 hover:bg-slate-50"
+                        ? "bg-emerald-50 border-emerald-300 text-emerald-700 shadow-2xs font-semibold"
+                        : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                     }`}
                   >
                     {col.label}
@@ -667,10 +659,10 @@ export default function CustomReportBuilder() {
           </div>
 
           {/* Action Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-4 pt-5 border-t border-slate-100">
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100">
             <button
               onClick={handleClearFilters}
-              className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+              className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-xs font-semibold transition-all shadow-2xs cursor-pointer"
             >
               Clear Filters
             </button>
@@ -678,54 +670,54 @@ export default function CustomReportBuilder() {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={runReport}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-750 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
               >
                 <Play size={12} fill="white" /> Run Report
               </button>
 
               <button
                 onClick={() => handleExport('pdf')}
-                className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-rose-600 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-rose-600 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer bg-white shadow-2xs"
               >
                 <Download size={12} /> PDF
               </button>
 
               <button
                 onClick={() => handleExport('excel')}
-                className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-emerald-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-emerald-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer bg-white shadow-2xs"
               >
                 <Download size={12} /> Excel
               </button>
 
               <button
                 onClick={() => handleExport('csv')}
-                className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-blue-600 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-blue-600 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer bg-white shadow-2xs"
               >
                 <Download size={12} /> CSV
               </button>
 
               <button
                 onClick={openSendModal}
-                className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer bg-white shadow-2xs"
               >
                 <Send size={12} /> Send Now
               </button>
 
               <button
                 onClick={openScheduleModal}
-                className="px-4 py-2 border border-slate-200 hover:bg-slate-55 text-slate-750 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer bg-white shadow-2xs"
               >
-                <Clock size={12} /> Save & Schedule
+                <Clock size={12} /> Save &amp; Schedule
               </button>
             </div>
           </div>
         </div>
 
         {/* Live Preview Table */}
-        <div className="bg-white border border-slate-150 rounded-2xl overflow-hidden shadow-xs">
-          <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-            <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">Report Results Preview</h3>
-            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700">
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs">
+          <div className="p-3.5 sm:p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/60">
+            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Report Results Preview</h3>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate-200 text-slate-700">
               {filteredData.length} Records Found
             </span>
           </div>
@@ -733,9 +725,9 @@ export default function CustomReportBuilder() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-100">
+                <tr className="bg-slate-50/90 border-b border-slate-100">
                   {activeCols.map((c) => (
-                    <th key={c.id} className="px-5 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <th key={c.id} className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                       {c.label}
                     </th>
                   ))}
@@ -754,14 +746,14 @@ export default function CustomReportBuilder() {
                 ) : filteredData.length === 0 ? (
                   <tr>
                     <td colSpan={activeCols.length} className="text-center py-12 text-slate-400 font-medium">
-                      No matching records loaded. Configure the settings above and click "Run Report".
+                      No matching records loaded. Configure the settings above and click &quot;Run Report&quot;.
                     </td>
                   </tr>
                 ) : (
                   filteredData.map((row, idx) => (
                     <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                       {activeCols.map((c) => (
-                        <td key={c.id} className="px-5 py-3.5 font-semibold text-slate-700">
+                        <td key={c.id} className="px-4 py-3 font-medium text-slate-700">
                           {c.getVal(row)}
                         </td>
                       ))}

@@ -98,27 +98,27 @@ function renderLandmarkGraphic(type, seed) {
           {/* Sea ripples */}
           <path d="M 30 148 Q 50 144 70 148 T 110 148 T 150 148 T 190 148" fill="none" stroke="#38bdf8" strokeWidth="3" opacity="0.6" strokeLinecap="round" />
           <path d="M 20 156 Q 45 152 70 156 T 120 156 T 170 156 T 200 156" fill="none" stroke="#0284c7" strokeWidth="3" opacity="0.7" strokeLinecap="round" />
-          
+
           {/* Gateway Arch & Pillars */}
           {/* Plinth */}
           <rect x="52" y="132" width="116" height="8" rx="2" fill="#d97706" stroke="#78350f" strokeWidth="2" />
           <rect x="56" y="75" width="108" height="58" fill="#f59e0b" stroke="#78350f" strokeWidth="2.5" />
-          
+
           {/* Central Grand Arch */}
           <path d="M 90 132 V 96 C 90 84 130 84 130 96 V 132 Z" fill="#451a03" stroke="#78350f" strokeWidth="2" />
           {/* Inner arch cutout glow */}
           <path d="M 96 132 V 102 C 96 92 124 92 124 102 V 132 Z" fill="#fde68a" opacity="0.4" />
-          
+
           {/* Side Arches */}
           <path d="M 64 132 V 104 C 64 96 78 96 78 104 V 132 Z" fill="#78350f" />
           <path d="M 142 132 V 104 C 142 96 156 96 156 104 V 132 Z" fill="#78350f" />
-          
+
           {/* Corner Minarets */}
           <rect x="52" y="52" width="16" height="80" fill="#d97706" stroke="#78350f" strokeWidth="2" />
           <polygon points="50,52 60,38 70,52" fill="#b45309" stroke="#78350f" strokeWidth="2" />
           <rect x="152" y="52" width="16" height="80" fill="#d97706" stroke="#78350f" strokeWidth="2" />
           <polygon points="150,52 160,38 170,52" fill="#b45309" stroke="#78350f" strokeWidth="2" />
-          
+
           {/* Central Dome / Parapet */}
           <rect x="74" y="68" width="72" height="10" fill="#b45309" stroke="#78350f" strokeWidth="2" />
           <path d="M 88 68 C 88 48 132 48 132 68 Z" fill="#d97706" stroke="#78350f" strokeWidth="2.5" />
@@ -146,12 +146,12 @@ function renderLandmarkGraphic(type, seed) {
           {/* Background Skyscrapers */}
           <rect x="42" y="70" width="28" height="70" fill="#93c5fd" stroke="#1e3a8a" strokeWidth="2" />
           <rect x="150" y="65" width="28" height="75" fill="#a5b4fc" stroke="#1e3a8a" strokeWidth="2" />
-          
+
           {/* Center Tower with Spire */}
           <rect x="92" y="45" width="36" height="95" fill="#60a5fa" stroke="#1e3a8a" strokeWidth="2.5" />
           <polygon points="98,45 110,22 122,45" fill="#3b82f6" stroke="#1e3a8a" strokeWidth="2" />
           <line x1="110" y1="22" x2="110" y2="12" stroke="#1e3a8a" strokeWidth="3" strokeLinecap="round" />
-          
+
           {/* Left Tower */}
           <rect x="65" y="55" width="30" height="85" fill="#38bdf8" stroke="#1e3a8a" strokeWidth="2" />
           <polygon points="65,55 80,42 95,55" fill="#0284c7" stroke="#1e3a8a" strokeWidth="2" />
@@ -194,7 +194,7 @@ function renderLandmarkGraphic(type, seed) {
           {/* Base Steps */}
           <rect x="36" y="136" width="148" height="8" rx="2" fill="#e2e8f0" stroke="#334155" strokeWidth="2" />
           <rect x="44" y="130" width="132" height="7" rx="1.5" fill="#f1f5f9" stroke="#334155" strokeWidth="2" />
-          
+
           {/* Columns */}
           <g fill="#f8fafc" stroke="#334155" strokeWidth="2">
             <rect x="54" y="75" width="14" height="55" rx="1" />
@@ -334,12 +334,12 @@ function renderLandmarkGraphic(type, seed) {
           <circle cx="110" cy="78" r="48" fill="#fef08a" stroke="#ca8a04" strokeWidth="2" strokeDasharray="3 3" opacity="0.6" />
 
           {/* Large Travel Pin */}
-          <path d="M 110 32 C 86 32 68 50 68 74 C 68 96 110 134 110 134 C 110 134 152 96 152 74 C 152 50 134 32 110 32 Z" 
+          <path d="M 110 32 C 86 32 68 50 68 74 C 68 96 110 134 110 134 C 110 134 152 96 152 74 C 152 50 134 32 110 32 Z"
             fill="#ef4444" stroke="#7f1d1d" strokeWidth="3.5" />
-          
+
           {/* Inner Pin circle */}
           <circle cx="110" cy="70" r="22" fill="#ffffff" stroke="#7f1d1d" strokeWidth="2.5" />
-          
+
           {/* Monument inside pin */}
           <path d="M 100 82 V 70 C 100 64 120 64 120 70 V 82 Z" fill="#3b82f6" stroke="#1e3a8a" strokeWidth="1.5" />
           <polygon points="98,70 110,58 122,70" fill="#f59e0b" stroke="#78350f" strokeWidth="1.5" />
@@ -362,7 +362,7 @@ export function ProceduralSticker({ locationName = 'Location' }) {
   const cleanName = locationName.trim();
   const seed = hashString(cleanName.toLowerCase());
   const palette = PALETTES[seed % PALETTES.length];
-  
+
   // Specific match or deterministic landmark
   const isMumbai = cleanName.toLowerCase().includes('mumbai');
   const landmarkType = isMumbai ? 'mumbai' : (seed % 6);
@@ -372,10 +372,10 @@ export function ProceduralSticker({ locationName = 'Location' }) {
   const fontSize = displayName.length > 12 ? 18 : displayName.length > 8 ? 21 : 24;
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center p-1 select-none pointer-events-none">
+    <div className="relative w-full h-full flex items-center justify-center p-0.5 select-none pointer-events-none">
       <svg
         viewBox="0 0 240 240"
-        className="w-full h-full max-h-[160px] object-contain filter drop-shadow-[0_8px_16px_rgba(0,0,0,0.12)] transition-transform duration-300 group-hover:scale-105 group-hover:rotate-1"
+        className="w-auto h-full max-h-[135px] max-w-full object-contain filter drop-shadow-[0_6px_12px_rgba(0,0,0,0.12)] transition-transform duration-300 group-hover:scale-105 group-hover:rotate-1"
         style={{ overflow: 'visible' }}
       >
         <defs>
@@ -510,7 +510,7 @@ export function ProceduralSticker({ locationName = 'Location' }) {
           >
             {displayName}
           </text>
-          
+
           {/* Top Layer Colored Fill */}
           <text
             x="120"
@@ -542,11 +542,12 @@ export default function LocationSticker({ locationName, className = '' }) {
 
   if (sticker?.image) {
     return (
-      <div className={`relative w-full h-full flex items-center justify-center p-2 select-none group-hover:scale-105 group-hover:rotate-1 transition-transform duration-300 ${className}`}>
+      <div className={`relative w-full h-full flex items-center justify-center select-none group-hover:scale-105 transition-transform duration-300 ${className}`}>
         <img
           src={sticker.image}
           alt={locationName || sticker.name}
-          className="w-full h-full max-h-[160px] object-contain filter drop-shadow-[0_8px_16px_rgba(0,0,0,0.14)]"
+          className="w-full h-full max-h-[145px] object-contain pointer-events-none"
+          style={{ mixBlendMode: 'multiply', filter: 'contrast(1.08) brightness(1.04)' }}
           loading="lazy"
         />
       </div>
@@ -559,3 +560,6 @@ export default function LocationSticker({ locationName, className = '' }) {
     </div>
   );
 }
+
+
+

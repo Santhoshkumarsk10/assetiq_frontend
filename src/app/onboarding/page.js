@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
+import AnimatedPageTitle from '@/components/AnimatedPageTitle';
 import Modal from '@/components/Modal';
 import StatusBadge from '@/components/StatusBadge';
 import SearchableSelect from '@/components/SearchableSelect';
@@ -612,10 +613,9 @@ export default function OnboardingPage() {
 
   return (
     <AppLayout>
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex justify-between items-center mb-6 -mt-3 sm:-mt-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">User Onboarding</h1>
-          <p className="text-slate-500 text-sm mt-1">Onboard new staff and provision assets, emails, and accounts in 6 steps</p>
+          <AnimatedPageTitle title="User Onboarding" />
         </div>
         <div className="flex gap-2.5">
           <button className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors" onClick={loadData} disabled={loading}>

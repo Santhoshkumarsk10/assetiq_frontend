@@ -1,10 +1,11 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
+import AnimatedPageTitle from '@/components/AnimatedPageTitle';
 import Modal from '@/components/Modal';
 import SearchableSelect from '@/components/SearchableSelect';
 import { rolesApi } from '@/lib/api';
-import { 
+import {
   Shield, Key, CheckSquare, Square, Save, RefreshCw, Plus, Pencil, Trash2, Search, X,
   Box, Users, MapPin, LifeBuoy, UserPlus, FileText, Bell, Activity, Settings, Cpu,
   ChevronRight, ArrowLeft, Info, Lock
@@ -88,13 +89,13 @@ export default function RolesPermissionsPage() {
   const canAdd = permissions.includes('role.add');
   const canEdit = permissions.includes('role.edit');
   const canDelete = permissions.includes('role.delete');
-  
+
   const [activeTab, setActiveTab] = useState('roles'); // 'roles' or 'permissions'
   const [roles, setRoles] = useState([]);
   const [allPermissions, setAllPermissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [savingRoleId, setSavingRoleId] = useState(null);
-  
+
   // Track selected role in Master-Detail view
   const [selectedRoleId, setSelectedRoleId] = useState(null);
   const [showMobileDetail, setShowMobileDetail] = useState(false);
@@ -131,7 +132,7 @@ export default function RolesPermissionsPage() {
       const fetchedRoles = data.roles || [];
       setRoles(fetchedRoles);
       setAllPermissions(data.permissions || []);
-      
+
       // Initialize local state mapping roleId to array of its permission IDs
       const stateMap = {};
       fetchedRoles.forEach(role => {
@@ -139,14 +140,9 @@ export default function RolesPermissionsPage() {
       });
       setRolePermissionsState(stateMap);
 
-      // Select first role by default
+      // Do not auto-select role on load (show full-width table by default)
       if (fetchedRoles.length > 0) {
-        setSelectedRoleId(prev => {
-          if (prev && fetchedRoles.some(r => r.id === prev)) {
-            return prev;
-          }
-          return fetchedRoles[0].id;
-        });
+        setSelectedRoleId(prev => (prev && fetchedRoles.some(r => r.id === prev)) ? prev : null);
       }
     } catch (e) {
       console.error('Error loading roles & permissions:', e);
@@ -168,7 +164,7 @@ export default function RolesPermissionsPage() {
       const updatedPerms = currentPerms.includes(permissionId)
         ? currentPerms.filter(id => id !== permissionId)
         : [...currentPerms, permissionId];
-      
+
       return {
         ...prev,
         [roleId]: updatedPerms
@@ -329,26 +325,26 @@ export default function RolesPermissionsPage() {
     }
   };
 
-  const filteredPerms = allPermissions.filter(p => 
-    p.name.toLowerCase().includes(permSearch.toLowerCase()) || 
+  const filteredPerms = allPermissions.filter(p =>
+    p.name.toLowerCase().includes(permSearch.toLowerCase()) ||
     (p.description || '').toLowerCase().includes(permSearch.toLowerCase())
   );
-  
+
   const totalPermPages = Math.ceil(filteredPerms.length / permLimit);
-  
+
   const displayedPerms = filteredPerms.slice(
-    (permPage - 1) * permLimit, 
+    (permPage - 1) * permLimit,
     permPage * permLimit
   );
 
   // Filters for role sidebar
-  const filteredRoles = roles.filter(role => 
+  const filteredRoles = roles.filter(role =>
     role.name.toLowerCase().includes(roleSearch.toLowerCase()) ||
     (role.description || '').toLowerCase().includes(roleSearch.toLowerCase())
   );
 
   // Filters for roles checkboxes in modal
-  const filteredModalRoles = roles.filter(role => 
+  const filteredModalRoles = roles.filter(role =>
     role.name.toLowerCase().includes(modalRoleSearch.toLowerCase()) ||
     (role.description || '').toLowerCase().includes(modalRoleSearch.toLowerCase())
   );
@@ -356,10 +352,9 @@ export default function RolesPermissionsPage() {
   return (
     <AppLayout>
       {/* Premium Top Title & Actions */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 -mt-3 sm:-mt-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">{t('rolesPermissions')}</h1>
-          <p className="text-slate-500 text-xs mt-1">Configure role access scopes and system permissions mapping</p>
+          <AnimatedPageTitle title={t('rolesPermissions') || 'Roles & Permissions'} />
         </div>
         <div className="flex gap-2.5 items-center w-full sm:w-auto">
           {activeTab === 'roles' ? (
@@ -417,8 +412,8 @@ export default function RolesPermissionsPage() {
           <div>
             <span className="block text-[10px] font-bold text-purple-600 uppercase tracking-wider mb-1">Access Coverage</span>
             <h2 className="text-3xl font-extrabold text-slate-800">
-              {roles.length > 0 
-                ? `${Math.round((roles.reduce((acc, r) => acc + (rolePermissionsState[r.id]?.length || 0), 0) / (roles.length * allPermissions.length)) * 100)}%` 
+              {roles.length > 0
+                ? `${Math.round((roles.reduce((acc, r) => acc + (rolePermissionsState[r.id]?.length || 0), 0) / (roles.length * allPermissions.length)) * 100)}%`
                 : '0%'
               }
             </h2>
@@ -431,23 +426,21 @@ export default function RolesPermissionsPage() {
 
       {/* Modern Segmented Control Tab */}
       <div className="bg-slate-100/80 border border-slate-200/60 p-1 rounded-xl flex w-fit gap-1 mb-8 shadow-3xs">
-        <button 
-          className={`flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold transition-all duration-200 border-none cursor-pointer ${
-            activeTab === 'roles' 
-              ? "bg-white text-emerald-700 shadow-xs" 
-              : "text-slate-500 hover:text-slate-800 bg-transparent"
-          }`}
+        <button
+          className={`flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold transition-all duration-200 border-none cursor-pointer ${activeTab === 'roles'
+            ? "bg-white text-emerald-700 shadow-xs"
+            : "text-slate-500 hover:text-slate-800 bg-transparent"
+            }`}
           onClick={() => setActiveTab('roles')}
         >
           <Shield size={14} />
           Roles
         </button>
-        <button 
-          className={`flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold transition-all duration-200 border-none cursor-pointer ${
-            activeTab === 'permissions' 
-              ? "bg-white text-emerald-700 shadow-xs" 
-              : "text-slate-500 hover:text-slate-800 bg-transparent"
-          }`}
+        <button
+          className={`flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold transition-all duration-200 border-none cursor-pointer ${activeTab === 'permissions'
+            ? "bg-white text-emerald-700 shadow-xs"
+            : "text-slate-500 hover:text-slate-800 bg-transparent"
+            }`}
           onClick={() => setActiveTab('permissions')}
         >
           <Key size={14} />
@@ -460,253 +453,458 @@ export default function RolesPermissionsPage() {
           <div className="w-6 h-6 border-2 border-slate-200 border-t-emerald-500 rounded-full animate-spin" /> Loading schema...
         </div>
       ) : activeTab === 'roles' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10">
-          
-          {/* Left Column: Roles Master List (Role Side) */}
-          <div className={`lg:col-span-4 space-y-4 ${showMobileDetail ? 'hidden lg:block' : 'block'}`}>
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-3xs flex flex-col">
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Available Roles</span>
-                {canAdd && (
-                  <button className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 bg-transparent border-none cursor-pointer transition-colors" onClick={openAddRole}>
-                    <Plus size={14} /> Add Role
-                  </button>
-                )}
-              </div>
-
-              {/* Role Side Search Option */}
-              <div className="relative mb-3 flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/15 transition-all">
-                <Search size={14} className="text-slate-400 shrink-0" />
-                <input
-                  placeholder="Search roles..."
-                  value={roleSearch}
-                  onChange={(e) => setRoleSearch(e.target.value)}
-                  className="border-none bg-transparent outline-none text-xs text-slate-800 w-full placeholder-slate-400"
-                />
-                {roleSearch && (
-                  <button onClick={() => setRoleSearch('')} className="text-slate-400 hover:text-slate-600 cursor-pointer border-none bg-transparent flex items-center">
-                    <X size={12} />
-                  </button>
-                )}
-              </div>
-
-              <div className="space-y-2.5 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
-                {filteredRoles.map(role => {
-                  const isActive = selectedRoleId === role.id;
-                  const isModified = hasChanges(role.id);
-                  const assignedCount = rolePermissionsState[role.id]?.length || 0;
-                  
-                  return (
-                    <div 
-                      key={role.id}
-                      onClick={() => {
-                        setSelectedRoleId(role.id);
-                        setShowMobileDetail(true);
-                      }}
-                      className={`relative p-4 rounded-xl border transition-all duration-200 cursor-pointer flex flex-col ${
-                        isActive 
-                          ? 'border-emerald-650 bg-emerald-50/10 shadow-3xs ring-1 ring-emerald-500/10' 
-                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/40 bg-white'
-                      }`}
+        !selectedRoleId ? (
+          /* Default State: Full-Width Table matching Permissions tab */
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-3xs mb-10">
+            <div className="flex flex-col sm:flex-row gap-4 items-center mb-6">
+              <div className="w-full sm:flex-1 relative">
+                <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-2.5">
+                  <Search size={18} className="text-slate-400 shrink-0" />
+                  <input
+                    placeholder="Search roles by name or description..."
+                    value={roleSearch}
+                    onChange={(e) => setRoleSearch(e.target.value)}
+                    className="border-none bg-transparent outline-none text-sm text-slate-800 w-full placeholder-slate-400"
+                  />
+                  {roleSearch && (
+                    <button
+                      onClick={() => setRoleSearch('')}
+                      className="text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer border-none bg-transparent"
                     >
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                            isActive ? 'bg-emerald-500/10 text-emerald-600' : 'bg-slate-100 text-slate-500'
-                          }`}>
-                            <Shield size={18} />
-                          </div>
-                          <div>
-                            <h3 className="text-sm font-semibold text-slate-800">{role.name}</h3>
-                            <span className="text-[10px] font-medium text-slate-400 mt-0.5 block">ID: {role.id}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {isModified && (
-                            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Unsaved changes" />
-                          )}
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                            isActive 
-                              ? 'bg-emerald-100/40 text-emerald-700 border-emerald-250' 
-                              : 'bg-slate-50 text-slate-500 border-slate-200'
-                          }`}>
-                            {assignedCount} / {allPermissions.length}
-                          </span>
-                        </div>
-                      </div>
-                      <p className="text-xs text-slate-500 mt-3 line-clamp-2 leading-relaxed">
-                        {role.description || 'No description provided.'}
-                      </p>
-                    </div>
-                  );
-                })}
-                {filteredRoles.length === 0 && (
-                  <div className="text-center py-6 text-xs text-slate-400">
-                    No roles found matching &quot;{roleSearch}&quot;
-                  </div>
-                )}
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Right Column: Scopes & Permissions Manager (Assign Permission Side) */}
-          {selectedRoleId && (() => {
-            const role = roles.find(r => r.id === selectedRoleId);
-            if (!role) return null;
-            
-            const isModified = hasChanges(role.id);
-            const isSaving = savingRoleId === role.id;
-            const currentPerms = rolePermissionsState[role.id] || [];
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Role Name</th>
+                    <th className="text-left px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Description</th>
+                    <th className="text-left px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Permission Count</th>
+                    <th className="text-right px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRoles.map(role => {
+                    const isModified = hasChanges(role.id);
+                    const assignedCount = rolePermissionsState[role.id]?.length || 0;
 
-            // Filter permissions to assign on this side
-            const filteredAllPermissionsForRole = allPermissions.filter(p => 
-              p.name.toLowerCase().includes(rolePermSearch.toLowerCase()) || 
-              (p.description || '').toLowerCase().includes(rolePermSearch.toLowerCase())
-            );
+                    return (
+                      <tr
+                        key={role.id}
+                        onClick={() => {
+                          setSelectedRoleId(role.id);
+                          setShowMobileDetail(true);
+                        }}
+                        className="hover:bg-slate-50/70 border-b border-slate-100 cursor-pointer transition-colors"
+                      >
+                        <td className="px-4 py-3.5 align-middle">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                              <Shield size={16} />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-semibold text-slate-800">{role.name}</span>
+                                {isModified && (
+                                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Unsaved changes" />
+                                )}
+                              </div>
+                              <span className="text-[10px] font-medium text-slate-400 block">ID: {role.id}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5 text-xs text-slate-500 align-middle leading-relaxed max-w-md">
+                          {role.description || '—'}
+                        </td>
+                        <td className="px-4 py-3.5 align-middle">
+                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-250/60 inline-flex items-center gap-1">
+                            <Key size={10} />
+                            {assignedCount} / {allPermissions.length}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 text-xs align-middle text-right space-x-1">
+                          {canEdit && (
+                            <button
+                              className="w-8 h-8 inline-flex items-center justify-center rounded-lg border-none bg-transparent cursor-pointer text-slate-450 hover:bg-slate-100 hover:text-slate-800 transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEditRole(role);
+                              }}
+                              title="Edit"
+                            >
+                              <Pencil size={15} />
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              className="w-8 h-8 inline-flex items-center justify-center rounded-lg border-none bg-transparent cursor-pointer text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteRole(role.id, role.name);
+                              }}
+                              title="Delete"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {filteredRoles.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="text-center py-8 text-xs text-slate-400">
+                        No roles found matching &quot;{roleSearch}&quot;
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-            // Group filtered permissions by prefix
-            const grouped = groupPermissions(filteredAllPermissionsForRole);
-            
-            return (
-              <div className={`lg:col-span-8 flex flex-col bg-white border border-slate-200 rounded-2xl shadow-3xs ${
-                showMobileDetail ? 'block' : 'hidden lg:block'
-              }`}>
-                {/* Header */}
-                <div className="flex items-start justify-between p-6 border-b border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <button 
-                      onClick={() => setShowMobileDetail(false)}
-                      className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-500 lg:hidden cursor-pointer"
-                    >
-                      <ArrowLeft size={16} />
-                    </button>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-lg font-bold text-slate-800">{role.name}</h2>
+            {/* Mobile Cards View */}
+            <div className="block md:hidden space-y-4">
+              {filteredRoles.map(role => {
+                const isModified = hasChanges(role.id);
+                const assignedCount = rolePermissionsState[role.id]?.length || 0;
+
+                return (
+                  <div
+                    key={role.id}
+                    onClick={() => {
+                      setSelectedRoleId(role.id);
+                      setShowMobileDetail(true);
+                    }}
+                    className="bg-white border border-slate-200 rounded-xl p-4 shadow-3xs flex flex-col gap-3 cursor-pointer hover:border-slate-300 transition-all"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                          <Shield size={16} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-sm font-semibold text-slate-800">{role.name}</h4>
+                            {isModified && (
+                              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Unsaved changes" />
+                            )}
+                          </div>
+                          <span className="text-[10px] font-medium text-slate-400">ID: {role.id}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
                         {canEdit && (
-                          <button className="w-8 h-8 flex items-center justify-center rounded-lg border-none bg-transparent cursor-pointer text-slate-400 hover:bg-slate-100 hover:text-slate-850 transition-colors" onClick={() => openEditRole(role)} title="Edit Role Name/Desc">
+                          <button
+                            className="w-8 h-8 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 cursor-pointer text-slate-600 hover:bg-slate-100 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditRole(role);
+                            }}
+                            title="Edit"
+                          >
                             <Pencil size={14} />
                           </button>
                         )}
                         {canDelete && (
-                          <button className="w-8 h-8 flex items-center justify-center rounded-lg border-none bg-transparent cursor-pointer text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors" onClick={() => handleDeleteRole(role.id, role.name)} title="Delete Role">
+                          <button
+                            className="w-8 h-8 inline-flex items-center justify-center rounded-lg border border-rose-200 bg-rose-50 cursor-pointer text-rose-600 hover:bg-rose-100 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteRole(role.id, role.name);
+                            }}
+                            title="Delete"
+                          >
                             <Trash2 size={14} />
                           </button>
                         )}
                       </div>
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">{role.description || 'No description provided.'}</p>
+                    </div>
+                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                      {role.description || 'No description provided.'}
+                    </p>
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px] text-slate-400">
+                      <span>Permissions:</span>
+                      <span className="font-bold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-250/60">
+                        {assignedCount} / {allPermissions.length}
+                      </span>
                     </div>
                   </div>
-
-                  <div className="flex gap-2">
-                    {canEdit && (
-                      <button 
-                        className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold border transition-all duration-200 ${
-                          isModified 
-                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-none cursor-pointer shadow-xs' 
-                            : 'bg-slate-50 text-slate-400 border-slate-205 cursor-not-allowed'
-                        }`}
-                        disabled={!isModified || isSaving}
-                        onClick={() => handleSavePermissions(role.id, role.name)}
-                      >
-                        <Save size={14} />
-                        {isSaving ? 'Saving...' : 'Save Changes'}
-                      </button>
-                    )}
-                  </div>
+                );
+              })}
+              {filteredRoles.length === 0 && (
+                <div className="text-center py-6 text-xs text-slate-400">
+                  No roles found matching &quot;{roleSearch}&quot;
                 </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* Split View when role is selected */
+          <div className="space-y-4 mb-10">
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => {
+                  setSelectedRoleId(null);
+                  setShowMobileDetail(false);
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-3xs cursor-pointer transition-colors"
+              >
+                <ArrowLeft size={14} /> Back to Roles Table
+              </button>
+            </div>
 
-                {/* Scopes Section */}
-                <div className="p-6 overflow-y-auto max-h-[580px] space-y-5 flex-1 custom-scrollbar">
-                  
-                  {/* Assign Permission Side Search Option */}
-                  <div className="relative flex items-center gap-2.5 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/15 transition-all">
-                    <Search size={16} className="text-slate-450 shrink-0" />
-                    <input
-                      placeholder="Search permissions to assign..."
-                      value={rolePermSearch}
-                      onChange={(e) => setRolePermSearch(e.target.value)}
-                      className="border-none bg-transparent outline-none text-xs text-slate-850 w-full placeholder-slate-400"
-                    />
-                    {rolePermSearch && (
-                      <button onClick={() => setRolePermSearch('')} className="text-slate-400 hover:text-slate-650 cursor-pointer border-none bg-transparent flex items-center">
-                        <X size={14} />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 items-stretch">
+              {/* Left Column: Roles Master List (Role Side) */}
+              <div className={`lg:col-span-4 flex flex-col ${showMobileDetail ? 'hidden lg:flex' : 'flex'}`}>
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-3xs flex flex-col flex-1 h-full">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Available Roles</span>
+                    {canAdd && (
+                      <button className="flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-transparent border-none cursor-pointer transition-colors" onClick={openAddRole}>
+                        <Plus size={14} /> Add Role
                       </button>
                     )}
                   </div>
 
-                  {isModified && (
-                    <div className="bg-amber-50/50 border border-amber-200/60 rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-amber-850 ">
-                      <Info className="shrink-0 text-amber-600 mt-0.5" size={15} />
-                      <div>
-                        <span className="font-semibold">Unsaved configuration changes!</span> Make sure to click <span className="font-semibold">Save Changes</span> at the top to commit your permissions modification.
-                      </div>
-                    </div>
-                  )}
+                  {/* Role Side Search Option */}
+                  <div className="relative mb-3 flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/15 transition-all">
+                    <Search size={14} className="text-slate-400 shrink-0" />
+                    <input
+                      placeholder="Search roles..."
+                      value={roleSearch}
+                      onChange={(e) => setRoleSearch(e.target.value)}
+                      className="border-none bg-transparent outline-none text-xs text-slate-800 w-full placeholder-slate-400"
+                    />
+                    {roleSearch && (
+                      <button onClick={() => setRoleSearch('')} className="text-slate-400 hover:text-slate-600 cursor-pointer border-none bg-transparent flex items-center">
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
 
-                  {Object.keys(grouped).map(prefix => {
-                    const category = getCategoryMeta(prefix);
-                    const CategoryIcon = category.icon;
-                    const perms = grouped[prefix];
-                    const colorClasses = getCategoryColor(category.color);
-                    
-                    return (
-                      <div key={prefix} className="border border-slate-100 rounded-xl p-4 bg-slate-50/20">
-                        <div className="flex items-center gap-2.5 mb-4 pb-2 border-b border-slate-100/60">
-                          <div className={`p-1.5 rounded-lg border ${colorClasses}`}>
-                            <CategoryIcon size={16} />
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-bold text-slate-800">{category.title}</h4>
-                            <span className="text-[10px] text-slate-400">Prefix: <span className="font-mono">{prefix}</span></span>
-                          </div>
-                        </div>
+                  <div className="space-y-2.5 max-h-[580px] overflow-y-auto pr-1 custom-scrollbar flex-1">
+                    {filteredRoles.map(role => {
+                      const isActive = selectedRoleId === role.id;
+                      const isModified = hasChanges(role.id);
+                      const assignedCount = rolePermissionsState[role.id]?.length || 0;
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {perms.map(perm => {
-                            const isAssigned = currentPerms.includes(perm.id);
-                            return (
-                              <div 
-                                key={perm.id} 
-                                onClick={() => canEdit && handleTogglePermission(role.id, perm.id)}
-                                className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-150 cursor-pointer ${
-                                  isAssigned 
-                                    ? 'bg-white border-emerald-500/30 shadow-3xs ring-1 ring-emerald-500/5' 
-                                    : 'bg-white border-slate-200 hover:border-slate-300'
-                                }`}
-                              >
-                                <div className="flex flex-col gap-0.5 pr-2 max-w-[80%]">
-                                  <span className="text-xs font-semibold text-slate-700 font-mono tracking-tight">{perm.name}</span>
-                                  <span className="text-[10px] text-slate-400 line-clamp-1">{perm.description || 'No description'}</span>
-                                </div>
-                                <button 
-                                  type="button"
-                                  className={`relative inline-flex h-5.5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-none ${
-                                    isAssigned ? 'bg-emerald-600 shadow-xs shadow-emerald-500/10' : 'bg-slate-200'
-                                  }`}
-                                  disabled={!canEdit}
-                                >
-                                  <span className={`pointer-events-none inline-block h-4.5 w-4.5 transform rounded-full bg-white shadow-xs transition duration-200 ease-in-out ${
-                                    isAssigned ? 'translate-x-4.5' : 'translate-x-0'
-                                  }`} />
-                                </button>
+                      return (
+                        <div
+                          key={role.id}
+                          onClick={() => {
+                            setSelectedRoleId(role.id);
+                            setShowMobileDetail(true);
+                          }}
+                          className={`relative p-3.5 rounded-xl border transition-all duration-200 cursor-pointer flex flex-col justify-between min-h-[88px] ${isActive
+                            ? 'border-emerald-600 bg-emerald-50/15 shadow-3xs ring-1 ring-emerald-500/10'
+                            : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/50 bg-white'
+                            }`}
+                        >
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isActive ? 'bg-emerald-500/10 text-emerald-600' : 'bg-slate-100 text-slate-500'
+                                }`}>
+                                <Shield size={16} />
                               </div>
-                            );
-                          })}
+                              <div className="min-w-0 flex-1">
+                                <h3 className="text-sm font-semibold text-slate-900 truncate">{role.name}</h3>
+                                <span className="text-[10px] font-medium text-slate-400 block">ID: {role.id}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isModified && (
+                                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Unsaved changes" />
+                              )}
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${isActive
+                                ? 'bg-emerald-100/60 text-emerald-700 border-emerald-250'
+                                : 'bg-slate-50 text-slate-500 border-slate-200'
+                                }`}>
+                                {assignedCount} / {allPermissions.length}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-2 line-clamp-1 leading-normal">
+                            {role.description || 'No description provided.'}
+                          </p>
                         </div>
+                      );
+                    })}
+                    {filteredRoles.length === 0 && (
+                      <div className="text-center py-6 text-xs text-slate-400">
+                        No roles found matching &quot;{roleSearch}&quot;
                       </div>
-                    );
-                  })}
-                  {Object.keys(grouped).length === 0 && (
-                    <div className="text-center py-10 text-xs text-slate-400">
-                      No permissions match your search query.
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
-            );
-          })()}
-        </div>
+
+              {/* Right Column: Scopes & Permissions Manager (Assign Permission Side) */}
+              {(() => {
+                const role = roles.find(r => r.id === selectedRoleId);
+                if (!role) return null;
+
+                const isModified = hasChanges(role.id);
+                const isSaving = savingRoleId === role.id;
+                const currentPerms = rolePermissionsState[role.id] || [];
+
+                // Filter permissions to assign on this side
+                const filteredAllPermissionsForRole = allPermissions.filter(p =>
+                  p.name.toLowerCase().includes(rolePermSearch.toLowerCase()) ||
+                  (p.description || '').toLowerCase().includes(rolePermSearch.toLowerCase())
+                );
+
+                // Group filtered permissions by prefix
+                const grouped = groupPermissions(filteredAllPermissionsForRole);
+
+                return (
+                  <div className={`lg:col-span-8 flex flex-col bg-white border border-slate-200 rounded-2xl shadow-3xs h-full ${showMobileDetail ? 'flex' : 'hidden lg:flex'
+                    }`}>
+                    {/* Header */}
+                    <div className="flex items-start justify-between p-5 sm:p-6 border-b border-slate-100">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => {
+                            setSelectedRoleId(null);
+                            setShowMobileDetail(false);
+                          }}
+                          className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-500 cursor-pointer"
+                          title="Back to roles table"
+                        >
+                          <ArrowLeft size={16} />
+                        </button>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h2 className="text-lg font-bold text-slate-900">{role.name}</h2>
+                            {canEdit && (
+                              <button className="w-8 h-8 flex items-center justify-center rounded-lg border-none bg-transparent cursor-pointer text-slate-400 hover:bg-slate-100 hover:text-slate-800 transition-colors" onClick={() => openEditRole(role)} title="Edit Role Name/Desc">
+                                <Pencil size={14} />
+                              </button>
+                            )}
+                            {canDelete && (
+                              <button className="w-8 h-8 flex items-center justify-center rounded-lg border-none bg-transparent cursor-pointer text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors" onClick={() => handleDeleteRole(role.id, role.name)} title="Delete Role">
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{role.description || 'No description provided.'}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        {canEdit && (
+                          <button
+                            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold border transition-all duration-200 ${isModified
+                              ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-none cursor-pointer shadow-xs'
+                              : 'bg-slate-50 text-slate-400 border-slate-205 cursor-not-allowed'
+                              }`}
+                            disabled={!isModified || isSaving}
+                            onClick={() => handleSavePermissions(role.id, role.name)}
+                          >
+                            <Save size={14} />
+                            {isSaving ? 'Saving...' : 'Save Changes'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Scopes Section */}
+                    <div className="p-5 sm:p-6 overflow-y-auto max-h-[580px] space-y-5 flex-1 custom-scrollbar">
+
+                      {/* Assign Permission Side Search Option */}
+                      <div className="relative flex items-center gap-2.5 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/15 transition-all">
+                        <Search size={16} className="text-slate-450 shrink-0" />
+                        <input
+                          placeholder="Search permissions to assign..."
+                          value={rolePermSearch}
+                          onChange={(e) => setRolePermSearch(e.target.value)}
+                          className="border-none bg-transparent outline-none text-xs text-slate-800 w-full placeholder-slate-400"
+                        />
+                        {rolePermSearch && (
+                          <button onClick={() => setRolePermSearch('')} className="text-slate-400 hover:text-slate-650 cursor-pointer border-none bg-transparent flex items-center">
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+
+                      {isModified && (
+                        <div className="bg-amber-50/60 border border-amber-200/60 rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-amber-900">
+                          <Info className="shrink-0 text-amber-600 mt-0.5" size={15} />
+                          <div>
+                            <span className="font-semibold">Unsaved configuration changes!</span> Make sure to click <span className="font-semibold">Save Changes</span> at the top to commit your permissions modification.
+                          </div>
+                        </div>
+                      )}
+
+                      {Object.keys(grouped).map(prefix => {
+                        const category = getCategoryMeta(prefix);
+                        const CategoryIcon = category.icon;
+                        const perms = grouped[prefix];
+                        const colorClasses = getCategoryColor(category.color);
+
+                        return (
+                          <div key={prefix} className="border border-slate-100 rounded-xl p-4 bg-slate-50/20">
+                            <div className="flex items-center gap-2.5 mb-4 pb-2 border-b border-slate-100/60">
+                              <div className={`p-1.5 rounded-lg border ${colorClasses}`}>
+                                <CategoryIcon size={16} />
+                              </div>
+                              <div>
+                                <h4 className="text-xs font-bold text-slate-900">{category.title}</h4>
+                                <span className="text-[10px] text-slate-400">Prefix: <span className="font-mono text-slate-500">{prefix}</span></span>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {perms.map(perm => {
+                                const isAssigned = currentPerms.includes(perm.id);
+                                return (
+                                  <div
+                                    key={perm.id}
+                                    onClick={() => canEdit && handleTogglePermission(role.id, perm.id)}
+                                    className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-150 cursor-pointer select-none ${isAssigned
+                                      ? 'bg-white border-[#181236]/20 shadow-3xs ring-1 ring-[#181236]/5'
+                                      : 'bg-white border-slate-200 hover:border-slate-300'
+                                      }`}
+                                  >
+                                    <div className="flex flex-col gap-0.5 pr-2 max-w-[80%]">
+                                      <span className="text-xs font-semibold text-slate-800 font-mono tracking-tight">{perm.name}</span>
+                                      <span className="text-[10px] text-slate-500 line-clamp-1">{perm.description || 'No description'}</span>
+                                    </div>
+                                    <div
+                                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors duration-200 ease-in-out ${isAssigned
+                                        ? 'bg-[#181236]'
+                                        : 'bg-slate-200 hover:bg-slate-300'
+                                        }`}
+                                    >
+                                      <span
+                                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-200 ease-in-out ${isAssigned ? 'translate-x-5' : 'translate-x-0'
+                                          }`}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {Object.keys(grouped).length === 0 && (
+                        <div className="text-center py-10 text-xs text-slate-400">
+                          No permissions match your search query.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )
       ) : (
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-3xs">
           <div className="flex flex-col sm:flex-row gap-4 items-center mb-6">
@@ -750,7 +948,7 @@ export default function RolesPermissionsPage() {
               className="w-full sm:w-[150px]"
             />
           </div>
-          
+
           {/* Desktop Table View */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full border-collapse">
@@ -834,28 +1032,28 @@ export default function RolesPermissionsPage() {
                 Showing {Math.min((permPage - 1) * permLimit + 1, filteredPerms.length)} to {Math.min(permPage * permLimit, filteredPerms.length)} of {filteredPerms.length} entries
               </div>
               <div className="flex gap-1.5">
-                <button 
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-750 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all" 
-                  onClick={() => setPermPage(p => Math.max(p - 1, 1))} 
+                <button
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-750 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  onClick={() => setPermPage(p => Math.max(p - 1, 1))}
                   disabled={permPage === 1}
                 >
                   Previous
                 </button>
                 {Array.from({ length: totalPermPages }, (_, i) => i + 1).map(p => (
-                  <button 
-                    key={p} 
-                    className={permPage === p 
-                      ? "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white border-none cursor-pointer transition-all" 
+                  <button
+                    key={p}
+                    className={permPage === p
+                      ? "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white border-none cursor-pointer transition-all"
                       : "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer transition-all"
-                    } 
+                    }
                     onClick={() => setPermPage(p)}
                   >
                     {p}
                   </button>
                 ))}
-                <button 
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-750 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all" 
-                  onClick={() => setPermPage(p => Math.min(p + 1, totalPermPages))} 
+                <button
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-750 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  onClick={() => setPermPage(p => Math.min(p + 1, totalPermPages))}
                   disabled={permPage === totalPermPages}
                 >
                   Next
@@ -883,20 +1081,18 @@ export default function RolesPermissionsPage() {
       </Modal>
 
       {/* Right Slide-over Drawer for Add/Edit Permission */}
-      <div className={`fixed inset-0 z-[100] overflow-hidden transition-all duration-300 ${
-        showPermModal ? 'visible opacity-100' : 'invisible opacity-0'
-      }`}>
+      <div className={`fixed inset-0 z-[100] overflow-hidden transition-all duration-300 ${showPermModal ? 'visible opacity-100' : 'invisible opacity-0'
+        }`}>
         {/* Backdrop overlay */}
-        <div 
+        <div
           className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-300"
           onClick={() => setShowPermModal(false)}
         />
-        
+
         {/* Drawer Panel container */}
         <div className="absolute inset-y-0 right-0 pl-10 max-w-full flex">
-          <div className={`w-screen max-w-md bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${
-            showPermModal ? 'translate-x-0' : 'translate-x-full'
-          }`}>
+          <div className={`w-screen max-w-md bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${showPermModal ? 'translate-x-0' : 'translate-x-full'
+            }`}>
             {/* Drawer Header */}
             <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div>
@@ -905,7 +1101,7 @@ export default function RolesPermissionsPage() {
                 </h2>
                 <p className="text-[11px] text-slate-400 mt-0.5">Define permission scope and assign to roles</p>
               </div>
-              <button 
+              <button
                 onClick={() => setShowPermModal(false)}
                 className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
               >
@@ -917,30 +1113,30 @@ export default function RolesPermissionsPage() {
             <div className="flex-1 overflow-y-auto p-6 space-y-5">
               <div>
                 <label className="block text-xs font-semibold text-slate-500 mb-1.5">Permission Scope Name *</label>
-                <input 
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 placeholder-slate-400 transition-all" 
-                  placeholder="e.g. process:payroll" 
-                  value={permForm.name} 
-                  onChange={(e) => setPermForm({ ...permForm, name: e.target.value.replace(/[^a-zA-Z0-9\s:\.]/g, '') })} 
-                  required 
+                <input
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 placeholder-slate-400 transition-all"
+                  placeholder="e.g. process:payroll"
+                  value={permForm.name}
+                  onChange={(e) => setPermForm({ ...permForm, name: e.target.value.replace(/[^a-zA-Z0-9\s:\.]/g, '') })}
+                  required
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-500 mb-1.5">Description</label>
-                <textarea 
+                <textarea
                   rows={3}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 placeholder-slate-400 transition-all resize-none" 
-                  placeholder="Permission scope description..." 
-                  value={permForm.description} 
-                  onChange={(e) => setPermForm({ ...permForm, description: e.target.value.replace(/[^a-zA-Z0-9\s]/g, '') })} 
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 placeholder-slate-400 transition-all resize-none"
+                  placeholder="Permission scope description..."
+                  value={permForm.description}
+                  onChange={(e) => setPermForm({ ...permForm, description: e.target.value.replace(/[^a-zA-Z0-9\s]/g, '') })}
                 />
               </div>
 
               {!editingPerm && roles.length > 0 && (
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 mb-2">{t('assignDirectlyToRoles')}</label>
-                  
+
                   <div className="flex flex-wrap gap-2">
                     {roles.map(role => {
                       const isChecked = permForm.roleIds?.includes(role.id);
@@ -954,17 +1150,15 @@ export default function RolesPermissionsPage() {
                               : [...(permForm.roleIds || []), role.id];
                             setPermForm({ ...permForm, roleIds: updatedIds });
                           }}
-                          className={`inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 ${
-                            isChecked
-                              ? 'border-emerald-600 bg-emerald-50/10 text-emerald-700 shadow-3xs ring-1 ring-emerald-500/10 font-bold'
-                              : 'border-slate-200 bg-white text-slate-650 hover:border-slate-300 hover:bg-slate-50'
-                          }`}
+                          className={`inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 ${isChecked
+                            ? 'border-emerald-600 bg-emerald-50/10 text-emerald-700 shadow-3xs ring-1 ring-emerald-500/10 font-bold'
+                            : 'border-slate-200 bg-white text-slate-650 hover:border-slate-300 hover:bg-slate-50'
+                            }`}
                         >
-                          <div className={`shrink-0 w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${
-                            isChecked 
-                              ? 'border-emerald-600 bg-emerald-600 text-white' 
-                              : 'border-slate-300 bg-white'
-                          }`}>
+                          <div className={`shrink-0 w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${isChecked
+                            ? 'border-emerald-600 bg-emerald-600 text-white'
+                            : 'border-slate-300 bg-white'
+                            }`}>
                             {isChecked && (
                               <svg className="w-2.5 h-2.5 stroke-[3] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -982,15 +1176,15 @@ export default function RolesPermissionsPage() {
 
             {/* Drawer Footer */}
             <div className="px-6 py-4.5 border-t border-slate-100 flex items-center justify-end gap-3 bg-slate-50/50">
-              <button 
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold cursor-pointer border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors" 
+              <button
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold cursor-pointer border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors"
                 onClick={() => setShowPermModal(false)}
               >
                 Cancel
               </button>
-              <button 
-                className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-xl text-sm font-semibold cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors" 
-                onClick={handleSavePermission} 
+              <button
+                className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-xl text-sm font-semibold cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors"
+                onClick={handleSavePermission}
                 disabled={savingPerm}
               >
                 {savingPerm ? 'Saving...' : 'Save'}

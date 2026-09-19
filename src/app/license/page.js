@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
+import AnimatedPageTitle from '@/components/AnimatedPageTitle';
 import Modal from '@/components/Modal';
 import StatusBadge from '@/components/StatusBadge';
 import SearchableSelect from '@/components/SearchableSelect';
@@ -64,6 +65,7 @@ export default function LicensePage() {
     notes: '',
     license_type: 'validity'
   });
+  const [renewalAlert, setRenewalAlert] = useState('');
 
   // Renewal state
   const [showRenewalModal, setShowRenewalModal] = useState(false);
@@ -144,6 +146,7 @@ export default function LicensePage() {
       notes: '',
       license_type: 'validity'
     });
+    setRenewalAlert('');
     setShowModal(true);
   };
 
@@ -160,6 +163,7 @@ export default function LicensePage() {
       notes: license.notes || '',
       license_type: license.license_type || 'validity'
     });
+    setRenewalAlert(license.renewal_alert || '');
     setShowModal(true);
   };
 
@@ -283,10 +287,9 @@ export default function LicensePage() {
 
   return (
     <AppLayout>
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex justify-between items-center mb-6 -mt-3 sm:-mt-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">License Management</h1>
-          <p className="text-slate-500 text-sm mt-1">Manage, allocate, and track software licenses & subscriptions</p>
+          <AnimatedPageTitle title="License Management" />
         </div>
         {(canAdd || canDecideRenew) && (
           <div className="flex gap-2">
@@ -668,6 +671,19 @@ export default function LicensePage() {
                   ]}
                   value={form.status}
                   onChange={val => setForm({ ...form, status: val })}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Renewal Alert</label>
+                <SearchableSelect
+                  options={[
+                    { value: "15 days", label: "15 days" },
+                    { value: "30 days", label: "30 days" },
+                    { value: "45 days", label: "45 days" }
+                  ]}
+                  value={renewalAlert}
+                  placeholder="Select renewal alert..."
+                  onChange={val => setRenewalAlert(val)}
                 />
               </div>
             </div>

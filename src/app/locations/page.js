@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
+import AnimatedPageTitle from '@/components/AnimatedPageTitle';
 import Modal from '@/components/Modal';
 import SearchableSelect from '@/components/SearchableSelect';
 import LocationSticker from '@/components/LocationSticker';
@@ -150,10 +151,9 @@ export default function LocationsPage() {
   return (
     <AppLayout>
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 -mt-3 sm:-mt-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Master Data</h1>
-          <p className="text-slate-500 text-sm mt-1">Manage system locations & geographic hubs</p>
+          <AnimatedPageTitle title="Locations" />
         </div>
         {canAdd && (
           <button
@@ -274,7 +274,7 @@ export default function LocationsPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map((loc) => {
               const sticker = getLocationSticker(loc.name);
               const isActive = loc.is_active !== false && loc.status !== 'inactive';
@@ -282,11 +282,11 @@ export default function LocationsPage() {
               return (
                 <div
                   key={loc.id}
-                  className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden"
+                  className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between group relative overflow-hidden"
                 >
                   {/* Top Header inside Card */}
                   <div>
-                    <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
                       {/* Left: Country / Region Pill */}
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {sticker?.country ? (
@@ -309,18 +309,16 @@ export default function LocationsPage() {
                       {/* Right: Active/Inactive Status Badge */}
                       <div className="shrink-0">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold transition-colors ${
-                            isActive
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-colors ${isActive
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
                               : 'bg-slate-100 text-slate-600 border border-slate-200'
-                          }`}
+                            }`}
                         >
                           <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              isActive
+                            className={`w-1.5 h-1.5 rounded-full ${isActive
                                 ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]'
                                 : 'bg-slate-400'
-                            }`}
+                              }`}
                           />
                           {isActive ? 'Active' : 'Inactive'}
                         </span>
@@ -328,18 +326,18 @@ export default function LocationsPage() {
                     </div>
 
                     {/* Hero Die-Cut Travel Sticker Showcase */}
-                    <div className="h-44 w-full flex items-center justify-center my-2 relative">
+                    <div className="h-32 sm:h-36 w-full flex items-center justify-center my-1.5 relative">
                       <LocationSticker locationName={loc.name} />
                     </div>
 
                     {/* Location Name & Details */}
-                    <div className="mt-2 text-center">
-                      <h3 className="text-base font-bold text-slate-900 group-hover:text-emerald-700 transition-colors tracking-tight line-clamp-1">
+                    <div className="mt-1 text-center">
+                      <h3 className="text-[15px] font-bold text-slate-900 group-hover:text-emerald-600 transition-colors tracking-tight line-clamp-1">
                         {loc.name}
                       </h3>
-                      <div className="text-xs text-slate-500 mt-1 flex items-center justify-center gap-1 min-h-[34px] px-2 text-center">
-                        <MapPin size={13} className="text-slate-400 shrink-0 self-start mt-0.5" />
-                        <span className="line-clamp-2 leading-relaxed">
+                      <div className="text-[11px] sm:text-xs text-slate-500 mt-0.5 flex items-center justify-center gap-1 px-1 text-center line-clamp-1">
+                        <MapPin size={12} className="text-slate-400 shrink-0" />
+                        <span className="truncate">
                           {loc.address || 'No address specified'}
                         </span>
                       </div>
@@ -347,30 +345,30 @@ export default function LocationsPage() {
                   </div>
 
                   {/* Card Bottom / Footer with Action Buttons */}
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
                     <div className="text-[11px] font-medium text-slate-400 flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                       ID #{loc.id || '—'}
                     </div>
 
-                    {/* Action buttons (Edit & Delete - show on hover) */}
-                    <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200">
+                    {/* Action buttons (Edit & Delete - ALWAYS visible) */}
+                    <div className="flex items-center gap-1.5">
                       {canEdit && (
                         <button
                           onClick={() => openEdit(loc)}
                           title="Edit Location"
-                          className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 flex items-center justify-center transition-all cursor-pointer shadow-2xs hover:scale-105"
+                          className="w-7.5 h-7.5 sm:w-8 sm:h-8 rounded-lg border border-slate-200/90 bg-slate-50/70 text-slate-600 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 flex items-center justify-center transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
                         >
-                          <Pencil size={14} />
+                          <Pencil size={13} />
                         </button>
                       )}
                       {canDelete && (
                         <button
                           onClick={() => handleDelete(loc.id, loc.name)}
                           title="Delete Location"
-                          className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 flex items-center justify-center transition-all cursor-pointer shadow-2xs hover:scale-105"
+                          className="w-7.5 h-7.5 sm:w-8 sm:h-8 rounded-lg border border-slate-200/90 bg-slate-50/70 text-slate-600 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 flex items-center justify-center transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={13} />
                         </button>
                       )}
                     </div>

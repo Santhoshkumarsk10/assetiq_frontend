@@ -33,3 +33,76 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: #94a3b8;
 }
+
+/* Auxinzio Theme specific overrides (Teal accents + Purple Gradient Buttons) */
+.theme-auxinzio {
+  /* Brand teal/cyan color tokens */
+  --color-teal-600: #0d9488;
+  --color-cyan-500: #18A7DF;
+}
+
+/* Override solid primary backgrounds with the dark purple gradient in Auxinzio for buttons only */
+.theme-auxinzio button.bg-emerald-600,
+.theme-auxinzio button.bg-emerald-500,
+.theme-auxinzio a.bg-emerald-600,
+.theme-auxinzio a.bg-emerald-500,
+.theme-auxinzio button.hover\:bg-emerald-700:hover,
+.theme-auxinzio button.hover\:bg-emerald-600:hover,
+.theme-auxinzio a.hover\:bg-emerald-700:hover,
+.theme-auxinzio a.hover\:bg-emerald-600:hover {
+  background-image: linear-gradient(to bottom, #181236, #1e1546, #2b1757) !important;
+  background-color: transparent !important;
+  color: white !important;
+  border: none !important;
+}
+
+
+
+/* Global Recharts Focus Outline Removal */
+.recharts-wrapper,
+.recharts-wrapper:focus,
+.recharts-surface,
+.recharts-surface:focus,
+.recharts-responsive-container,
+.recharts-responsive-container:focus,
+.recharts-sector,
+.recharts-sector:focus,
+.recharts-pie-sector,
+.recharts-pie-sector:focus,
+.recharts-dot,
+.recharts-dot:focus,
+.recharts-line,
+.recharts-line:focus,
+.recharts-bar-rectangle,
+.recharts-bar-rectangle:focus,
+svg:focus {
+  outline: none !important;
+}
+
+/* Breathing animation for stat card icon badge */
+@keyframes iconBreathe {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+.animate-icon-breathe {
+  animation: iconBreathe 4s ease-in-out infinite;
+}
+
+/* Subtle wave drift animation for sparkline */
+@keyframes sparklineDrift {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(3px);
+  }
+}
+
+.animate-sparkline-drift {
+  animation: sparklineDrift 4s ease-in-out infinite;
+}

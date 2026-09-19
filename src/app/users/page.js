@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import AppLayout from "@/components/AppLayout";
+import AnimatedPageTitle from "@/components/AnimatedPageTitle";
 import Modal from "@/components/Modal";
 import StatusBadge from "@/components/StatusBadge";
 import SearchableSelect from "@/components/SearchableSelect";
@@ -16,6 +17,9 @@ import {
   AlertCircle,
   ShieldAlert,
   X,
+  UserCheck,
+  ShieldCheck,
+  MapPin,
 } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
@@ -451,12 +455,9 @@ export default function UsersPage() {
 
   return (
     <AppLayout>
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex justify-between items-center mb-6 -mt-3 sm:-mt-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Users</h1>
-          <p className="text-slate-500 text-sm mt-1">
-            Manage system users and access
-          </p>
+          <AnimatedPageTitle title="Users" />
         </div>
         {canAdd && (
           <button
@@ -469,36 +470,55 @@ export default function UsersPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-          <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
-            Total Users
-          </span>
-          <div className="text-3xl font-extrabold mt-2 tracking-tight text-slate-900">
-            {users.length}
+        {/* Card 1: Total Users */}
+        <div className="bg-blue-50 border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4 group">
+          <div className="w-11 h-11 rounded-xl bg-blue-100/70 text-blue-600 border border-blue-200/60 flex items-center justify-center shrink-0 shadow-2xs">
+            <UsersIcon size={22} strokeWidth={2.2} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-medium text-slate-500">Total Users</div>
+            <div className="text-2xl font-bold text-slate-900 tracking-tight leading-none mt-1">
+              {users.length.toLocaleString()}
+            </div>
           </div>
         </div>
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-          <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
-            Active Users
-          </span>
-          <div className="text-3xl font-extrabold mt-2 tracking-tight text-emerald-600">
-            {activeCount}
+
+        {/* Card 2: Active Users */}
+        <div className="bg-emerald-50 border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4 group">
+          <div className="w-11 h-11 rounded-xl bg-emerald-100/70 text-emerald-600 border border-emerald-200/60 flex items-center justify-center shrink-0 shadow-2xs">
+            <UserCheck size={22} strokeWidth={2.2} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-medium text-slate-500">Active Users</div>
+            <div className="text-2xl font-bold text-slate-900 tracking-tight leading-none mt-1">
+              {activeCount.toLocaleString()}
+            </div>
           </div>
         </div>
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-          <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
-            Admins
-          </span>
-          <div className="text-3xl font-extrabold mt-2 tracking-tight text-emerald-600">
-            {adminCount}
+
+        {/* Card 3: Admins */}
+        <div className="bg-violet-50 border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4 group">
+          <div className="w-11 h-11 rounded-xl bg-violet-100/70 text-violet-600 border border-violet-200/60 flex items-center justify-center shrink-0 shadow-2xs">
+            <ShieldCheck size={22} strokeWidth={2.2} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-medium text-slate-500">Admins</div>
+            <div className="text-2xl font-bold text-slate-900 tracking-tight leading-none mt-1">
+              {adminCount.toLocaleString()}
+            </div>
           </div>
         </div>
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-          <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
-            Locations
-          </span>
-          <div className="text-3xl font-extrabold mt-2 tracking-tight text-emerald-600">
-            {locations.length}
+
+        {/* Card 4: Locations */}
+        <div className="bg-amber-50 border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4 group">
+          <div className="w-11 h-11 rounded-xl bg-amber-100/70 text-amber-600 border border-amber-200/60 flex items-center justify-center shrink-0 shadow-2xs">
+            <MapPin size={22} strokeWidth={2.2} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-medium text-slate-500">Locations</div>
+            <div className="text-2xl font-bold text-slate-900 tracking-tight leading-none mt-1">
+              {locations.length.toLocaleString()}
+            </div>
           </div>
         </div>
       </div>

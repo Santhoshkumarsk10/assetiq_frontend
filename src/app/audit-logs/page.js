@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import AppLayout from "@/components/AppLayout";
+import AnimatedPageTitle from "@/components/AnimatedPageTitle";
 import SearchableSelect from "@/components/SearchableSelect";
 import { auditApi } from "@/lib/api";
 import {
@@ -141,10 +142,9 @@ export default function AuditLogsPage() {
 
   return (
     <AppLayout>
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex justify-between items-center mb-6 -mt-3 sm:-mt-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Audit Logs</h1>
-          <p className="text-slate-500 text-sm mt-1">Track all system activities and changes</p>
+          <AnimatedPageTitle title="Audit Logs" />
         </div>
         <button className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors">
           <Download size={16} /> Export Logs

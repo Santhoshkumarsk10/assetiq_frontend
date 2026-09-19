@@ -81,7 +81,7 @@ export const locationStickers = {
 export const getLocationSticker = (name) => {
   if (!name) return null;
   const cleanName = name.toLowerCase().trim();
-  
+
   // Exact or word match prioritized
   for (const [key, val] of Object.entries(locationStickers)) {
     if (cleanName.includes(key)) {

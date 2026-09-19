@@ -16,7 +16,7 @@ import {
   CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 
-const PIE_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
+const PIE_COLORS = ['#4f46e5', '#0d9488', '#d97706', '#e11d48', '#8b5cf6'];
 
 const formatDate = (dateVal) => {
   if (!dateVal) return '—';
@@ -24,32 +24,47 @@ const formatDate = (dateVal) => {
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
 };
 
-/* Mini Sparkline Component for Auxinzio Stat Cards */
-function Sparkline({ color = '#f43f5e', fillGradient = 'roseGrad' }) {
-  return (
-    <div className="w-full h-9 mt-1 -mb-1 overflow-hidden pointer-events-none">
-      <svg viewBox="0 0 200 36" className="w-full h-full" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id={fillGradient} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.28" />
-            <stop offset="100%" stopColor={color} stopOpacity="0.0" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M 0,26 Q 25,32 50,22 T 100,24 T 150,14 T 200,22 L 200,36 L 0,36 Z"
-          fill={`url(#${fillGradient})`}
-        />
-        <path
-          d="M 0,26 Q 25,32 50,22 T 100,24 T 150,14 T 200,22"
-          fill="none"
-          stroke={color}
-          strokeWidth="2.5"
-          strokeLinecap="round"
-        />
-      </svg>
-    </div>
-  );
+/* Count-Up Animation Component */
+function AnimatedCounter({ value, duration = 600 }) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      setCount(value);
+      return;
+    }
+
+    const end = parseInt(value, 10) || 0;
+    if (end === 0) {
+      setCount(0);
+      return;
+    }
+
+    const startTime = performance.now();
+    let animationFrameId;
+
+    const updateCount = (currentTime) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easeOut = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+      const current = Math.floor(easeOut * end);
+      setCount(current);
+
+      if (progress < 1) {
+        animationFrameId = requestAnimationFrame(updateCount);
+      } else {
+        setCount(end);
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(updateCount);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [value, duration]);
+
+  return <>{count.toLocaleString()}</>;
 }
+
 
 /* 3D Parcel Box Empty State Illustration */
 function EmptyBoxIllustration() {
@@ -121,18 +136,18 @@ export default function DashboardPage() {
 
   const statCards = metrics
     ? [
-        { labelKey: 'totalAssets', value: metrics.totalAssets, icon: Package, colorClass: 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300' },
-        { labelKey: 'activeAssets', value: metrics.availableAssets, icon: Zap, colorClass: 'bg-blue-50 text-blue-600 group-hover:bg-blue-500 group-hover:text-white transition-all duration-300' },
-        { labelKey: 'assigned', value: metrics.allocatedAssets, icon: CheckCircle, colorClass: 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300' },
-        { labelKey: 'needAttention', value: metrics.maintenanceAssets, icon: AlertTriangle, colorClass: 'bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white transition-all duration-300' },
-      ]
+      { labelKey: 'totalAssets', value: metrics.totalAssets, icon: Package, colorClass: 'bg-teal-600 text-white' },
+      { labelKey: 'activeAssets', value: metrics.availableAssets, icon: Zap, colorClass: 'bg-emerald-600 text-white' },
+      { labelKey: 'assigned', value: metrics.allocatedAssets, icon: CheckCircle, colorClass: 'bg-indigo-600 text-white' },
+      { labelKey: 'needAttention', value: metrics.maintenanceAssets, icon: AlertTriangle, colorClass: 'bg-rose-600 text-white' },
+    ]
     : [];
 
   const pieData = [
-    { name: 'Assigned', value: allocatedAssets, color: '#10b981' },
-    { name: 'Active', value: availableAssets, color: '#3b82f6' },
-    { name: 'Under Maintenance', value: maintenanceAssets, color: '#f59e0b' },
-    { name: 'Retired', value: retiredAssets, color: '#ef4444' },
+    { name: 'Assigned', value: allocatedAssets, color: '#4f46e5' },
+    { name: 'Active', value: availableAssets, color: '#0d9488' },
+    { name: 'Under Maintenance', value: maintenanceAssets, color: '#d97706' },
+    { name: 'Retired', value: retiredAssets, color: '#e11d48' },
   ];
 
   const pieDataFiltered = pieData.filter((d) => d.value > 0);
@@ -145,213 +160,180 @@ export default function DashboardPage() {
 
   const lineChartData = detailedStats
     ? [
-        {
-          name: 'Tickets',
-          Total: detailedStats.tickets.total,
-          Closed: detailedStats.tickets.closed,
-          Pending: detailedStats.tickets.pending,
-        },
-        {
-          name: 'Asset Requests',
-          Total: detailedStats.assetRequests.total,
-          Closed: detailedStats.assetRequests.closed,
-          Pending: detailedStats.assetRequests.pending,
-        },
-        {
-          name: 'Licenses',
-          Total: detailedStats.licenseRequests.total,
-          Closed: detailedStats.licenseRequests.closed,
-          Pending: detailedStats.licenseRequests.pending,
-        },
-        {
-          name: 'Renewals',
-          Total: detailedStats.renewalRequests.total,
-          Closed: detailedStats.renewalRequests.closed,
-          Pending: detailedStats.renewalRequests.pending,
-        },
-      ]
+      {
+        name: 'Tickets',
+        Total: detailedStats.tickets.total,
+        Closed: detailedStats.tickets.closed,
+        Pending: detailedStats.tickets.pending,
+      },
+      {
+        name: 'Asset Requests',
+        Total: detailedStats.assetRequests.total,
+        Closed: detailedStats.assetRequests.closed,
+        Pending: detailedStats.assetRequests.pending,
+      },
+      {
+        name: 'Licenses',
+        Total: detailedStats.licenseRequests.total,
+        Closed: detailedStats.licenseRequests.closed,
+        Pending: detailedStats.licenseRequests.pending,
+      },
+      {
+        name: 'Renewals',
+        Total: detailedStats.renewalRequests.total,
+        Closed: detailedStats.renewalRequests.closed,
+        Pending: detailedStats.renewalRequests.pending,
+      },
+    ]
     : [];
 
   return (
     <AppLayout>
       {loading ? (
         <div className="flex flex-col items-center justify-center py-24 text-slate-400 gap-3 text-sm">
-          <div className="w-8 h-8 border-3 border-slate-200 border-t-purple-600 rounded-full animate-spin" />
+          <div className="w-8 h-8 border-3 border-slate-200 border-t-teal-600 rounded-full animate-spin" />
           <span>{t('loadingAnalytics')}</span>
         </div>
       ) : isAuxinzio ? (
         /* ========================================================
            AUXINZIO THEME DASHBOARD
            ======================================================== */
-        <div className="space-y-8 animate-fadeIn">
+        <div className="space-y-5 animate-fadeIn">
           {/* Welcome Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div>
-              <h1 className="text-xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
-                Welcome back, <span className="font-extrabold text-slate-900">{user?.name || 'Chennai Admin'}</span>.
-                <span className="text-lg">👋</span>
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                Welcome back, <span className="font-extrabold text-slate-900">{user?.name || 'Chennai Admin'}</span>
+                <span className="text-xl">👋</span>
               </h1>
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                Here&apos;s what&apos;s happening with your assets today.
+              </p>
             </div>
           </div>
 
-          {/* Top Row: 4 Stat Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Top Row: 4 KPI Stat Cards (2x2 on Mobile, 4-col on Desktop) */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
             {/* Card 1: Total Assets */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-100/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
-              <div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-500 to-pink-500 text-white flex items-center justify-center shadow-md shadow-rose-200/60">
-                      <Package size={20} />
-                    </div>
-                    <span className="text-[11px] font-extrabold tracking-wider text-slate-600 uppercase">
-                      Total Assets
-                    </span>
-                  </div>
-                  <button className="text-slate-300 hover:text-slate-600 p-1 border-none bg-transparent cursor-pointer">
-                    <MoreVertical size={16} />
-                  </button>
-                </div>
-                <div className="text-3xl font-extrabold text-slate-900 mt-4 tracking-tight">
-                  {totalAssets.toLocaleString()}
-                </div>
-                <div className="text-xs font-semibold text-rose-500 flex items-center gap-1 mt-1">
-                  <span>↑ 0%</span>
-                  <span className="text-slate-400 font-normal">vs last week</span>
-                </div>
+            <div className="relative overflow-hidden bg-white border border-slate-200 rounded-2xl p-3 sm:p-5 shadow-xs flex items-center justify-between">
+              <div className="absolute -right-6 -bottom-6 text-teal-600/5 pointer-events-none">
+                <Package size={96} />
               </div>
-              <Sparkline color="#f43f5e" fillGradient="roseGrad" />
+              <div className="min-w-0 pr-1">
+                <span className="block text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 sm:mb-1 truncate">Total Assets</span>
+                <h2 className="text-xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                  <AnimatedCounter value={totalAssets} />
+                </h2>
+              </div>
+              <div className="w-9 h-9 sm:w-12 sm:h-12 bg-teal-600 rounded-xl flex items-center justify-center text-white shadow-xs shrink-0">
+                <Package size={18} className="sm:hidden" />
+                <Package size={22} className="hidden sm:block" />
+              </div>
             </div>
 
             {/* Card 2: Active Assets */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-100/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
-              <div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-orange-200/60">
-                      <Zap size={20} />
-                    </div>
-                    <span className="text-[11px] font-extrabold tracking-wider text-slate-600 uppercase">
-                      Active Assets
-                    </span>
-                  </div>
-                  <button className="text-slate-300 hover:text-slate-600 p-1 border-none bg-transparent cursor-pointer">
-                    <MoreVertical size={16} />
-                  </button>
-                </div>
-                <div className="text-3xl font-extrabold text-slate-900 mt-4 tracking-tight">
-                  {availableAssets.toLocaleString()}
-                </div>
-                <div className="text-xs font-semibold text-amber-500 flex items-center gap-1 mt-1">
-                  <span>↓ 0%</span>
-                  <span className="text-slate-400 font-normal">vs last week</span>
-                </div>
+            <div className="relative overflow-hidden bg-white border border-slate-200 rounded-2xl p-3 sm:p-5 shadow-xs flex items-center justify-between">
+              <div className="absolute -right-6 -bottom-6 text-emerald-600/5 pointer-events-none">
+                <CheckCircle size={96} />
               </div>
-              <Sparkline color="#f97316" fillGradient="orangeGrad" />
+              <div className="min-w-0 pr-1">
+                <span className="block text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 sm:mb-1 truncate">Active Assets</span>
+                <h2 className="text-xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                  <AnimatedCounter value={availableAssets} />
+                </h2>
+              </div>
+              <div className="w-9 h-9 sm:w-12 sm:h-12 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-xs shrink-0">
+                <CheckCircle size={18} className="sm:hidden" />
+                <CheckCircle size={22} className="hidden sm:block" />
+              </div>
             </div>
 
             {/* Card 3: Assigned */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-100/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
-              <div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center shadow-md shadow-blue-200/60">
-                      <CheckCircle size={20} />
-                    </div>
-                    <span className="text-[11px] font-extrabold tracking-wider text-slate-600 uppercase">
-                      Assigned
-                    </span>
-                  </div>
-                  <button className="text-slate-300 hover:text-slate-600 p-1 border-none bg-transparent cursor-pointer">
-                    <MoreVertical size={16} />
-                  </button>
-                </div>
-                <div className="text-3xl font-extrabold text-slate-900 mt-4 tracking-tight">
-                  {allocatedAssets.toLocaleString()}
-                </div>
-                <div className="text-xs font-semibold text-blue-600 flex items-center gap-1 mt-1">
-                  <span>↑ 0%</span>
-                  <span className="text-slate-400 font-normal">vs last week</span>
-                </div>
+            <div className="relative overflow-hidden bg-white border border-slate-200 rounded-2xl p-3 sm:p-5 shadow-xs flex items-center justify-between">
+              <div className="absolute -right-6 -bottom-6 text-indigo-600/5 pointer-events-none">
+                <Layers size={96} />
               </div>
-              <Sparkline color="#2563eb" fillGradient="blueGrad" />
+              <div className="min-w-0 pr-1">
+                <span className="block text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 sm:mb-1 truncate">Assigned</span>
+                <h2 className="text-xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                  <AnimatedCounter value={allocatedAssets} />
+                </h2>
+              </div>
+              <div className="w-9 h-9 sm:w-12 sm:h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-xs shrink-0">
+                <Layers size={18} className="sm:hidden" />
+                <Layers size={22} className="hidden sm:block" />
+              </div>
             </div>
 
             {/* Card 4: Need Attention */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-100/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
-              <div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-violet-500 text-white flex items-center justify-center shadow-md shadow-purple-200/60">
-                      <AlertTriangle size={20} />
-                    </div>
-                    <span className="text-[11px] font-extrabold tracking-wider text-slate-600 uppercase">
-                      Need Attention
-                    </span>
-                  </div>
-                  <button className="text-slate-300 hover:text-slate-600 p-1 border-none bg-transparent cursor-pointer">
-                    <MoreVertical size={16} />
-                  </button>
-                </div>
-                <div className="text-3xl font-extrabold text-slate-900 mt-4 tracking-tight">
-                  {maintenanceAssets.toLocaleString()}
-                </div>
-                <div className="text-xs font-semibold text-purple-600 flex items-center gap-1 mt-1">
-                  <span>↓ 0%</span>
-                  <span className="text-slate-400 font-normal">vs last week</span>
-                </div>
+            <div className="relative overflow-hidden bg-white border border-slate-200 rounded-2xl p-3 sm:p-5 shadow-xs flex items-center justify-between">
+              <div className="absolute -right-6 -bottom-6 text-rose-600/5 pointer-events-none">
+                <AlertTriangle size={96} />
               </div>
-              <Sparkline color="#8b5cf6" fillGradient="purpleGrad" />
+              <div className="min-w-0 pr-1">
+                <span className="block text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 sm:mb-1 truncate">Need Attention</span>
+                <h2 className="text-xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                  <AnimatedCounter value={maintenanceAssets} />
+                </h2>
+              </div>
+              <div className="w-9 h-9 sm:w-12 sm:h-12 bg-rose-600 rounded-xl flex items-center justify-center text-white shadow-xs shrink-0">
+                <AlertTriangle size={18} className="sm:hidden" />
+                <AlertTriangle size={22} className="hidden sm:block" />
+              </div>
             </div>
           </div>
 
           {/* Second Row: 3 Panels */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Panel 1: Assets by Status */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-100/90 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-bold text-slate-900">
                   Assets by Status
                 </h3>
-                <div className="px-2.5 py-1 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-600 flex items-center gap-1 bg-slate-50/50">
-                  This Week <ChevronDown size={12} />
-                </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-0.5">
                 {/* Donut Chart with Centered Total */}
-                <div className="relative w-[150px] h-[150px] shrink-0 flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
+                <div className="relative w-[130px] h-[130px] shrink-0 flex items-center justify-center [&_.recharts-surface]:outline-none [&_.recharts-sector]:outline-none [&_.recharts-pie-sector]:outline-none [&_path]:outline-none [&_svg]:outline-none [&_*:focus]:outline-none select-none">
+                  <ResponsiveContainer width="100%" height="100%" style={{ outline: 'none' }}>
+                    <PieChart style={{ outline: 'none' }} tabIndex={-1}>
                       <Pie
                         data={pieDataRender}
                         cx="50%"
                         cy="50%"
-                        innerRadius={48}
-                        outerRadius={68}
+                        innerRadius={42}
+                        outerRadius={60}
                         paddingAngle={3}
                         dataKey="value"
                         stroke="none"
+                        style={{ outline: 'none' }}
+                        tabIndex={-1}
                       >
                         {pieDataRender.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color || PIE_COLORS[index % PIE_COLORS.length]} />
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={entry.color || PIE_COLORS[index % PIE_COLORS.length]}
+                            style={{ outline: 'none' }}
+                            tabIndex={-1}
+                          />
                         ))}
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
                   {/* Centered Total */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <span className="text-2xl font-extrabold text-slate-900 leading-tight">{totalAssets}</span>
-                    <span className="text-[11px] font-semibold text-slate-400">Total</span>
+                    <span className="text-xl font-extrabold text-slate-900 leading-tight">{totalAssets}</span>
+                    <span className="text-[10px] font-medium text-slate-500">Total</span>
                   </div>
                 </div>
 
                 {/* Status Breakdown Legend */}
-                <div className="flex-1 space-y-2.5 w-full pl-2">
+                <div className="flex-1 space-y-2 w-full pl-1">
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
-                      <span className="font-semibold text-slate-700">Assigned</span>
+                      <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 shrink-0" />
+                      <span className="font-medium text-slate-700">Assigned</span>
                     </div>
                     <span className="font-bold text-slate-900">
                       {allocatedAssets} <span className="text-slate-400 font-normal">({totalAssets > 0 ? Math.round((allocatedAssets / totalAssets) * 100) : 0}%)</span>
@@ -360,8 +342,8 @@ export default function DashboardPage() {
 
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
-                      <span className="font-semibold text-slate-700">Active</span>
+                      <span className="w-2.5 h-2.5 rounded-full bg-teal-600 shrink-0" />
+                      <span className="font-medium text-slate-700">Active</span>
                     </div>
                     <span className="font-bold text-slate-900">
                       {availableAssets} <span className="text-slate-400 font-normal">({totalAssets > 0 ? Math.round((availableAssets / totalAssets) * 100) : 0}%)</span>
@@ -370,8 +352,8 @@ export default function DashboardPage() {
 
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
-                      <span className="font-semibold text-slate-700">Under Maintenance</span>
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-600 shrink-0" />
+                      <span className="font-medium text-slate-700">Under Maintenance</span>
                     </div>
                     <span className="font-bold text-slate-900">
                       {maintenanceAssets} <span className="text-slate-400 font-normal">({totalAssets > 0 ? Math.round((maintenanceAssets / totalAssets) * 100) : 0}%)</span>
@@ -380,8 +362,8 @@ export default function DashboardPage() {
 
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
-                      <span className="font-semibold text-slate-700">Retired</span>
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-600 shrink-0" />
+                      <span className="font-medium text-slate-700">Retired</span>
                     </div>
                     <span className="font-bold text-slate-900">
                       {retiredAssets} <span className="text-slate-400 font-normal">({totalAssets > 0 ? Math.round((retiredAssets / totalAssets) * 100) : 0}%)</span>
@@ -392,37 +374,30 @@ export default function DashboardPage() {
             </div>
 
             {/* Panel 2: Users & Onboarding */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-100/90 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-bold text-slate-900">
                   Users &amp; Onboarding
                 </h3>
-                <div className="px-2.5 py-1 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-600 flex items-center gap-1 bg-slate-50/50">
-                  This Week <ChevronDown size={12} />
-                </div>
               </div>
 
-              <div className="h-[170px] w-full pt-2">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={barData} margin={{ top: 20, right: 10, left: -25, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="userBarGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#3b82f6" />
-                        <stop offset="100%" stopColor="#7c3aed" />
-                      </linearGradient>
-                    </defs>
+              <div className="h-[155px] w-full [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none [&_svg]:outline-none [&_*:focus]:outline-none select-none">
+                <ResponsiveContainer width="100%" height="100%" style={{ outline: 'none' }}>
+                  <BarChart data={barData} margin={{ top: 14, right: 10, left: -25, bottom: 0 }} style={{ outline: 'none' }} tabIndex={-1}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} domain={[0, 'dataMax + 4']} />
                     <Tooltip
-                      contentStyle={{ background: '#1e1b4b', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '12px' }}
+                      cursor={false}
+                      contentStyle={{ background: '#1e293b', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '12px' }}
                     />
                     <Bar
                       dataKey="value"
-                      fill="url(#userBarGrad)"
+                      fill="#0d9488"
                       radius={[6, 6, 0, 0]}
                       barSize={38}
-                      label={{ position: 'top', fill: '#1e293b', fontSize: 12, fontWeight: 700 }}
+                      activeBar={false}
+                      label={{ position: 'top', fill: '#0f172a', fontSize: 12, fontWeight: 700 }}
                     />
                   </BarChart>
                 </ResponsiveContainer>
@@ -430,77 +405,77 @@ export default function DashboardPage() {
             </div>
 
             {/* Panel 3: Asset Snapshot */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-100/90 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-bold text-slate-900">
                   Asset Snapshot
                 </h3>
               </div>
 
-              <div className="space-y-3.5 pt-1">
+              <div className="space-y-2.5 pt-0.5">
                 {/* Total Assets */}
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                    <Layers size={16} />
+                  <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
+                    <Layers size={15} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold text-slate-800 mb-1">Total Assets</div>
+                    <div className="text-xs font-semibold text-slate-700 mb-0.5">Total Assets</div>
                     <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-600 rounded-full" style={{ width: '100%' }} />
+                      <div className="h-full bg-teal-600 rounded-full" style={{ width: '100%' }} />
                     </div>
                   </div>
-                  <span className="text-sm font-extrabold text-slate-900 shrink-0">{totalAssets}</span>
+                  <span className="text-sm font-bold text-slate-900 shrink-0">{totalAssets}</span>
                 </div>
 
                 {/* Active Assets */}
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center shrink-0">
-                    <Zap size={16} />
+                  <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <Zap size={15} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold text-slate-800 mb-1">Active Assets</div>
+                    <div className="text-xs font-semibold text-slate-700 mb-0.5">Active Assets</div>
                     <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-cyan-500 rounded-full"
+                        className="h-full bg-emerald-600 rounded-full"
                         style={{ width: `${totalAssets > 0 ? (availableAssets / totalAssets) * 100 : 0}%` }}
                       />
                     </div>
                   </div>
-                  <span className="text-sm font-extrabold text-slate-900 shrink-0">{availableAssets}</span>
+                  <span className="text-sm font-bold text-slate-900 shrink-0">{availableAssets}</span>
                 </div>
 
                 {/* Assigned */}
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-pink-50 text-pink-600 flex items-center justify-center shrink-0">
-                    <CheckCircle size={16} />
+                  <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                    <CheckCircle size={15} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold text-slate-800 mb-1">Assigned</div>
+                    <div className="text-xs font-semibold text-slate-700 mb-0.5">Assigned</div>
                     <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-pink-500 rounded-full"
+                        className="h-full bg-indigo-600 rounded-full"
                         style={{ width: `${totalAssets > 0 ? (allocatedAssets / totalAssets) * 100 : 0}%` }}
                       />
                     </div>
                   </div>
-                  <span className="text-sm font-extrabold text-slate-900 shrink-0">{allocatedAssets}</span>
+                  <span className="text-sm font-bold text-slate-900 shrink-0">{allocatedAssets}</span>
                 </div>
 
                 {/* Need Attention */}
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                    <AlertTriangle size={16} />
+                  <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                    <AlertTriangle size={15} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold text-slate-800 mb-1">Need Attention</div>
+                    <div className="text-xs font-semibold text-slate-700 mb-0.5">Need Attention</div>
                     <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-amber-500 rounded-full"
+                        className="h-full bg-rose-600 rounded-full"
                         style={{ width: `${totalAssets > 0 ? (maintenanceAssets / totalAssets) * 100 : 0}%` }}
                       />
                     </div>
                   </div>
-                  <span className="text-sm font-extrabold text-slate-900 shrink-0">{maintenanceAssets}</span>
+                  <span className="text-sm font-bold text-slate-900 shrink-0">{maintenanceAssets}</span>
                 </div>
               </div>
             </div>
@@ -508,34 +483,34 @@ export default function DashboardPage() {
 
           {/* Third Row: Request & Lifecycle Statistics */}
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <Zap size={16} className="text-rose-500 fill-rose-500" />
-              <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
+            <div className="flex items-center gap-2 mb-3">
+              <Zap size={16} className="text-teal-600" />
+              <h3 className="text-sm font-bold text-slate-900">
                 Request &amp; Lifecycle Statistics
               </h3>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* 4 Stat Cards (2x2 on left) */}
-              <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Tickets Card */}
-                <div className="bg-white rounded-2xl p-5 border border-slate-100/90 shadow-sm flex flex-col justify-between">
+                <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-semibold text-slate-600">
                         Support Tickets
                       </span>
-                      <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center">
+                      <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
                         <Ticket size={15} />
                       </div>
                     </div>
-                    <div className="text-2xl font-extrabold text-slate-900 mb-3">
+                    <div className="text-2xl font-bold text-slate-900 mb-2.5">
                       {detailedStats?.tickets.total || 0}
                     </div>
                     {/* Segmented Two-Tone Bar */}
-                    <div className="w-full h-2 bg-slate-100 rounded-full flex overflow-hidden mb-3">
+                    <div className="w-full h-2 bg-slate-100 rounded-full flex overflow-hidden mb-2.5">
                       <div
-                        className="bg-emerald-500 h-full"
+                        className="bg-emerald-600 h-full"
                         style={{
                           width: `${detailedStats?.tickets.total > 0 ? (detailedStats.tickets.closed / detailedStats.tickets.total) * 100 : 0}%`,
                         }}
@@ -548,9 +523,9 @@ export default function DashboardPage() {
                       />
                     </div>
                   </div>
-                  <div className="flex justify-between text-xs font-semibold text-slate-600">
+                  <div className="flex justify-between text-xs font-medium text-slate-600">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <span className="w-2 h-2 rounded-full bg-emerald-600" />
                       <span>Closed: {detailedStats?.tickets.closed || 0}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -561,22 +536,22 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Asset Requests Card */}
-                <div className="bg-white rounded-2xl p-5 border border-slate-100/90 shadow-sm flex flex-col justify-between">
+                <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-semibold text-slate-600">
                         Asset Requests
                       </span>
-                      <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center">
+                      <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
                         <FileText size={15} />
                       </div>
                     </div>
-                    <div className="text-2xl font-extrabold text-slate-900 mb-3">
+                    <div className="text-2xl font-bold text-slate-900 mb-2.5">
                       {detailedStats?.assetRequests.total || 0}
                     </div>
-                    <div className="w-full h-2 bg-slate-100 rounded-full flex overflow-hidden mb-3">
+                    <div className="w-full h-2 bg-slate-100 rounded-full flex overflow-hidden mb-2.5">
                       <div
-                        className="bg-emerald-500 h-full"
+                        className="bg-emerald-600 h-full"
                         style={{
                           width: `${detailedStats?.assetRequests.total > 0 ? (detailedStats.assetRequests.closed / detailedStats.assetRequests.total) * 100 : 0}%`,
                         }}
@@ -589,9 +564,9 @@ export default function DashboardPage() {
                       />
                     </div>
                   </div>
-                  <div className="flex justify-between text-xs font-semibold text-slate-600">
+                  <div className="flex justify-between text-xs font-medium text-slate-600">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <span className="w-2 h-2 rounded-full bg-emerald-600" />
                       <span>Completed: {detailedStats?.assetRequests.closed || 0}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -602,22 +577,22 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Software Licenses Card */}
-                <div className="bg-white rounded-2xl p-5 border border-slate-100/90 shadow-sm flex flex-col justify-between">
+                <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-semibold text-slate-600">
                         Software Licenses
                       </span>
-                      <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center">
+                      <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
                         <Key size={15} />
                       </div>
                     </div>
-                    <div className="text-2xl font-extrabold text-slate-900 mb-3">
+                    <div className="text-2xl font-bold text-slate-900 mb-2.5">
                       {detailedStats?.licenseRequests.total || 0}
                     </div>
-                    <div className="w-full h-2 bg-slate-100 rounded-full flex overflow-hidden mb-3">
+                    <div className="w-full h-2 bg-slate-100 rounded-full flex overflow-hidden mb-2.5">
                       <div
-                        className="bg-emerald-500 h-full"
+                        className="bg-emerald-600 h-full"
                         style={{
                           width: `${detailedStats?.licenseRequests.total > 0 ? (detailedStats.licenseRequests.closed / detailedStats.licenseRequests.total) * 100 : 0}%`,
                         }}
@@ -630,9 +605,9 @@ export default function DashboardPage() {
                       />
                     </div>
                   </div>
-                  <div className="flex justify-between text-xs font-semibold text-slate-600">
+                  <div className="flex justify-between text-xs font-medium text-slate-600">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <span className="w-2 h-2 rounded-full bg-emerald-600" />
                       <span>Active: {detailedStats?.licenseRequests.closed || 0}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -643,22 +618,22 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Renewal Requests Card */}
-                <div className="bg-white rounded-2xl p-5 border border-slate-100/90 shadow-sm flex flex-col justify-between">
+                <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-semibold text-slate-600">
                         Renewal Requests
                       </span>
-                      <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-500 flex items-center justify-center">
+                      <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
                         <RefreshCw size={15} />
                       </div>
                     </div>
-                    <div className="text-2xl font-extrabold text-slate-900 mb-3">
+                    <div className="text-2xl font-bold text-slate-900 mb-2.5">
                       {detailedStats?.renewalRequests.total || 0}
                     </div>
-                    <div className="w-full h-2 bg-slate-100 rounded-full flex overflow-hidden mb-3">
+                    <div className="w-full h-2 bg-slate-100 rounded-full flex overflow-hidden mb-2.5">
                       <div
-                        className="bg-emerald-500 h-full"
+                        className="bg-emerald-600 h-full"
                         style={{
                           width: `${detailedStats?.renewalRequests.total > 0 ? (detailedStats.renewalRequests.closed / detailedStats.renewalRequests.total) * 100 : 0}%`,
                         }}
@@ -671,9 +646,9 @@ export default function DashboardPage() {
                       />
                     </div>
                   </div>
-                  <div className="flex justify-between text-xs font-semibold text-slate-600">
+                  <div className="flex justify-between text-xs font-medium text-slate-600">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <span className="w-2 h-2 rounded-full bg-emerald-600" />
                       <span>Decided: {detailedStats?.renewalRequests.closed || 0}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -685,39 +660,36 @@ export default function DashboardPage() {
               </div>
 
               {/* Comparative Trends Multi-Line Chart */}
-              <div className="bg-white rounded-2xl p-5 border border-slate-100/90 shadow-sm flex flex-col justify-between">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+              <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs flex flex-col justify-between">
+                <div className="flex items-center justify-between mb-1.5">
+                  <h4 className="text-sm font-bold text-slate-900">
                     Comparative Trends
                   </h4>
-                  <div className="px-2 py-0.5 rounded-lg border border-slate-200 text-[10px] font-semibold text-slate-600 flex items-center gap-1 bg-slate-50/50">
-                    This Week <ChevronDown size={10} />
-                  </div>
                 </div>
 
-                <div className="h-[200px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={lineChartData} margin={{ top: 15, right: 10, left: -25, bottom: 0 }}>
+                <div className="h-[175px] w-full [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none [&_svg]:outline-none [&_*:focus]:outline-none select-none">
+                  <ResponsiveContainer width="100%" height="100%" style={{ outline: 'none' }}>
+                    <LineChart data={lineChartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }} style={{ outline: 'none' }} tabIndex={-1}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                       <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#64748b', fontWeight: 600 }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                      <Tooltip contentStyle={{ background: '#1e1b4b', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '11px' }} />
-                      <Line type="monotone" dataKey="Total" stroke="#2563eb" strokeWidth={2.5} dot={{ r: 3.5, fill: '#2563eb', stroke: '#fff', strokeWidth: 1.5 }} />
-                      <Line type="monotone" dataKey="Closed" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3.5, fill: '#10b981', stroke: '#fff', strokeWidth: 1.5 }} />
+                      <Tooltip contentStyle={{ background: '#1e293b', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '11px' }} />
+                      <Line type="monotone" dataKey="Total" stroke="#0d9488" strokeWidth={2.5} dot={{ r: 3.5, fill: '#0d9488', stroke: '#fff', strokeWidth: 1.5 }} />
+                      <Line type="monotone" dataKey="Closed" stroke="#059669" strokeWidth={2.5} dot={{ r: 3.5, fill: '#059669', stroke: '#fff', strokeWidth: 1.5 }} />
                       <Line type="monotone" dataKey="Pending" stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 3.5, fill: '#f59e0b', stroke: '#fff', strokeWidth: 1.5 }} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
 
-                <div className="flex items-center justify-center gap-4 pt-1 text-[11px] font-semibold">
+                <div className="flex items-center justify-center gap-4 pt-1 text-[11px] font-medium">
+                  <div className="flex items-center gap-1.5 text-teal-600">
+                    <span className="w-2 h-2 rounded-full bg-teal-600" /> Total
+                  </div>
                   <div className="flex items-center gap-1.5 text-emerald-600">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" /> Closed
+                    <span className="w-2 h-2 rounded-full bg-emerald-600" /> Closed
                   </div>
-                  <div className="flex items-center gap-1.5 text-amber-500">
+                  <div className="flex items-center gap-1.5 text-amber-600">
                     <span className="w-2 h-2 rounded-full bg-amber-500" /> Pending
-                  </div>
-                  <div className="flex items-center gap-1.5 text-blue-600">
-                    <span className="w-2 h-2 rounded-full bg-blue-600" /> Total
                   </div>
                 </div>
               </div>
@@ -725,42 +697,41 @@ export default function DashboardPage() {
           </div>
 
           {/* Fourth Row: 4 Recent Activity Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             {/* Card 1: Recent Support Tickets */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-100/90 shadow-sm flex flex-col justify-between">
+            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-50">
+                <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-100">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
                       <Ticket size={13} />
                     </div>
-                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-800">
+                    <span className="text-xs font-bold text-slate-900">
                       Recent Support Tickets
                     </span>
                   </div>
-                  <Link href="/tickets" className="text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline">
+                  <Link href="/tickets" className="text-xs font-semibold text-teal-600 hover:text-teal-700 hover:underline">
                     View All
                   </Link>
                 </div>
 
-                <div className="divide-y divide-slate-50">
+                <div className="divide-y divide-slate-100">
                   {recentTickets.length === 0 ? (
-                    <div className="py-8 text-center text-slate-400 text-xs">No recent tickets</div>
+                    <div className="py-6 text-center text-slate-400 text-xs">No recent tickets</div>
                   ) : (
                     recentTickets.slice(0, 3).map((ticket) => (
-                      <div key={ticket.id} className="py-2.5 flex flex-col gap-0.5">
+                      <div key={ticket.id} className="py-2 flex flex-col gap-0.5">
                         <div className="flex justify-between items-center">
-                          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                          <span className="text-[11px] font-bold text-slate-500">
                             {ticket.ticket_no}
                           </span>
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider ${
-                              ticket.status === 'resolved' || ticket.status === 'closed'
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize ${ticket.status === 'resolved' || ticket.status === 'closed'
                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                                : ticket.status === 'pending'
-                                ? 'bg-amber-50 text-amber-700 border border-amber-100'
-                                : 'bg-blue-50 text-blue-700 border border-blue-100'
-                            }`}
+                                : ticket.status === 'pending' || ticket.status === 'in_progress' || ticket.status === 'open'
+                                  ? 'bg-amber-50 text-amber-700 border border-amber-100'
+                                  : 'bg-rose-50 text-rose-700 border border-rose-100'
+                              }`}
                           >
                             {ticket.status}
                           </span>
@@ -775,36 +746,37 @@ export default function DashboardPage() {
             </div>
 
             {/* Card 2: Recent Asset Requests */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-100/90 shadow-sm flex flex-col justify-between">
+            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-50">
+                <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-100">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
                       <FileText size={13} />
                     </div>
-                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-800">
+                    <span className="text-xs font-bold text-slate-900">
                       Recent Asset Requests
                     </span>
                   </div>
-                  <Link href="/assets" className="text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline">
+                  <Link href="/assets" className="text-xs font-semibold text-teal-600 hover:text-teal-700 hover:underline">
                     View All
                   </Link>
                 </div>
 
-                <div className="divide-y divide-slate-50">
+                <div className="divide-y divide-slate-100">
                   {recentAssetRequests.length === 0 ? (
-                    <div className="py-8 text-center text-slate-400 text-xs">No recent asset requests</div>
+                    <div className="py-6 text-center text-slate-400 text-xs">No recent asset requests</div>
                   ) : (
                     recentAssetRequests.slice(0, 3).map((req) => (
-                      <div key={req.id} className="py-2.5 flex flex-col gap-0.5">
+                      <div key={req.id} className="py-2 flex flex-col gap-0.5">
                         <div className="flex justify-between items-center">
                           <span className="text-xs font-bold text-slate-800">{req.asset_type || 'Hardware Asset'}</span>
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider ${
-                              req.status === 'completed' || req.status === 'purchased'
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize ${req.status === 'completed' || req.status === 'purchased' || req.status === 'approved'
                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                                : 'bg-amber-50 text-amber-700 border border-amber-100'
-                            }`}
+                                : req.status === 'rejected' || req.status === 'cancelled'
+                                  ? 'bg-rose-50 text-rose-700 border border-rose-100'
+                                  : 'bg-amber-50 text-amber-700 border border-amber-100'
+                              }`}
                           >
                             {req.status}
                           </span>
@@ -821,40 +793,39 @@ export default function DashboardPage() {
             </div>
 
             {/* Card 3: Recent Software Licenses */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-100/90 shadow-sm flex flex-col justify-between">
+            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-50">
+                <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-100">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
                       <Key size={13} />
                     </div>
-                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-800">
+                    <span className="text-xs font-bold text-slate-900">
                       Recent Software Licenses
                     </span>
                   </div>
-                  <Link href="/license" className="text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline">
+                  <Link href="/license" className="text-xs font-semibold text-teal-600 hover:text-teal-700 hover:underline">
                     View All
                   </Link>
                 </div>
 
-                <div className="divide-y divide-slate-50">
+                <div className="divide-y divide-slate-100">
                   {recentLicenses.length === 0 ? (
-                    <div className="py-8 text-center text-slate-400 text-xs">No recent licenses</div>
+                    <div className="py-6 text-center text-slate-400 text-xs">No recent licenses</div>
                   ) : (
                     recentLicenses.slice(0, 2).map((lic) => (
-                      <div key={lic.id} className="py-2.5 flex flex-col gap-0.5">
+                      <div key={lic.id} className="py-2 flex flex-col gap-0.5">
                         <div className="flex justify-between items-center">
                           <span className="text-xs font-bold text-slate-800 line-clamp-1">
                             {lic.software_name || lic.license_key}
                           </span>
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider ${
-                              lic.status === 'active'
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize ${lic.status === 'active' || lic.status === 'assigned'
                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                                : lic.status === 'expired'
-                                ? 'bg-rose-50 text-rose-700 border border-rose-100'
-                                : 'bg-blue-50 text-blue-700 border border-blue-100'
-                            }`}
+                                : lic.status === 'expired' || lic.status === 'inactive' || lic.status === 'revoked'
+                                  ? 'bg-rose-50 text-rose-700 border border-rose-100'
+                                  : 'bg-amber-50 text-amber-700 border border-amber-100'
+                              }`}
                           >
                             {lic.status}
                           </span>
@@ -873,18 +844,18 @@ export default function DashboardPage() {
             </div>
 
             {/* Card 4: Recent Renewal Requests */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-100/90 shadow-sm flex flex-col justify-between">
+            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-50">
+                <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-100">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
                       <RefreshCw size={13} />
                     </div>
-                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-800">
+                    <span className="text-xs font-bold text-slate-900">
                       Recent Renewal Requests
                     </span>
                   </div>
-                  <Link href="/license" className="text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline">
+                  <Link href="/license" className="text-xs font-semibold text-teal-600 hover:text-teal-700 hover:underline">
                     View All
                   </Link>
                 </div>
@@ -892,21 +863,20 @@ export default function DashboardPage() {
                 {recentRenewals.length === 0 ? (
                   <EmptyBoxIllustration />
                 ) : (
-                  <div className="divide-y divide-slate-50">
+                  <div className="divide-y divide-slate-100">
                     {recentRenewals.slice(0, 3).map((ren) => (
-                      <div key={ren.id} className="py-2.5 flex flex-col gap-0.5">
+                      <div key={ren.id} className="py-2 flex flex-col gap-0.5">
                         <div className="flex justify-between items-center">
                           <span className="text-xs font-bold text-slate-800 line-clamp-1">
                             {ren.license?.software_name || 'Software License'}
                           </span>
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider ${
-                              ren.status === 'approved'
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize ${ren.status === 'approved' || ren.status === 'completed'
                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                                : ren.status === 'rejected'
-                                ? 'bg-rose-50 text-rose-700 border border-rose-100'
-                                : 'bg-amber-50 text-amber-700 border border-amber-100'
-                            }`}
+                                : ren.status === 'rejected' || ren.status === 'denied'
+                                  ? 'bg-rose-50 text-rose-700 border border-rose-100'
+                                  : 'bg-amber-50 text-amber-700 border border-amber-100'
+                              }`}
                           >
                             {ren.status}
                           </span>
@@ -924,23 +894,13 @@ export default function DashboardPage() {
           </div>
 
           {/* Footer Row */}
-          <div className="pt-6 border-t border-slate-200/70 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-            <div>© 2025 Fillers. All rights reserved.</div>
+          <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+            {/* <div>© 2025 Fillers. All rights reserved.</div>
             <div className="flex items-center gap-6 font-medium">
-              <span className="hover:text-purple-600 cursor-pointer">About Us</span>
-              <span className="hover:text-purple-600 cursor-pointer">Help</span>
-              <span className="hover:text-purple-600 cursor-pointer">Contact Us</span>
-            </div>
-          </div>
-
-          {/* Floating Support Button */}
-          <div className="fixed bottom-6 right-6 z-50">
-            <button
-              className="w-13 h-13 rounded-full bg-gradient-to-tr from-purple-600 via-indigo-600 to-violet-500 shadow-xl flex items-center justify-center text-white hover:scale-110 hover:shadow-2xl transition-all duration-300 border-none cursor-pointer group"
-              title="Need Help / Chat"
-            >
-              <MessageSquare size={22} className="group-hover:rotate-6 transition-transform" />
-            </button>
+              <span className="hover:text-blue-600 cursor-pointer">About Us</span>
+              <span className="hover:text-blue-600 cursor-pointer">Help</span>
+              <span className="hover:text-blue-600 cursor-pointer">Contact Us</span> */}
+            {/* </div> */}
           </div>
         </div>
       ) : (
@@ -966,16 +926,16 @@ export default function DashboardPage() {
           </div>
 
           {/* Stat Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-8">
             {statCards.map((card) => {
               const Icon = card.icon;
               return (
-                <div className="relative overflow-hidden bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group" key={card.labelKey}>
+                <div className="relative overflow-hidden bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group" key={card.labelKey}>
                   <div className="flex justify-between items-start">
-                    <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">{t(card.labelKey)}</span>
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm ${card.colorClass}`}><Icon size={20} /></div>
+                    <span className="text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-wider truncate">{t(card.labelKey)}</span>
+                    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0 ${card.colorClass}`}><Icon size={16} className="sm:hidden" /><Icon size={20} className="hidden sm:block" /></div>
                   </div>
-                  <div className="text-3xl font-extrabold mt-4 tracking-tight text-slate-900">{card.value?.toLocaleString() || 0}</div>
+                  <div className="text-xl sm:text-3xl font-extrabold mt-2 sm:mt-4 tracking-tight text-slate-900">{card.value?.toLocaleString() || 0}</div>
                 </div>
               );
             })}
@@ -1028,7 +988,7 @@ export default function DashboardPage() {
                 <Zap size={16} className="text-emerald-500" />
                 Request &amp; Lifecycle Statistics
               </h3>
-              
+
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
                   {/* Tickets Card */}
@@ -1042,20 +1002,20 @@ export default function DashboardPage() {
                         <Ticket size={20} />
                       </div>
                     </div>
-                    
+
                     <div className="w-full h-2 bg-slate-100 rounded-full flex overflow-hidden mb-4">
-                      <div 
-                        className="bg-emerald-500 transition-all duration-500" 
-                        style={{ width: `${detailedStats.tickets.total > 0 ? (detailedStats.tickets.closed / detailedStats.tickets.total) * 100 : 0}%` }} 
+                      <div
+                        className="bg-emerald-500 transition-all duration-500"
+                        style={{ width: `${detailedStats.tickets.total > 0 ? (detailedStats.tickets.closed / detailedStats.tickets.total) * 100 : 0}%` }}
                         title={`Closed: ${detailedStats.tickets.closed}`}
                       />
-                      <div 
-                        className="bg-amber-500 transition-all duration-500" 
-                        style={{ width: `${detailedStats.tickets.total > 0 ? (detailedStats.tickets.pending / detailedStats.tickets.total) * 100 : 0}%` }} 
+                      <div
+                        className="bg-amber-500 transition-all duration-500"
+                        style={{ width: `${detailedStats.tickets.total > 0 ? (detailedStats.tickets.pending / detailedStats.tickets.total) * 100 : 0}%` }}
                         title={`Pending: ${detailedStats.tickets.pending}`}
                       />
                     </div>
-                    
+
                     <div className="flex justify-between text-xs font-semibold text-slate-500">
                       <div className="flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -1079,20 +1039,20 @@ export default function DashboardPage() {
                         <FileText size={20} />
                       </div>
                     </div>
-                    
+
                     <div className="w-full h-2 bg-slate-100 rounded-full flex overflow-hidden mb-4">
-                      <div 
-                        className="bg-emerald-500 transition-all duration-500" 
-                        style={{ width: `${detailedStats.assetRequests.total > 0 ? (detailedStats.assetRequests.closed / detailedStats.assetRequests.total) * 100 : 0}%` }} 
+                      <div
+                        className="bg-emerald-500 transition-all duration-500"
+                        style={{ width: `${detailedStats.assetRequests.total > 0 ? (detailedStats.assetRequests.closed / detailedStats.assetRequests.total) * 100 : 0}%` }}
                         title={`Completed: ${detailedStats.assetRequests.closed}`}
                       />
-                      <div 
-                        className="bg-amber-500 transition-all duration-500" 
-                        style={{ width: `${detailedStats.assetRequests.total > 0 ? (detailedStats.assetRequests.pending / detailedStats.assetRequests.total) * 100 : 0}%` }} 
+                      <div
+                        className="bg-amber-500 transition-all duration-500"
+                        style={{ width: `${detailedStats.assetRequests.total > 0 ? (detailedStats.assetRequests.pending / detailedStats.assetRequests.total) * 100 : 0}%` }}
                         title={`Pending: ${detailedStats.assetRequests.pending}`}
                       />
                     </div>
-                    
+
                     <div className="flex justify-between text-xs font-semibold text-slate-500">
                       <div className="flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -1116,20 +1076,20 @@ export default function DashboardPage() {
                         <Key size={20} />
                       </div>
                     </div>
-                    
+
                     <div className="w-full h-2 bg-slate-100 rounded-full flex overflow-hidden mb-4">
-                      <div 
-                        className="bg-emerald-500 transition-all duration-500" 
-                        style={{ width: `${detailedStats.licenseRequests.total > 0 ? (detailedStats.licenseRequests.closed / detailedStats.licenseRequests.total) * 100 : 0}%` }} 
+                      <div
+                        className="bg-emerald-500 transition-all duration-500"
+                        style={{ width: `${detailedStats.licenseRequests.total > 0 ? (detailedStats.licenseRequests.closed / detailedStats.licenseRequests.total) * 100 : 0}%` }}
                         title={`Active: ${detailedStats.licenseRequests.closed}`}
                       />
-                      <div 
-                        className="bg-amber-500 transition-all duration-500" 
-                        style={{ width: `${detailedStats.licenseRequests.total > 0 ? (detailedStats.licenseRequests.pending / detailedStats.licenseRequests.total) * 100 : 0}%` }} 
+                      <div
+                        className="bg-amber-500 transition-all duration-500"
+                        style={{ width: `${detailedStats.licenseRequests.total > 0 ? (detailedStats.licenseRequests.pending / detailedStats.licenseRequests.total) * 100 : 0}%` }}
                         title={`Available/Expired: ${detailedStats.licenseRequests.pending}`}
                       />
                     </div>
-                    
+
                     <div className="flex justify-between text-xs font-semibold text-slate-500">
                       <div className="flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -1153,20 +1113,20 @@ export default function DashboardPage() {
                         <RefreshCw size={20} />
                       </div>
                     </div>
-                    
+
                     <div className="w-full h-2 bg-slate-100 rounded-full flex overflow-hidden mb-4">
-                      <div 
-                        className="bg-emerald-500 transition-all duration-500" 
-                        style={{ width: `${detailedStats.renewalRequests.total > 0 ? (detailedStats.renewalRequests.closed / detailedStats.renewalRequests.total) * 100 : 0}%` }} 
+                      <div
+                        className="bg-emerald-500 transition-all duration-500"
+                        style={{ width: `${detailedStats.renewalRequests.total > 0 ? (detailedStats.renewalRequests.closed / detailedStats.renewalRequests.total) * 100 : 0}%` }}
                         title={`Decided: ${detailedStats.renewalRequests.closed}`}
                       />
-                      <div 
-                        className="bg-amber-500 transition-all duration-500" 
-                        style={{ width: `${detailedStats.renewalRequests.total > 0 ? (detailedStats.renewalRequests.pending / detailedStats.renewalRequests.total) * 100 : 0}%` }} 
+                      <div
+                        className="bg-amber-500 transition-all duration-500"
+                        style={{ width: `${detailedStats.renewalRequests.total > 0 ? (detailedStats.renewalRequests.pending / detailedStats.renewalRequests.total) * 100 : 0}%` }}
                         title={`Pending: ${detailedStats.renewalRequests.pending}`}
                       />
                     </div>
-                    
+
                     <div className="flex justify-between text-xs font-semibold text-slate-500">
                       <div className="flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -1187,7 +1147,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="h-[280px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={lineChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} style={{outline:"none"}}>
+                      <LineChart data={lineChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} style={{ outline: "none" }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                         <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
                         <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
@@ -1235,13 +1195,12 @@ export default function DashboardPage() {
                     <div key={ticket.id} className="py-3 flex flex-col gap-1 hover:bg-slate-50/50 px-2 rounded-lg transition-all">
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{ticket.ticket_no}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          ticket.status === 'resolved' || ticket.status === 'closed'
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${ticket.status === 'resolved' || ticket.status === 'closed'
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                            : ticket.status === 'pending'
-                            ? 'bg-amber-50 text-amber-700 border border-amber-100'
-                            : 'bg-blue-50 text-blue-700 border border-blue-100'
-                        }`}>
+                            : ticket.status === 'pending' || ticket.status === 'in_progress' || ticket.status === 'open'
+                              ? 'bg-amber-50 text-amber-700 border border-amber-100'
+                              : 'bg-rose-50 text-rose-700 border border-rose-100'
+                          }`}>
                           {ticket.status}
                         </span>
                       </div>
@@ -1276,11 +1235,12 @@ export default function DashboardPage() {
                     <div key={req.id} className="py-3 flex flex-col gap-1 hover:bg-slate-50/50 px-2 rounded-lg transition-all">
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-bold text-slate-600">{req.asset_type}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          req.status === 'completed' || req.status === 'purchased'
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${req.status === 'completed' || req.status === 'purchased' || req.status === 'approved'
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                            : 'bg-amber-50 text-amber-700 border border-amber-100'
-                        }`}>
+                            : req.status === 'rejected' || req.status === 'cancelled'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-100'
+                              : 'bg-amber-50 text-amber-700 border border-amber-100'
+                          }`}>
                           {req.status}
                         </span>
                       </div>
@@ -1315,13 +1275,12 @@ export default function DashboardPage() {
                     <div key={lic.id} className="py-3 flex flex-col gap-1 hover:bg-slate-50/50 px-2 rounded-lg transition-all">
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-bold text-slate-400 uppercase tracking-wider line-clamp-1">{lic.license_key}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          lic.status === 'active'
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${lic.status === 'active' || lic.status === 'assigned'
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                            : lic.status === 'expired'
-                            ? 'bg-rose-50 text-rose-700 border border-rose-100'
-                            : 'bg-blue-50 text-blue-700 border border-blue-100'
-                        }`}>
+                            : lic.status === 'expired' || lic.status === 'inactive' || lic.status === 'revoked'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-100'
+                              : 'bg-amber-50 text-amber-700 border border-amber-100'
+                          }`}>
                           {lic.status}
                         </span>
                       </div>
@@ -1356,13 +1315,12 @@ export default function DashboardPage() {
                     <div key={ren.id} className="py-3 flex flex-col gap-1 hover:bg-slate-50/50 px-2 rounded-lg transition-all">
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-bold text-slate-600 line-clamp-1">{ren.license?.software_name || 'Software License'}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          ren.status === 'approved'
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${ren.status === 'approved' || ren.status === 'completed'
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                            : ren.status === 'rejected'
-                            ? 'bg-rose-50 text-rose-700 border border-rose-100'
-                            : 'bg-amber-50 text-amber-700 border border-amber-100'
-                        }`}>
+                            : ren.status === 'rejected' || ren.status === 'denied'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-100'
+                              : 'bg-amber-50 text-amber-700 border border-amber-100'
+                          }`}>
                           {ren.status}
                         </span>
                       </div>
