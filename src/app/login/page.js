@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { isValidEmail, sanitizeEmailInput } from '@/lib/validation';
 import { Settings2, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
@@ -27,6 +28,10 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!isValidEmail(email.trim())) {
+      setError('Please enter a valid email address.');
+      return;
+    }
     setLoading(true);
     try {
       const data = await login(email, password);
@@ -149,8 +154,9 @@ export default function LoginPage() {
                         className="w-full px-3.5 py-3 pl-10.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-slate-50/50 hover:bg-slate-50 focus:bg-white focus:border-emerald-500 focus:shadow-[0_0_0_4px_rgba(16,185,129,0.1)] placeholder-slate-400 transition-all"
                         type="email"
                         placeholder="name@company.com"
+                        maxLength={100}
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => setEmail(sanitizeEmailInput(e.target.value))}
                         required
                       />
                     </div>

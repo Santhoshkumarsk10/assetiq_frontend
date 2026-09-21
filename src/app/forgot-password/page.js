@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api';
+import { isValidEmail, sanitizeEmailInput } from '@/lib/validation';
 import { Settings2, Mail, ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -14,8 +15,7 @@ export default function ForgotPasswordPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(email.trim())) {
+    if (!isValidEmail(email.trim())) {
       setError('Please enter a valid email address.');
       return;
     }
@@ -71,8 +71,9 @@ export default function ForgotPasswordPage() {
                     className="w-full px-3.5 py-3 pl-10.5 border border-slate-800 rounded-xl text-sm text-white outline-none bg-slate-900/50 hover:bg-slate-900 focus:bg-slate-950 focus:border-emerald-500 focus:shadow-[0_0_0_4px_rgba(16,185,129,0.1)] placeholder-slate-500 transition-all"
                     type="email"
                     placeholder="name@company.com"
+                    maxLength={100}
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(sanitizeEmailInput(e.target.value))}
                     required
                   />
                 </div>

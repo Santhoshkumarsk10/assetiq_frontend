@@ -463,7 +463,8 @@ export default function RolesPermissionsPage() {
                   <input
                     placeholder="Search roles by name or description..."
                     value={roleSearch}
-                    onChange={(e) => setRoleSearch(e.target.value)}
+                    maxLength={100}
+                    onChange={(e) => setRoleSearch(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
                     className="border-none bg-transparent outline-none text-sm text-slate-800 w-full placeholder-slate-400"
                   />
                   {roleSearch && (
@@ -678,7 +679,8 @@ export default function RolesPermissionsPage() {
                     <input
                       placeholder="Search roles..."
                       value={roleSearch}
-                      onChange={(e) => setRoleSearch(e.target.value)}
+                      maxLength={100}
+                      onChange={(e) => setRoleSearch(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
                       className="border-none bg-transparent outline-none text-xs text-slate-800 w-full placeholder-slate-400"
                     />
                     {roleSearch && (
@@ -822,7 +824,8 @@ export default function RolesPermissionsPage() {
                         <input
                           placeholder="Search permissions to assign..."
                           value={rolePermSearch}
-                          onChange={(e) => setRolePermSearch(e.target.value)}
+                          maxLength={100}
+                          onChange={(e) => setRolePermSearch(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
                           className="border-none bg-transparent outline-none text-xs text-slate-800 w-full placeholder-slate-400"
                         />
                         {rolePermSearch && (
@@ -914,8 +917,9 @@ export default function RolesPermissionsPage() {
                 <input
                   placeholder="Search permissions by scope name or description..."
                   value={permSearch}
+                  maxLength={100}
                   onChange={(e) => {
-                    setPermSearch(e.target.value);
+                    setPermSearch(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''));
                     setPermPage(1);
                   }}
                   className="border-none bg-transparent outline-none text-sm text-slate-800 w-full placeholder-slate-400"
@@ -1072,11 +1076,11 @@ export default function RolesPermissionsPage() {
         </>}>
         <div className="mb-4">
           <label className="block text-xs font-medium text-slate-500 mb-1.5">Role Name *</label>
-          <input className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 placeholder-slate-400 transition-all" placeholder="e.g. Finance Admin" value={roleForm.name} onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value.replace(/[^a-zA-Z0-9\s]/g, '') })} required />
+          <input className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 placeholder-slate-400 transition-all" placeholder="e.g. Finance Admin" maxLength={50} value={roleForm.name} onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value.replace(/[^a-zA-Z0-9\s]/g, '') })} required />
         </div>
         <div className="mb-4">
           <label className="block text-xs font-medium text-slate-500 mb-1.5">Description</label>
-          <input className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 placeholder-slate-400 transition-all" placeholder="Role description..." value={roleForm.description} onChange={(e) => setRoleForm({ ...roleForm, description: e.target.value.replace(/[^a-zA-Z0-9\s]/g, '') })} />
+          <input className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 placeholder-slate-400 transition-all" placeholder="Role description..." maxLength={255} value={roleForm.description} onChange={(e) => setRoleForm({ ...roleForm, description: e.target.value.replace(/[^a-zA-Z0-9\s]/g, '') })} />
         </div>
       </Modal>
 
@@ -1116,6 +1120,7 @@ export default function RolesPermissionsPage() {
                 <input
                   className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 placeholder-slate-400 transition-all"
                   placeholder="e.g. process:payroll"
+                  maxLength={60}
                   value={permForm.name}
                   onChange={(e) => setPermForm({ ...permForm, name: e.target.value.replace(/[^a-zA-Z0-9\s:\.]/g, '') })}
                   required
@@ -1128,6 +1133,7 @@ export default function RolesPermissionsPage() {
                   rows={3}
                   className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 placeholder-slate-400 transition-all resize-none"
                   placeholder="Permission scope description..."
+                  maxLength={255}
                   value={permForm.description}
                   onChange={(e) => setPermForm({ ...permForm, description: e.target.value.replace(/[^a-zA-Z0-9\s]/g, '') })}
                 />

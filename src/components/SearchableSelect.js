@@ -69,7 +69,8 @@ export default function SearchableSelect({
               className="w-full bg-transparent border-none outline-none text-xs text-slate-700 placeholder-slate-400 focus:ring-0"
               placeholder={searchPlaceholder}
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              maxLength={100}
+              onChange={e => setSearch(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
               autoFocus
             />
           </div>

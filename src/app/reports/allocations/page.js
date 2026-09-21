@@ -262,7 +262,8 @@ function AllocationsReportPageInner() {
               placeholder="Search allocation by asset tag, employee, allocator (Press Enter)..."
               className="w-full h-full pl-9 pr-9 border border-slate-200 rounded-lg text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800"
               value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
+              maxLength={100}
+              onChange={(e) => setSearchInput(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();

@@ -9,6 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { onboardingApi, emailRequestApi, assetApi, userApi, rolesApi } from '@/lib/api';
 import { socket } from '@/lib/socket';
+import { isValidEmail, sanitizeEmailInput } from '@/lib/validation';
 import { 
   UserPlus, CheckCircle2, ChevronRight, User, Mail, 
   Phone, Briefcase, MapPin, Laptop, ShieldCheck, 
@@ -343,15 +344,31 @@ export default function OnboardingPage() {
       }
     }
 
-    // 2. Validate email
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(step1Form.personal_email)) {
-      showToast('Please enter a valid personal email.', 'error');
+    // 2. Validate Full Name (max 30 chars, letters/spaces/hyphens/apostrophes)
+    if (!step1Form.name || !step1Form.name.trim()) {
+      showToast('Full Name is required.', 'error');
+      return;
+    }
+    if (step1Form.name.trim().length > 30) {
+      showToast('Full Name cannot exceed 30 characters.', 'error');
+      return;
+    }
+    if (!/^[a-zA-Z\s'-]+$/.test(step1Form.name.trim())) {
+      showToast('Full Name can only contain letters, spaces, hyphens, and apostrophes.', 'error');
       return;
     }
 
-    // 3. Name validation (only letters and spaces)
-    if (!/^[a-zA-Z\s]+$/.test(step1Form.name)) {
-      showToast('Full Name must contain only letters and spaces.', 'error');
+    // 3. Validate personal email (strict standard format)
+    if (!step1Form.personal_email || !step1Form.personal_email.trim()) {
+      showToast('Personal Email is required.', 'error');
+      return;
+    }
+    if (step1Form.personal_email.length > 100) {
+      showToast('Personal Email cannot exceed 100 characters.', 'error');
+      return;
+    }
+    if (!isValidEmail(step1Form.personal_email.trim())) {
+      showToast('Please enter a valid personal email (e.g. name@domain.com).', 'error');
       return;
     }
 
@@ -362,6 +379,10 @@ export default function OnboardingPage() {
       'Designation': step1Form.designation
     };
     for (const [fieldName, val] of Object.entries(textFields)) {
+      if (val && val.length > 50) {
+        showToast(`${fieldName} cannot exceed 50 characters.`, 'error');
+        return;
+      }
       if (val && /[^a-zA-Z0-9\s-]/.test(val)) {
         showToast(`${fieldName} cannot contain special characters (letters, numbers, spaces, and hyphens only).`, 'error');
         return;
@@ -369,16 +390,20 @@ export default function OnboardingPage() {
     }
 
     // 5. State, City, Address validations
-    if (!/^[a-zA-Z\s-]+$/.test(step1Form.state)) {
-      showToast('State must contain only letters, spaces, and hyphens.', 'error');
+    if (!step1Form.state || step1Form.state.trim().length > 50 || !/^[a-zA-Z\s-]+$/.test(step1Form.state)) {
+      showToast('State is required (max 50 chars, letters, spaces, and hyphens only).', 'error');
       return;
     }
-    if (!/^[a-zA-Z\s-]+$/.test(step1Form.city)) {
-      showToast('City must contain only letters, spaces, and hyphens.', 'error');
+    if (!step1Form.city || step1Form.city.trim().length > 50 || !/^[a-zA-Z\s-]+$/.test(step1Form.city)) {
+      showToast('City is required (max 50 chars, letters, spaces, and hyphens only).', 'error');
       return;
     }
     if (!step1Form.address || step1Form.address.trim().length < 10) {
       showToast('Address must be at least 10 characters long.', 'error');
+      return;
+    }
+    if (step1Form.address.length > 300) {
+      showToast('Address cannot exceed 300 characters.', 'error');
       return;
     }
 
@@ -457,12 +482,20 @@ export default function OnboardingPage() {
   };
 
   const handleSaveQuickAsset = async () => {
+    if (!quickAssetForm.name || quickAssetForm.name.trim() === '') {
+      showToast('Asset Name is required.', 'error');
+      return;
+    }
+    if (quickAssetForm.name.length > 50) {
+      showToast('Asset Name cannot exceed 50 characters.', 'error');
+      return;
+    }
     if (quickAssetForm.asset_tag && /[^a-zA-Z0-9\s-]/.test(quickAssetForm.asset_tag)) {
       showToast('Asset Tag cannot contain special characters (only letters, numbers, spaces, and hyphens are allowed).', 'error');
       return;
     }
-    if (!quickAssetForm.name || quickAssetForm.name.trim() === '') {
-      showToast('Asset Name is required.', 'error');
+    if (quickAssetForm.asset_tag && quickAssetForm.asset_tag.length > 50) {
+      showToast('Asset Tag cannot exceed 50 characters.', 'error');
       return;
     }
     const finalType = quickAssetForm.type === 'Other' ? quickAssetForm.custom_type : quickAssetForm.type;
@@ -470,8 +503,36 @@ export default function OnboardingPage() {
       showToast('Asset Type is required.', 'error');
       return;
     }
+    if (finalType.length > 50) {
+      showToast('Asset Type cannot exceed 50 characters.', 'error');
+      return;
+    }
+    if (quickAssetForm.brand && quickAssetForm.brand.length > 50) {
+      showToast('Brand cannot exceed 50 characters.', 'error');
+      return;
+    }
+    if (quickAssetForm.serial_number && quickAssetForm.serial_number.length > 100) {
+      showToast('Serial Number cannot exceed 100 characters.', 'error');
+      return;
+    }
     if (quickAssetForm.mac_address && /[^a-zA-Z0-9\s:-]/.test(quickAssetForm.mac_address)) {
       showToast('MAC Address format is invalid (letters, numbers, colons, and hyphens only).', 'error');
+      return;
+    }
+    if (quickAssetForm.mac_address && quickAssetForm.mac_address.length > 50) {
+      showToast('MAC Address cannot exceed 50 characters.', 'error');
+      return;
+    }
+    if (quickAssetForm.specification && quickAssetForm.specification.length > 500) {
+      showToast('Specification cannot exceed 500 characters.', 'error');
+      return;
+    }
+    if (quickAssetForm.warranty && quickAssetForm.warranty.length > 50) {
+      showToast('Warranty cannot exceed 50 characters.', 'error');
+      return;
+    }
+    if (quickAssetForm.remarks && quickAssetForm.remarks.length > 500) {
+      showToast('Remarks cannot exceed 500 characters.', 'error');
       return;
     }
 
@@ -506,11 +567,23 @@ export default function OnboardingPage() {
 
   // Step 3: Corporate Email Suggestion
   const handleStep3Submit = async () => {
+    if (!wizardStepData.suggested_email || !wizardStepData.suggested_email.trim()) {
+      showToast('Corporate email is required.', 'error');
+      return;
+    }
+    if (wizardStepData.suggested_email.length > 100) {
+      showToast('Corporate email cannot exceed 100 characters.', 'error');
+      return;
+    }
+    if (!isValidEmail(wizardStepData.suggested_email.trim())) {
+      showToast('Please enter a valid corporate email address (e.g. name@company.com).', 'error');
+      return;
+    }
     setSubmitting(true);
     try {
       await onboardingApi.step3({
         id: selectedRequest.id,
-        suggested_email: wizardStepData.suggested_email
+        suggested_email: wizardStepData.suggested_email.trim()
       });
       await openWizard(selectedRequest.id);
       showToast('Corporate email suggested successfully!', 'success');
@@ -523,8 +596,8 @@ export default function OnboardingPage() {
 
   // Step 4: Approval Decision
   const handleStep4Submit = async () => {
-    if (wizardStepData.remarks && /[^a-zA-Z0-9\s]/.test(wizardStepData.remarks)) {
-      showToast('Remarks cannot contain special characters.', 'error');
+    if (wizardStepData.remarks && wizardStepData.remarks.length > 500) {
+      showToast('Remarks cannot exceed 500 characters.', 'error');
       return;
     }
     setSubmitting(true);
@@ -568,6 +641,18 @@ export default function OnboardingPage() {
 
   // Step 6: Dispatch account setup email
   const handleStep6Submit = async () => {
+    if (!wizardStepData.official_email || !wizardStepData.official_email.trim()) {
+      showToast('Target corporate email is required.', 'error');
+      return;
+    }
+    if (wizardStepData.official_email.length > 100) {
+      showToast('Target corporate email cannot exceed 100 characters.', 'error');
+      return;
+    }
+    if (!isValidEmail(wizardStepData.official_email.trim())) {
+      showToast('Please enter a valid corporate email address (e.g. name@company.com).', 'error');
+      return;
+    }
     setSubmitting(true);
     try {
       // C-04 Fix: Only pass the official_email. Backend reads the setup token from DB.
@@ -586,6 +671,18 @@ export default function OnboardingPage() {
 
   // IT Admin: Process Email Request
   const handleProcessEmail = async (status) => {
+    if (selectedEmailReq.suggested_email && !isValidEmail(selectedEmailReq.suggested_email.trim())) {
+      showToast('Please enter a valid corporate email format (e.g. user@domain.com).', 'error');
+      return;
+    }
+    if (status === 'rejected' && (!emailRemarks || !emailRemarks.trim())) {
+      showToast('Remarks are required when rejecting.', 'error');
+      return;
+    }
+    if (emailRemarks && emailRemarks.length > 500) {
+      showToast('Remarks cannot exceed 500 characters.', 'error');
+      return;
+    }
     setSubmitting(true);
     try {
       await emailRequestApi.process({
@@ -698,7 +795,8 @@ export default function OnboardingPage() {
             <input
               placeholder="Search by name, ID, or department..."
               value={searchInput}
-              onChange={(e) => handleSearchInputChange(e.target.value)}
+              maxLength={100}
+              onChange={(e) => handleSearchInputChange(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   setSearch(searchInput);
@@ -1091,8 +1189,9 @@ export default function OnboardingPage() {
             <input 
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
               placeholder="John Doe"
+              maxLength={30}
               value={step1Form.name} 
-              onChange={e => setStep1Form({ ...step1Form, name: e.target.value.replace(/[^a-zA-Z\s]/g, '') })} 
+              onChange={e => setStep1Form({ ...step1Form, name: e.target.value.replace(/[^a-zA-Z\s'-]/g, '') })} 
             />
           </div>
           <div>
@@ -1101,8 +1200,9 @@ export default function OnboardingPage() {
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
               type="email"
               placeholder="john.doe@gmail.com"
+              maxLength={100}
               value={step1Form.personal_email} 
-              onChange={e => setStep1Form({ ...step1Form, personal_email: e.target.value })} 
+              onChange={e => setStep1Form({ ...step1Form, personal_email: sanitizeEmailInput(e.target.value) })} 
             />
           </div>
           <div>
@@ -1136,6 +1236,7 @@ export default function OnboardingPage() {
             <input 
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
               placeholder="Engineering"
+              maxLength={50}
               value={step1Form.department} 
               onChange={e => setStep1Form({ ...step1Form, department: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '') })} 
             />
@@ -1145,6 +1246,7 @@ export default function OnboardingPage() {
             <input 
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
               placeholder="Software Engineer"
+              maxLength={50}
               value={step1Form.designation} 
               onChange={e => setStep1Form({ ...step1Form, designation: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '') })} 
             />
@@ -1154,6 +1256,7 @@ export default function OnboardingPage() {
             <input 
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
               placeholder="e.g. Tamil Nadu"
+              maxLength={50}
               value={step1Form.state} 
               onChange={e => setStep1Form({ ...step1Form, state: e.target.value.replace(/[^a-zA-Z\s-]/g, '') })} 
             />
@@ -1164,6 +1267,7 @@ export default function OnboardingPage() {
             <input 
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
               placeholder="e.g. Chennai"
+              maxLength={50}
               value={step1Form.city} 
               onChange={e => setStep1Form({ ...step1Form, city: e.target.value.replace(/[^a-zA-Z\s-]/g, '') })} 
             />
@@ -1210,8 +1314,9 @@ export default function OnboardingPage() {
             <textarea 
               className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors h-14 resize-none" 
               placeholder="e.g. 123 Main Street, Suite 400"
+              maxLength={300}
               value={step1Form.address} 
-              onChange={e => setStep1Form({ ...step1Form, address: e.target.value })} 
+              onChange={e => setStep1Form({ ...step1Form, address: e.target.value.replace(/[^a-zA-Z0-9\s,./#\-_]/g, '') })} 
             />
           </div>
         </div>
@@ -1430,8 +1535,9 @@ export default function OnboardingPage() {
                       <input 
                         className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
                         placeholder="name@company.com"
+                        maxLength={100}
                         value={wizardStepData.suggested_email} 
-                        onChange={e => setWizardStepData({ ...wizardStepData, suggested_email: e.target.value })} 
+                        onChange={e => setWizardStepData({ ...wizardStepData, suggested_email: sanitizeEmailInput(e.target.value) })} 
                       />
                     </div>
 
@@ -1534,6 +1640,7 @@ export default function OnboardingPage() {
                           <textarea 
                             className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors h-20 resize-none" 
                             placeholder="Onboarding checklist verified..."
+                            maxLength={500}
                             value={wizardStepData.remarks}
                             onChange={e => setWizardStepData({ ...wizardStepData, remarks: e.target.value })}
                           />
@@ -1657,8 +1764,9 @@ export default function OnboardingPage() {
                       <label className="block text-xs font-medium text-slate-500 mb-1.5">Target Corporate Email</label>
                       <input 
                         className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
+                        maxLength={100}
                         value={wizardStepData.official_email} 
-                        onChange={e => setWizardStepData({ ...wizardStepData, official_email: e.target.value })} 
+                        onChange={e => setWizardStepData({ ...wizardStepData, official_email: sanitizeEmailInput(e.target.value) })} 
                       />
                     </div>
 
@@ -1742,9 +1850,10 @@ export default function OnboardingPage() {
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Suggested Corporate Email</label>
             <input 
               type="email"
+              maxLength={100}
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 font-mono font-semibold"
               value={selectedEmailReq.suggested_email}
-              onChange={e => setSelectedEmailReq({ ...selectedEmailReq, suggested_email: e.target.value })}
+              onChange={e => setSelectedEmailReq({ ...selectedEmailReq, suggested_email: sanitizeEmailInput(e.target.value) })}
             />
           </div>
           <div className="mb-4">
@@ -1752,6 +1861,7 @@ export default function OnboardingPage() {
             <textarea 
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors h-20 resize-none"
               placeholder="e.g. Account provisioned in Active Directory successfully."
+              maxLength={500}
               value={emailRemarks}
               onChange={e => setEmailRemarks(e.target.value)}
             />
@@ -1789,8 +1899,9 @@ export default function OnboardingPage() {
                 type="text" 
                 className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors" 
                 placeholder="e.g. MacBook Pro 16"
+                maxLength={50}
                 value={quickAssetForm.name}
-                onChange={e => setQuickAssetForm({ ...quickAssetForm, name: e.target.value })}
+                onChange={e => setQuickAssetForm({ ...quickAssetForm, name: e.target.value.replace(/[^a-zA-Z0-9\s._-]/g, '') })}
               />
             </div>
             <div>
@@ -1799,8 +1910,9 @@ export default function OnboardingPage() {
                 type="text" 
                 className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors font-mono" 
                 placeholder="e.g. AST-001"
+                maxLength={50}
                 value={quickAssetForm.asset_tag}
-                onChange={e => setQuickAssetForm({ ...quickAssetForm, asset_tag: e.target.value })}
+                onChange={e => setQuickAssetForm({ ...quickAssetForm, asset_tag: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '') })}
               />
             </div>
             <div>
@@ -1824,8 +1936,9 @@ export default function OnboardingPage() {
                     type="text"
                     className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors"
                     placeholder="Specify custom asset type..."
+                    maxLength={50}
                     value={quickAssetForm.custom_type || ''}
-                    onChange={e => setQuickAssetForm({ ...quickAssetForm, custom_type: e.target.value })}
+                    onChange={e => setQuickAssetForm({ ...quickAssetForm, custom_type: e.target.value.replace(/[^a-zA-Z0-9\s_-]/g, '') })}
                     required
                   />
                 </div>
@@ -1837,8 +1950,9 @@ export default function OnboardingPage() {
                 type="text" 
                 className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors" 
                 placeholder="e.g. Apple"
+                maxLength={50}
                 value={quickAssetForm.brand}
-                onChange={e => setQuickAssetForm({ ...quickAssetForm, brand: e.target.value })}
+                onChange={e => setQuickAssetForm({ ...quickAssetForm, brand: e.target.value.replace(/[^a-zA-Z0-9\s._-]/g, '') })}
               />
             </div>
             <div>
@@ -1847,8 +1961,9 @@ export default function OnboardingPage() {
                 type="text" 
                 className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors" 
                 placeholder="e.g. SN12345"
+                maxLength={100}
                 value={quickAssetForm.serial_number}
-                onChange={e => setQuickAssetForm({ ...quickAssetForm, serial_number: e.target.value })}
+                onChange={e => setQuickAssetForm({ ...quickAssetForm, serial_number: e.target.value.replace(/[^a-zA-Z0-9_-]/g, '') })}
               />
             </div>
             <div>
@@ -1857,8 +1972,9 @@ export default function OnboardingPage() {
                 type="text" 
                 className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors" 
                 placeholder="e.g. 00:1A:2B:3C:4D:5E"
+                maxLength={50}
                 value={quickAssetForm.mac_address}
-                onChange={e => setQuickAssetForm({ ...quickAssetForm, mac_address: e.target.value })}
+                onChange={e => setQuickAssetForm({ ...quickAssetForm, mac_address: e.target.value.replace(/[^a-zA-Z0-9:-]/g, '') })}
               />
             </div>
             <div className="md:col-span-2">
@@ -1867,8 +1983,9 @@ export default function OnboardingPage() {
                 type="text" 
                 className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors" 
                 placeholder="e.g. M2 Max, 16GB RAM, 512GB SSD"
+                maxLength={500}
                 value={quickAssetForm.specification}
-                onChange={e => setQuickAssetForm({ ...quickAssetForm, specification: e.target.value })}
+                onChange={e => setQuickAssetForm({ ...quickAssetForm, specification: e.target.value.replace(/[^a-zA-Z0-9\s.,/()#_-]/g, '') })}
               />
             </div>
             <div>
@@ -1877,8 +1994,9 @@ export default function OnboardingPage() {
                 type="text" 
                 className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors" 
                 placeholder="e.g. 3 Years"
+                maxLength={50}
                 value={quickAssetForm.warranty}
-                onChange={e => setQuickAssetForm({ ...quickAssetForm, warranty: e.target.value })}
+                onChange={e => setQuickAssetForm({ ...quickAssetForm, warranty: e.target.value.replace(/[^a-zA-Z0-9\s.-]/g, '') })}
               />
             </div>
             <div>
@@ -1887,8 +2005,9 @@ export default function OnboardingPage() {
                 type="text" 
                 className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors" 
                 placeholder="e.g. Staged for onboarding"
+                maxLength={500}
                 value={quickAssetForm.remarks}
-                onChange={e => setQuickAssetForm({ ...quickAssetForm, remarks: e.target.value })}
+                onChange={e => setQuickAssetForm({ ...quickAssetForm, remarks: e.target.value.replace(/[^a-zA-Z0-9\s.,!?'"()#/-]/g, '') })}
               />
             </div>
           </div>
