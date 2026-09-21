@@ -146,7 +146,7 @@ export default function LicensePage() {
       notes: '',
       license_type: 'validity'
     });
-    setRenewalAlert('');
+    setRenewalAlert('30 days');
     setShowModal(true);
   };
 
@@ -163,7 +163,7 @@ export default function LicensePage() {
       notes: license.notes || '',
       license_type: license.license_type || 'validity'
     });
-    setRenewalAlert(license.renewal_alert || '');
+    setRenewalAlert(license.renewal_alert ? (license.renewal_alert.toString().includes('day') ? license.renewal_alert : `${license.renewal_alert} days`) : '30 days');
     setShowModal(true);
   };
 
@@ -185,11 +185,15 @@ export default function LicensePage() {
 
     setSaving(true);
     try {
+      const payload = {
+        ...form,
+        renewal_alert: renewalAlert || '30 days'
+      };
       if (editingLicense) {
-        await licenseApi.edit(form);
+        await licenseApi.edit(payload);
         showToast('License updated successfully!', 'success');
       } else {
-        await licenseApi.add(form);
+        await licenseApi.add(payload);
         showToast('License created successfully!', 'success');
       }
       setShowModal(false);
@@ -756,11 +760,18 @@ export default function LicensePage() {
                 </span>
               </div>
               <div>
-                <span className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Assigned User</span>
-                <span className="block mt-2 text-sm text-slate-800">
-                  {viewingLicense.user ? `${viewingLicense.user.name} (${viewingLicense.user.email})` : <span className="text-slate-400 italic">None</span>}
+                <span className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Renewal Alert</span>
+                <span className="block mt-2 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-lg w-fit">
+                  🔔 {viewingLicense.renewal_alert || '30 days'} before expiry
                 </span>
               </div>
+            </div>
+
+            <div className="pt-2">
+              <span className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Assigned User</span>
+              <span className="block mt-2 text-sm text-slate-800">
+                {viewingLicense.user ? `${viewingLicense.user.name} (${viewingLicense.user.email})` : <span className="text-slate-400 italic">None</span>}
+              </span>
             </div>
 
             {viewingLicense.notes && (
