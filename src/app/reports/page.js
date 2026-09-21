@@ -47,6 +47,45 @@ import {
 
 const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6"];
 
+const reportCardThemes = {
+  inventory: {
+    bg: "bg-gradient-to-br from-white via-white to-teal-50/40",
+    border: "border-slate-200/90 hover:border-teal-300/80",
+    badge: "text-teal-600 bg-teal-50/80 border-teal-150/70",
+    topAccent: "from-teal-500/40 to-emerald-400/20",
+  },
+  allocations: {
+    bg: "bg-gradient-to-br from-white via-white to-blue-50/40",
+    border: "border-slate-200/90 hover:border-blue-300/80",
+    badge: "text-blue-600 bg-blue-50/80 border-blue-150/70",
+    topAccent: "from-blue-500/40 to-cyan-400/20",
+  },
+  tickets: {
+    bg: "bg-gradient-to-br from-white via-white to-amber-50/40",
+    border: "border-slate-200/90 hover:border-amber-300/80",
+    badge: "text-amber-600 bg-amber-50/80 border-amber-150/70",
+    topAccent: "from-amber-500/40 to-yellow-400/20",
+  },
+  licenses: {
+    bg: "bg-gradient-to-br from-white via-white to-purple-50/40",
+    border: "border-slate-200/90 hover:border-purple-300/80",
+    badge: "text-purple-600 bg-purple-50/80 border-purple-150/70",
+    topAccent: "from-purple-500/40 to-violet-400/20",
+  },
+  audit: {
+    bg: "bg-gradient-to-br from-white via-white to-rose-50/40",
+    border: "border-slate-200/90 hover:border-rose-300/80",
+    badge: "text-rose-600 bg-rose-50/80 border-rose-150/70",
+    topAccent: "from-rose-500/40 to-pink-400/20",
+  },
+  maintenance: {
+    bg: "bg-gradient-to-br from-white via-white to-indigo-50/40",
+    border: "border-slate-200/90 hover:border-indigo-300/80",
+    badge: "text-indigo-600 bg-indigo-50/80 border-indigo-150/70",
+    topAccent: "from-indigo-500/40 to-blue-400/20",
+  },
+};
+
 export default function ReportsDashboard() {
   const { user } = useAuth();
   const { t } = useLanguage();
@@ -414,137 +453,141 @@ export default function ReportsDashboard() {
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex gap-2 border-b border-slate-200 pb-px">
-          <button
-            onClick={() => setActiveTab("reports")}
-            className={`flex items-center gap-2 py-3 px-5 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
-              activeTab === "reports"
-                ? "border-emerald-600 text-emerald-600 font-bold"
-                : "border-transparent text-slate-500 hover:text-slate-800"
-            }`}
-          >
-            <Sliders size={16} /> Reports
-          </button>
-          <button
-            onClick={() => setActiveTab("analytics")}
-            className={`flex items-center gap-2 py-3 px-5 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
-              activeTab === "analytics"
-                ? "border-emerald-600 text-emerald-600 font-bold"
-                : "border-transparent text-slate-500 hover:text-slate-800"
-            }`}
-          >
-            <BarChart size={16} className="rotate-90" /> Analytics
-          </button>
-          <button
-            onClick={() => setActiveTab("activity")}
-            className={`flex items-center gap-2 py-3 px-5 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
-              activeTab === "activity"
-                ? "border-emerald-600 text-emerald-600 font-bold"
-                : "border-transparent text-slate-500 hover:text-slate-800"
-            }`}
-          >
-            <Clock size={16} /> Activity Logs
-          </button>
-        </div>
-
         {/* Toast Notification */}
         {toast && (
           <div
-            className={`fixed bottom-5 right-5 px-5 py-3.5 rounded-xl shadow-lg border text-sm font-bold flex items-center gap-2 z-[9999] transition-all animate-bounce ${
-              toast.type === "error"
+            className={`fixed bottom-5 right-5 px-5 py-3.5 rounded-xl shadow-lg border text-sm font-bold flex items-center gap-2 z-[9999] transition-all animate-bounce ${toast.type === "error"
                 ? "bg-rose-50 text-rose-700 border-rose-100"
                 : "bg-emerald-50 text-emerald-700 border-emerald-100"
-            }`}
+              }`}
           >
             {toast.type === "error" ? <AlertTriangle size={18} /> : <CheckCircle size={18} />}
             {toast.message}
           </div>
         )}
 
-        {/* Tab Contents */}
-        {activeTab === "reports" && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
-                <Sliders size={18} className="text-emerald-600" /> Standard Reports
-              </h2>
+        {/* Standard Reports Grid */}
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+              <Sliders size={18} className="text-emerald-600" /> Standard Reports
+            </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                {/* Render report cards */}
-                {standardReports.map((report) => {
-                  const Icon = report.icon;
-                  return (
-                    <div
-                      key={report.id}
-                      className="bg-white border border-slate-150 rounded-2xl p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition-all duration-200"
-                    >
-                      <div>
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${report.iconColor} mb-4`}>
-                          <Icon size={20} />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-4.5">
+              {/* Render report cards */}
+              {standardReports.map((report) => {
+                const Icon = report.icon;
+                const theme = reportCardThemes[report.id] || {
+                  bg: "bg-gradient-to-br from-white via-white to-slate-50/40",
+                  border: "border-slate-200/90 hover:border-slate-300",
+                  badge: "text-slate-600 bg-slate-50 border-slate-200",
+                  topAccent: "from-slate-400/40 to-slate-300/20",
+                };
+
+                return (
+                  <div
+                    key={report.id}
+                    className={`relative group ${theme.bg} border ${theme.border} rounded-2xl p-4 sm:p-4.5 shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden hover:-translate-y-0.5`}
+                  >
+                    {/* Subtle top accent gradient line */}
+                    <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${theme.topAccent} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+
+                    <div>
+                      {/* Header: Icon + Title in clean horizontal arrangement */}
+                      <div className="flex items-start gap-3 mb-2">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${theme.badge} shadow-2xs`}>
+                          <Icon size={18} />
                         </div>
-                        <h3 className="font-bold text-slate-800 text-md mb-2">{report.title}</h3>
-                        <p className="text-slate-450 text-xs leading-relaxed mb-6">{report.description}</p>
+                        <div className="min-w-0 flex-1 pt-0.5">
+                          <h3 className="font-bold text-slate-800 text-sm tracking-tight leading-snug group-hover:text-slate-900 transition-colors">
+                            {report.title}
+                          </h3>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => openGenerateModal(report)}
-                          className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-                        >
-                          <Play size={12} fill="white" /> Generate
-                        </button>
-                        <button
-                          onClick={() => openSendModal(report)}
-                          className="p-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl transition-colors cursor-pointer"
-                          title="Send via Email"
-                        >
-                          <Send size={14} />
-                        </button>
-                        <button
-                          onClick={() => openScheduleModal(report)}
-                          className="p-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl transition-colors cursor-pointer"
-                          title="Schedule Automated"
-                        >
-                          <Clock size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
 
-                {/* Custom Report Builder Card */}
-                <div className="bg-emerald-50/20 border border-dashed border-emerald-300 rounded-2xl p-5 flex flex-col justify-between hover:bg-emerald-50/30 transition-all duration-200">
-                  <div>
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-100 text-emerald-600 mb-4">
-                      <Sliders size={20} />
+                      {/* Description: 2-line clamped preview */}
+                      <p className="text-slate-500 text-xs leading-relaxed line-clamp-2 min-h-[34px] mb-3.5 pl-0.5">
+                        {report.description}
+                      </p>
                     </div>
-                    <h3 className="font-bold text-emerald-800 text-md mb-2">Custom Report Builder</h3>
-                    <p className="text-emerald-700/70 text-xs leading-relaxed mb-6">
-                      Build bespoke reports with tailored filters, columns, group-by logic, and export options.
-                    </p>
+
+                    {/* Actions Footer */}
+                    <div className="flex items-center gap-1.5 pt-3 border-t border-slate-100/90">
+                      <button
+                        onClick={() => openGenerateModal(report)}
+                        className="flex-1 py-1.5 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-[0.99]"
+                      >
+                        <Play size={11} fill="white" /> Generate
+                      </button>
+                      <button
+                        onClick={() => openSendModal(report)}
+                        title="Send via Email"
+                        className="p-1.5 border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50 text-slate-600 hover:text-slate-800 rounded-xl transition-all cursor-pointer shadow-2xs active:scale-95 bg-white/80"
+                      >
+                        <Send size={13} />
+                      </button>
+                      <button
+                        onClick={() => openScheduleModal(report)}
+                        title="Automate / Schedule"
+                        className="p-1.5 border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50 text-slate-600 hover:text-slate-800 rounded-xl transition-all cursor-pointer shadow-2xs active:scale-95 bg-white/80"
+                      >
+                        <Clock size={13} />
+                      </button>
+                    </div>
                   </div>
+                );
+              })}
+
+              {/* Custom Builder Promo Card */}
+              <div className="relative group bg-gradient-to-br from-emerald-50/80 via-teal-50/40 to-emerald-100/30 border border-emerald-200/80 hover:border-emerald-300 rounded-2xl p-4 sm:p-4.5 shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden hover:-translate-y-0.5">
+                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-500/60 to-teal-400/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div>
+                  <div className="flex items-start gap-3 mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-100/90 border border-emerald-200 text-emerald-700 flex items-center justify-center shrink-0 shadow-2xs">
+                      <Sliders size={18} />
+                    </div>
+                    <div className="min-w-0 flex-1 pt-0.5">
+                      <h3 className="font-bold text-emerald-950 text-sm tracking-tight leading-snug">
+                        Custom Report Builder
+                      </h3>
+                    </div>
+                  </div>
+                  <p className="text-emerald-800/80 text-xs leading-relaxed line-clamp-2 min-h-[34px] mb-3.5 pl-0.5">
+                    Build bespoke reports with tailored filters, multi-column setups, and instant previews.
+                  </p>
+                </div>
+                <div className="pt-3 border-t border-emerald-200/50">
                   <Link
                     href="/reports/custom-builder"
-                    className="py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold text-center flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                    className="w-full py-1.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold text-center flex items-center justify-center gap-1.5 transition-all shadow-2xs hover:shadow-xs active:scale-[0.99]"
                   >
-                    + Build Custom Report
+                    <Plus size={13} /> Launch Builder →
                   </Link>
                 </div>
+              </div>
 
-                {/* Scheduled Reports Card */}
-                <div className="bg-teal-50/15 border border-dashed border-teal-350 rounded-2xl p-5 flex flex-col justify-between hover:bg-teal-50/20 transition-all duration-200">
-                  <div>
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-teal-100 text-teal-650 mb-4">
-                      <Calendar size={20} />
+              {/* Schedules Manager Card */}
+              <div className="relative group bg-gradient-to-br from-purple-50/80 via-indigo-50/40 to-purple-100/30 border border-purple-200/80 hover:border-purple-300 rounded-2xl p-4 sm:p-4.5 shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden hover:-translate-y-0.5">
+                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-purple-500/60 to-indigo-400/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div>
+                  <div className="flex items-start gap-3 mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-purple-100/90 border border-purple-200 text-purple-700 flex items-center justify-center shrink-0 shadow-2xs">
+                      <Calendar size={18} />
                     </div>
-                    <h3 className="font-bold text-teal-800 text-md mb-2">Scheduled Reports</h3>
-                    <p className="text-teal-700/70 text-xs leading-relaxed mb-6">
-                      View and manage all your automated recurring reports.
-                    </p>
+                    <div className="min-w-0 flex-1 pt-0.5">
+                      <h3 className="font-bold text-purple-950 text-sm tracking-tight leading-snug">
+                        Scheduled Reports
+                      </h3>
+                    </div>
                   </div>
+                  <p className="text-purple-800/80 text-xs leading-relaxed line-clamp-2 min-h-[34px] mb-3.5 pl-0.5">
+                    View, automate, and manage recurring delivery for all saved reports.
+                  </p>
+                </div>
+                <div className="pt-3 border-t border-purple-200/50">
                   <Link
                     href="/reports/schedules"
-                    className="py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold text-center flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                    className="w-full py-1.5 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold text-center flex items-center justify-center gap-1.5 transition-all shadow-2xs hover:shadow-xs active:scale-[0.99]"
                   >
                     → View Schedules →
                   </Link>
@@ -552,11 +595,7 @@ export default function ReportsDashboard() {
               </div>
             </div>
           </div>
-        )}
-
-        {activeTab === "analytics" && <AnalyticsTabContent />}
-
-        {activeTab === "activity" && <ActivityLogsTabContent />}
+        </div>
       </div>
 
       {/* MODALS */}
@@ -798,11 +837,10 @@ export default function ReportsDashboard() {
                   <SearchableSelect
                     options={Array.from({ length: 31 }, (_, i) => ({
                       value: String(i + 1),
-                      label: `${i + 1}${
-                        (i + 1) === 1 || (i + 1) === 21 || (i + 1) === 31 ? "st" :
-                        (i + 1) === 2 || (i + 1) === 22 ? "nd" :
-                        (i + 1) === 3 || (i + 1) === 23 ? "rd" : "th"
-                      } Day`
+                      label: `${i + 1}${(i + 1) === 1 || (i + 1) === 21 || (i + 1) === 31 ? "st" :
+                          (i + 1) === 2 || (i + 1) === 22 ? "nd" :
+                            (i + 1) === 3 || (i + 1) === 23 ? "rd" : "th"
+                        } Day`
                     }))}
                     value={scheduleRunDate}
                     onChange={setScheduleRunDate}
@@ -911,17 +949,17 @@ function AnalyticsTabContent() {
 
   const pieData = metrics
     ? [
-        { name: "Available", value: metrics.availableAssets || 0 },
-        { name: "Allocated", value: metrics.allocatedAssets || 0 },
-        { name: "Maintenance", value: metrics.maintenanceAssets || 0 },
-      ].filter((d) => d.value > 0)
+      { name: "Available", value: metrics.availableAssets || 0 },
+      { name: "Allocated", value: metrics.allocatedAssets || 0 },
+      { name: "Maintenance", value: metrics.maintenanceAssets || 0 },
+    ].filter((d) => d.value > 0)
     : [];
 
   const barData = metrics
     ? [
-        { name: "Active Users", value: metrics.activeUsers || 0 },
-        { name: "Pending Onboardings", value: metrics.pendingOnboardings || 0 },
-      ]
+      { name: "Active Users", value: metrics.activeUsers || 0 },
+      { name: "Pending Onboardings", value: metrics.pendingOnboardings || 0 },
+    ]
     : [];
 
   if (loading) {
@@ -1093,15 +1131,14 @@ function ActivityLogsTabContent() {
                   </td>
                   <td className="px-5 py-4">
                     <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
-                        log.action?.includes("CREATE")
+                      className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${log.action?.includes("CREATE")
                           ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
                           : log.action?.includes("UPDATE")
-                          ? "bg-blue-50 text-blue-600 border border-blue-100"
-                          : log.action?.includes("DELETE")
-                          ? "bg-rose-50 text-rose-600 border border-rose-100"
-                          : "bg-slate-50 text-slate-500 border border-slate-100"
-                      }`}
+                            ? "bg-blue-50 text-blue-600 border border-blue-100"
+                            : log.action?.includes("DELETE")
+                              ? "bg-rose-50 text-rose-600 border border-rose-100"
+                              : "bg-slate-50 text-slate-500 border border-slate-100"
+                        }`}
                     >
                       {log.action}
                     </span>

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { notificationApi } from '@/lib/api';
 import { socket } from '@/lib/socket';
-import { Bell, Menu, Globe, X, CheckCheck, AlertTriangle, RefreshCw, CheckCircle, XCircle, Info } from 'lucide-react';
+import { Bell, Globe, X, CheckCheck, AlertTriangle, RefreshCw, CheckCircle, XCircle, Info, Menu } from 'lucide-react';
 
 const languagesList = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
@@ -161,14 +161,16 @@ export default function TopBar({ isOpen, toggleSidebar }) {
     }`}>
       <div className="flex items-center gap-3">
         <button
+          type="button"
           onClick={toggleSidebar}
-          className="w-9 h-9 flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
-          title="Toggle Sidebar"
+          className="lg:hidden p-2 -ml-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer flex items-center justify-center"
+          aria-label="Toggle navigation menu"
+          title="Toggle Navigation"
         >
-          <Menu size={18} />
+          {isOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
         {/* Language Selector */}
         <div ref={langDropRef} className="relative">
           <button

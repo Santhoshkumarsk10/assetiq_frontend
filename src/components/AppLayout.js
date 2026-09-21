@@ -1,5 +1,6 @@
 'use client';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
@@ -16,6 +17,7 @@ const routePermissions = {
 
 export default function AppLayout({ children }) {
   const { isAuthenticated, loading, user } = useAuth();
+  const { isAuxinzio, isDark } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -140,8 +142,8 @@ export default function AppLayout({ children }) {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar isOpen={sidebarOpen} />
+    <div className={`flex min-h-screen ${isAuxinzio ? 'bg-[#f4f6fb]' : isDark ? 'bg-[#0F1115]' : 'bg-slate-50'}`}>
+      <Sidebar isOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
       {sidebarOpen && (
         <div 
           className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs z-[95] lg:hidden"

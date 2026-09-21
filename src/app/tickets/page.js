@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import AppLayout from '@/components/AppLayout';
+import AnimatedPageTitle from '@/components/AnimatedPageTitle';
 import Modal from '@/components/Modal';
 import StatusBadge from '@/components/StatusBadge';
 import SearchableSelect from '@/components/SearchableSelect';
@@ -478,10 +479,9 @@ export default function TicketsPage() {
 
   return (
     <AppLayout>
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex justify-between items-center mb-6 -mt-3 sm:-mt-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Support Ticketing</h1>
-          <p className="text-slate-500 text-sm mt-1">Raise support requests, track resolution process, and view comments timeline</p>
+          <AnimatedPageTitle title="Support Ticketing" />
         </div>
         {canAdd && (
           <button
