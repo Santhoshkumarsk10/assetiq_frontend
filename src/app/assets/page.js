@@ -519,7 +519,8 @@ export default function AssetsPage() {
                 <input
                   placeholder="Search by asset name or ID..."
                   value={searchInput}
-                  onChange={(e) => handleSearchInputChange(e.target.value)}
+                  maxLength={100}
+                  onChange={(e) => handleSearchInputChange(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       setSearch(searchInput);
@@ -940,13 +941,26 @@ export default function AssetsPage() {
           </div>
           <div className="mb-4">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Asset Code (Auto-generated) *</label>
-            <input className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" value={form.asset_tag || ''} onChange={(e) => setForm({ ...form, asset_tag: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '') })} placeholder="Select location or enter code" required />
+            <input
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
+              value={form.asset_tag || ''}
+              maxLength={50}
+              onChange={(e) => setForm({ ...form, asset_tag: e.target.value.replace(/[^a-zA-Z0-9_-]/g, '') })}
+              placeholder="Select location or enter code"
+              required
+            />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="mb-4">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Asset Name *</label>
-            <input className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value.replace(/[^a-zA-Z0-9\s]/g, '') })} required />
+            <input
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
+              value={form.name || ''}
+              maxLength={50}
+              onChange={(e) => setForm({ ...form, name: e.target.value.replace(/[^a-zA-Z0-9\s.\-_]/g, '') })}
+              required
+            />
           </div>
           <div className="mb-4">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Asset Type *</label>
@@ -971,7 +985,8 @@ export default function AssetsPage() {
                   className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
                   placeholder="Specify custom asset type..."
                   value={form.custom_type || ''}
-                  onChange={e => setForm({ ...form, custom_type: e.target.value })}
+                  maxLength={50}
+                  onChange={e => setForm({ ...form, custom_type: e.target.value.replace(/[^a-zA-Z0-9\s]/g, '') })}
                   required
                 />
               </div>
@@ -981,21 +996,45 @@ export default function AssetsPage() {
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="mb-4">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Brand</label>
-            <input className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" value={form.brand || ''} onChange={(e) => setForm({ ...form, brand: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '') })} placeholder="e.g. Apple, Dell, Lenovo" />
+            <input
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
+              value={form.brand || ''}
+              maxLength={50}
+              onChange={(e) => setForm({ ...form, brand: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '') })}
+              placeholder="e.g. Apple, Dell, Lenovo"
+            />
           </div>
           <div className="mb-4">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Serial Number</label>
-            <input className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" value={form.serial_number || ''} onChange={(e) => setForm({ ...form, serial_number: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '') })} placeholder="e.g. SN-123456" />
+            <input
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
+              value={form.serial_number || ''}
+              maxLength={100}
+              onChange={(e) => setForm({ ...form, serial_number: e.target.value.replace(/[^a-zA-Z0-9\s\-_/.]/g, '') })}
+              placeholder="e.g. SN-123456"
+            />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="mb-4">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">MAC Address</label>
-            <input className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" value={form.mac_address || ''} onChange={(e) => setForm({ ...form, mac_address: e.target.value.replace(/[^a-zA-Z0-9\s:-]/g, '') })} placeholder="e.g. 00:1A:2B:3C:4D:5E" />
+            <input
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
+              value={form.mac_address || ''}
+              maxLength={50}
+              onChange={(e) => setForm({ ...form, mac_address: e.target.value.replace(/[^a-zA-Z0-9:-]/g, '') })}
+              placeholder="e.g. 00:1A:2B:3C:4D:5E"
+            />
           </div>
           <div className="mb-4">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Warranty</label>
-            <input className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" value={form.warranty || ''} onChange={(e) => setForm({ ...form, warranty: e.target.value })} placeholder="e.g. 1 Year, 3 Years" />
+            <input
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
+              value={form.warranty || ''}
+              maxLength={50}
+              onChange={(e) => setForm({ ...form, warranty: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '') })}
+              placeholder="e.g. 1 Year, 3 Years"
+            />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4 mb-4">
@@ -1014,12 +1053,26 @@ export default function AssetsPage() {
           </div>
           <div className="mb-4">
             <label className="block text-xs font-medium text-slate-500 mb-1.5">Remarks</label>
-            <textarea className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" value={form.remarks || ''} onChange={(e) => setForm({ ...form, remarks: e.target.value })} rows={2} placeholder="Optional remarks..." />
+            <textarea
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
+              value={form.remarks || ''}
+              maxLength={500}
+              onChange={(e) => setForm({ ...form, remarks: e.target.value })}
+              rows={2}
+              placeholder="Optional remarks..."
+            />
           </div>
         </div>
         <div className="mb-4">
           <label className="block text-xs font-medium text-slate-500 mb-1.5">Specification</label>
-          <textarea className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" value={form.specification || ''} onChange={(e) => setForm({ ...form, specification: e.target.value })} rows={2} placeholder="e.g. 16GB RAM, 512GB SSD, Intel i7" />
+          <textarea
+            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
+            value={form.specification || ''}
+            maxLength={500}
+            onChange={(e) => setForm({ ...form, specification: e.target.value })}
+            rows={2}
+            placeholder="e.g. 16GB RAM, 512GB SSD, Intel i7"
+          />
         </div>
       </Modal>
 
@@ -1172,7 +1225,8 @@ export default function AssetsPage() {
             className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
             placeholder="e.g. ThinkPad T14, MacBook Pro"
             value={requestForm.asset_name}
-            onChange={(e) => setRequestForm({ ...requestForm, asset_name: e.target.value.replace(/[^a-zA-Z0-9\s]/g, '') })}
+            maxLength={50}
+            onChange={(e) => setRequestForm({ ...requestForm, asset_name: e.target.value.replace(/[^a-zA-Z0-9\s.\-_]/g, '') })}
             required
           />
         </div>
@@ -1198,7 +1252,8 @@ export default function AssetsPage() {
                   className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
                   placeholder="Specify custom asset type..."
                   value={requestForm.custom_type || ''}
-                  onChange={e => setRequestForm({ ...requestForm, custom_type: e.target.value })}
+                  maxLength={50}
+                  onChange={e => setRequestForm({ ...requestForm, custom_type: e.target.value.replace(/[^a-zA-Z0-9\s]/g, '') })}
                   required
                 />
               </div>
@@ -1209,9 +1264,10 @@ export default function AssetsPage() {
             <input
               type="number"
               min={1}
+              max={999}
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 transition-colors"
               value={requestForm.quantity}
-              onChange={(e) => setRequestForm({ ...requestForm, quantity: Math.max(1, parseInt(e.target.value) || 1) })}
+              onChange={(e) => setRequestForm({ ...requestForm, quantity: Math.max(1, Math.min(999, parseInt(e.target.value) || 1)) })}
             />
           </div>
         </div>
@@ -1221,6 +1277,7 @@ export default function AssetsPage() {
             className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors h-24 resize-none"
             placeholder="Please specify the reason for request..."
             value={requestForm.notes}
+            maxLength={500}
             onChange={(e) => setRequestForm({ ...requestForm, notes: e.target.value })}
           />
         </div>
@@ -1250,7 +1307,8 @@ export default function AssetsPage() {
                 className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
                 placeholder="e.g. AST-10023"
                 value={completeForm.asset_tag}
-                onChange={(e) => setCompleteForm({ ...completeForm, asset_tag: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '') })}
+                maxLength={50}
+                onChange={(e) => setCompleteForm({ ...completeForm, asset_tag: e.target.value.replace(/[^a-zA-Z0-9_-]/g, '') })}
                 required
               />
             </div>
@@ -1260,6 +1318,7 @@ export default function AssetsPage() {
                 className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
                 placeholder="e.g. Apple, Dell"
                 value={completeForm.brand}
+                maxLength={50}
                 onChange={(e) => setCompleteForm({ ...completeForm, brand: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '') })}
               />
             </div>
@@ -1272,7 +1331,8 @@ export default function AssetsPage() {
                 className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
                 placeholder="e.g. SN-98765"
                 value={completeForm.serial_number}
-                onChange={(e) => setCompleteForm({ ...completeForm, serial_number: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '') })}
+                maxLength={100}
+                onChange={(e) => setCompleteForm({ ...completeForm, serial_number: e.target.value.replace(/[^a-zA-Z0-9\s\-_/.]/g, '') })}
               />
             </div>
             <div>
@@ -1281,7 +1341,8 @@ export default function AssetsPage() {
                 className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
                 placeholder="e.g. 00:1A:2B:3C:4D:5E"
                 value={completeForm.mac_address}
-                onChange={(e) => setCompleteForm({ ...completeForm, mac_address: e.target.value.replace(/[^a-zA-Z0-9\s:-]/g, '') })}
+                maxLength={50}
+                onChange={(e) => setCompleteForm({ ...completeForm, mac_address: e.target.value.replace(/[^a-zA-Z0-9:-]/g, '') })}
               />
             </div>
           </div>
@@ -1293,7 +1354,8 @@ export default function AssetsPage() {
                 className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
                 placeholder="e.g. 3 Years"
                 value={completeForm.warranty}
-                onChange={(e) => setCompleteForm({ ...completeForm, warranty: e.target.value })}
+                maxLength={50}
+                onChange={(e) => setCompleteForm({ ...completeForm, warranty: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '') })}
               />
             </div>
             <div>
@@ -1302,6 +1364,7 @@ export default function AssetsPage() {
                 className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
                 placeholder="e.g. 16GB RAM, 512GB SSD"
                 value={completeForm.specification}
+                maxLength={500}
                 onChange={(e) => setCompleteForm({ ...completeForm, specification: e.target.value })}
               />
             </div>
@@ -1313,6 +1376,7 @@ export default function AssetsPage() {
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors h-16 resize-none"
               placeholder="Optional remarks..."
               value={completeForm.remarks}
+              maxLength={500}
               onChange={(e) => setCompleteForm({ ...completeForm, remarks: e.target.value })}
             />
           </div>

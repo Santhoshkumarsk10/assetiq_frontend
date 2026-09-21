@@ -6,6 +6,7 @@ import Modal from "@/components/Modal";
 import StatusBadge from "@/components/StatusBadge";
 import SearchableSelect from "@/components/SearchableSelect";
 import { userApi } from "@/lib/api";
+import { isValidEmail, sanitizeEmailInput } from "@/lib/validation";
 import {
   Search,
   Plus,
@@ -302,7 +303,63 @@ export default function UsersPage() {
   };
 
   const handleSave = async () => {
-    // 1. Phone number validation & prepending country code
+    // 1. Validate Full Name (max 30 chars, letters/spaces/hyphens/apostrophes)
+    if (!form.name || !form.name.trim()) {
+      showToast("Full Name is required.", "error");
+      return;
+    }
+    if (form.name.trim().length > 30) {
+      showToast("Full Name cannot exceed 30 characters.", "error");
+      return;
+    }
+    if (!/^[a-zA-Z\s'-]+$/.test(form.name.trim())) {
+      showToast("Full Name can only contain letters, spaces, hyphens, and apostrophes.", "error");
+      return;
+    }
+
+    // 2. Validate Employee ID
+    if (form.employee_id) {
+      if (form.employee_id.length > 30) {
+        showToast("Employee ID cannot exceed 30 characters.", "error");
+        return;
+      }
+      if (!/^[a-zA-Z0-9_-]+$/.test(form.employee_id)) {
+        showToast("Employee ID can only contain letters, numbers, hyphens, and underscores.", "error");
+        return;
+      }
+    }
+
+    // 3. Validate email (strict standard format)
+    if (!form.email || !form.email.trim()) {
+      showToast("Email is required.", "error");
+      return;
+    }
+    if (form.email.length > 100) {
+      showToast("Email cannot exceed 100 characters.", "error");
+      return;
+    }
+    if (!isValidEmail(form.email.trim())) {
+      showToast("Please enter a valid email address (e.g. name@domain.com).", "error");
+      return;
+    }
+
+    // 4. Validate Password on creation
+    if (!editingUser) {
+      if (!form.password) {
+        showToast("Password is required.", "error");
+        return;
+      }
+      if (form.password.length < 6) {
+        showToast("Password must be at least 6 characters.", "error");
+        return;
+      }
+      if (form.password.length > 100) {
+        showToast("Password cannot exceed 100 characters.", "error");
+        return;
+      }
+    }
+
+    // 5. Phone number validation & prepending country code
     let phoneWithCountryCode = form.phone;
     if (form.phone) {
       const selectedLoc = locations.find(
@@ -335,22 +392,25 @@ export default function UsersPage() {
       }
     }
 
-    // 2. Validate email
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      showToast("Please enter a valid email.", "error");
-      return;
+    // 6. Department and Designation validation
+    if (form.department) {
+      if (form.department.length > 50) {
+        showToast("Department cannot exceed 50 characters.", "error");
+        return;
+      }
+      if (/[^a-zA-Z0-9\s-]/.test(form.department)) {
+        showToast("Department cannot contain special characters.", "error");
+        return;
+      }
     }
 
-    // 3. Special characters validation for other fields
-    const textFields = {
-      "Employee ID": form.employee_id,
-      "Full Name": form.name,
-      Department: form.department,
-      Designation: form.designation,
-    };
-    for (const [fieldName, val] of Object.entries(textFields)) {
-      if (val && /[^a-zA-Z0-9\s]/.test(val)) {
-        showToast(`${fieldName} cannot contain special characters.`, "error");
+    if (form.designation) {
+      if (form.designation.length > 50) {
+        showToast("Designation cannot exceed 50 characters.", "error");
+        return;
+      }
+      if (/[^a-zA-Z0-9\s-]/.test(form.designation)) {
+        showToast("Designation cannot contain special characters.", "error");
         return;
       }
     }
@@ -559,7 +619,8 @@ export default function UsersPage() {
                   <input
                     placeholder="Search users by name, email, or department..."
                     value={searchInput}
-                    onChange={(e) => handleSearchInputChange(e.target.value)}
+                    maxLength={100}
+                    onChange={(e) => handleSearchInputChange(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         setSearch(searchInput);
@@ -1126,10 +1187,11 @@ export default function UsersPage() {
             <input
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
               value={form.employee_id || ""}
+              maxLength={30}
               onChange={(e) =>
                 setForm({
                   ...form,
-                  employee_id: e.target.value.replace(/[^a-zA-Z0-9]/g, ""),
+                  employee_id: e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""),
                 })
               }
             />
@@ -1141,10 +1203,11 @@ export default function UsersPage() {
             <input
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
               value={form.name || ""}
+              maxLength={30}
               onChange={(e) =>
                 setForm({
                   ...form,
-                  name: e.target.value.replace(/[^a-zA-Z0-9\s]/g, ""),
+                  name: e.target.value.replace(/[^a-zA-Z\s'-]/g, ""),
                 })
               }
               required
@@ -1159,8 +1222,10 @@ export default function UsersPage() {
             <input
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
               type="email"
+              placeholder="name@company.com"
+              maxLength={100}
               value={form.email || ""}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              onChange={(e) => setForm({ ...form, email: sanitizeEmailInput(e.target.value) })}
               required
             />
           </div>
@@ -1202,6 +1267,7 @@ export default function UsersPage() {
             <input
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
               type="password"
+              maxLength={100}
               value={form.password || ""}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               required
@@ -1262,10 +1328,11 @@ export default function UsersPage() {
             <input
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
               value={form.department || ""}
+              maxLength={50}
               onChange={(e) =>
                 setForm({
                   ...form,
-                  department: e.target.value.replace(/[^a-zA-Z0-9\s]/g, ""),
+                  department: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, ""),
                 })
               }
             />
@@ -1277,10 +1344,11 @@ export default function UsersPage() {
             <input
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
               value={form.designation || ""}
+              maxLength={50}
               onChange={(e) =>
                 setForm({
                   ...form,
-                  designation: e.target.value.replace(/[^a-zA-Z0-9\s]/g, ""),
+                  designation: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, ""),
                 })
               }
             />

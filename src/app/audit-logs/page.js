@@ -159,7 +159,8 @@ export default function AuditLogsPage() {
               <input
                 placeholder="Search by user or activity..."
                 value={searchInput}
-                onChange={(e) => handleSearchInputChange(e.target.value)}
+                maxLength={100}
+                onChange={(e) => handleSearchInputChange(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     setSearch(searchInput);

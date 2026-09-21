@@ -129,8 +129,20 @@ export default function LocationsPage() {
   };
 
   const handleSave = async () => {
+    if (!form.name || !form.name.trim()) {
+      showToast('Location Name is required.', 'error');
+      return;
+    }
+    if (form.name.length > 50) {
+      showToast('Location Name cannot exceed 50 characters.', 'error');
+      return;
+    }
     if (/[^a-zA-Z0-9\s]/.test(form.name)) {
       showToast('Location Name cannot contain special characters.', 'error');
+      return;
+    }
+    if (form.address && form.address.length > 300) {
+      showToast('Address cannot exceed 300 characters.', 'error');
       return;
     }
     if (form.address && /[^a-zA-Z0-9\s,.-]/.test(form.address)) {
@@ -204,7 +216,8 @@ export default function LocationsPage() {
               <input
                 placeholder="Search locations by name..."
                 value={searchInput}
-                onChange={(e) => handleSearchInputChange(e.target.value)}
+                maxLength={100}
+                onChange={(e) => handleSearchInputChange(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     setSearch(searchInput);
@@ -471,6 +484,7 @@ export default function LocationsPage() {
             className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 placeholder-slate-400 transition-all"
             value={form.name || ''}
             placeholder="e.g. Bangalore, Mumbai, London"
+            maxLength={50}
             onChange={(e) => setForm({ ...form, name: e.target.value.replace(/[^a-zA-Z0-9\s]/g, '') })}
             required
           />
@@ -480,6 +494,7 @@ export default function LocationsPage() {
           <input
             className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 placeholder-slate-400 transition-all"
             placeholder="e.g. +91"
+            maxLength={7}
             value={form.country_code || ''}
             onChange={(e) => setForm({ ...form, country_code: e.target.value.replace(/[^0-9+]/g, '').slice(0, 7) })}
           />
@@ -489,6 +504,7 @@ export default function LocationsPage() {
           <input
             className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 placeholder-slate-400 transition-all"
             placeholder="Building, Street, City"
+            maxLength={300}
             value={form.address || ''}
             onChange={(e) => setForm({ ...form, address: e.target.value.replace(/[^a-zA-Z0-9\s,.-]/g, '') })}
           />

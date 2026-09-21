@@ -1090,7 +1090,8 @@ function ActivityLogsTabContent() {
             type="text"
             placeholder="Search activity logs..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            maxLength={100}
+            onChange={(e) => setSearchTerm(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
             className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800"
           />
         </div>

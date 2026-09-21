@@ -9,10 +9,13 @@ const MONTH_NAMES = [
 
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
-export default function DatePicker({ value, onChange, placeholder = "Select date", className = "" }) {
+export default function DatePicker({ value, onChange, placeholder = "Select date", className = "", disableFutureDates = false }) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const popoverRef = useRef(null);
+
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
 
   // Sync current month view when value changes
   useEffect(() => {
@@ -38,12 +41,16 @@ export default function DatePicker({ value, onChange, placeholder = "Select date
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
   };
 
+  const isNextMonthFuture = disableFutureDates && new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1) > today;
+
   const handleNextMonth = () => {
+    if (isNextMonthFuture) return;
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
   };
 
   const handleDayClick = (day) => {
     if (!day) return;
+    if (disableFutureDates && day > today) return;
     const formatted = day.toISOString().split('T')[0];
     onChange(formatted);
     setIsOpen(false);
@@ -140,7 +147,10 @@ export default function DatePicker({ value, onChange, placeholder = "Select date
             <button
               type="button"
               onClick={handleNextMonth}
-              className="p-1.5 hover:bg-slate-50 text-slate-600 rounded-lg border-none cursor-pointer bg-transparent"
+              disabled={isNextMonthFuture}
+              className={`p-1.5 rounded-lg border-none bg-transparent ${
+                isNextMonthFuture ? 'text-slate-300 cursor-not-allowed opacity-40' : 'hover:bg-slate-50 text-slate-600 cursor-pointer'
+              }`}
             >
               <ChevronRight size={16} />
             </button>
@@ -160,6 +170,7 @@ export default function DatePicker({ value, onChange, placeholder = "Select date
             {days.map((day, idx) => {
               if (!day) return <div key={`empty-${idx}`} className="h-7 w-7" />;
               
+              const isFuture = disableFutureDates && day > today;
               const selected = isSelected(day);
               const todayFlag = isToday(day);
 
@@ -167,13 +178,16 @@ export default function DatePicker({ value, onChange, placeholder = "Select date
                 <button
                   key={day.getTime()}
                   type="button"
+                  disabled={isFuture}
                   onClick={() => handleDayClick(day)}
-                  className={`h-7 w-7 text-xs font-semibold rounded-full flex items-center justify-center border-none cursor-pointer transition-all ${
-                    selected
-                      ? "bg-emerald-600 text-white shadow-sm"
+                  className={`h-7 w-7 text-xs font-semibold rounded-full flex items-center justify-center border-none transition-all ${
+                    isFuture
+                      ? "text-slate-300 cursor-not-allowed opacity-35"
+                      : selected
+                      ? "bg-emerald-600 text-white shadow-sm cursor-pointer"
                       : todayFlag
-                      ? "bg-emerald-50 text-emerald-700 border border-emerald-250"
-                      : "text-slate-650 hover:bg-slate-100"
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-250 cursor-pointer"
+                      : "text-slate-650 hover:bg-slate-100 cursor-pointer"
                   }`}
                 >
                   {day.getDate()}

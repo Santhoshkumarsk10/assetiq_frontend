@@ -9,12 +9,16 @@ const MONTH_NAMES = [
 
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
-export default function DateRangePicker({ startDate, endDate, onChange }) {
+export default function DateRangePicker({ startDate, endDate, onChange, disableFutureDates = true }) {
   const [isOpen, setIsOpen] = useState(false);
   const [tempStart, setTempStart] = useState(null);
   const [tempEnd, setTempEnd] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const popoverRef = useRef(null);
+
+  // Today normalized to midnight end of day
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
 
   // Parse date strings to Date objects when props change
   useEffect(() => {
@@ -50,12 +54,16 @@ export default function DateRangePicker({ startDate, endDate, onChange }) {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
   };
 
+  const isNextMonthFuture = disableFutureDates && new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1) > today;
+
   const handleNextMonth = () => {
+    if (isNextMonthFuture) return;
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
   };
 
   const handleDayClick = (day) => {
     if (!day) return;
+    if (disableFutureDates && day > today) return;
     
     // Normalize to midnight for accurate comparisons
     const dateClicked = new Date(day.getFullYear(), day.getMonth(), day.getDate());
@@ -144,7 +152,10 @@ export default function DateRangePicker({ startDate, endDate, onChange }) {
             <button
               type="button"
               onClick={handleNextMonth}
-              className="p-1.5 hover:bg-slate-50 text-slate-600 rounded-lg border-none cursor-pointer bg-transparent"
+              disabled={isNextMonthFuture}
+              className={`p-1.5 rounded-lg border-none bg-transparent ${
+                isNextMonthFuture ? 'text-slate-300 cursor-not-allowed opacity-40' : 'hover:bg-slate-50 text-slate-600 cursor-pointer'
+              }`}
             >
               <ChevronRight size={16} />
             </button>
@@ -164,6 +175,7 @@ export default function DateRangePicker({ startDate, endDate, onChange }) {
             {days.map((day, idx) => {
               if (!day) return <div key={`empty-${idx}`} className="h-7 w-7" />;
               
+              const isFuture = disableFutureDates && day > today;
               const selected = isSelected(day);
               const inRange = isInRange(day);
 
@@ -171,13 +183,16 @@ export default function DateRangePicker({ startDate, endDate, onChange }) {
                 <button
                   key={day.getTime()}
                   type="button"
+                  disabled={isFuture}
                   onClick={() => handleDayClick(day)}
-                  className={`h-7 w-7 text-xs font-bold rounded-full flex items-center justify-center border-none cursor-pointer transition-all ${
-                    selected
-                      ? "bg-emerald-600 text-white shadow-sm"
+                  className={`h-7 w-7 text-xs font-bold rounded-full flex items-center justify-center border-none transition-all ${
+                    isFuture
+                      ? "text-slate-300 cursor-not-allowed opacity-35"
+                      : selected
+                      ? "bg-emerald-600 text-white shadow-sm cursor-pointer"
                       : inRange
-                      ? "bg-emerald-50 text-emerald-700 rounded-none w-full"
-                      : "text-slate-650 hover:bg-slate-100"
+                      ? "bg-emerald-50 text-emerald-700 rounded-none w-full cursor-pointer"
+                      : "text-slate-650 hover:bg-slate-100 cursor-pointer"
                   }`}
                 >
                   {day.getDate()}

@@ -52,6 +52,7 @@ export default function LicensePage() {
   const [editingLicense, setEditingLicense] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [viewingLicense, setViewingLicense] = useState(null);
+  const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
   // Form state
@@ -136,6 +137,7 @@ export default function LicensePage() {
 
   const openAdd = () => {
     setEditingLicense(null);
+    setErrors({});
     setForm({
       software_name: '',
       license_key: '',
@@ -152,6 +154,7 @@ export default function LicensePage() {
 
   const openEdit = (license) => {
     setEditingLicense(license);
+    setErrors({});
     setForm({
       id: license.id,
       software_name: license.software_name || '',
@@ -172,16 +175,48 @@ export default function LicensePage() {
     setShowDetailsModal(true);
   };
 
+  const validateLicenseForm = () => {
+    const errs = {};
+    if (!form.software_name || !form.software_name.trim()) {
+      errs.software_name = 'Software Title is required.';
+    } else if (form.software_name.length > 50) {
+      errs.software_name = 'Software Title cannot exceed 50 characters.';
+    } else if (/[^a-zA-Z0-9\s.\-+_]/.test(form.software_name)) {
+      errs.software_name = 'Software Title contains invalid characters.';
+    }
+
+    if (!form.license_key || !form.license_key.trim()) {
+      errs.license_key = 'License Key is required.';
+    } else if (form.license_key.length > 255) {
+      errs.license_key = 'License Key cannot exceed 255 characters.';
+    } else if (/[^a-zA-Z0-9\-_.]/.test(form.license_key)) {
+      errs.license_key = 'License Key contains invalid characters.';
+    }
+
+    if (form.valid_from && form.valid_until) {
+      const fromDate = new Date(form.valid_from);
+      const untilDate = new Date(form.valid_until);
+      if (untilDate < fromDate) {
+        errs.valid_until = 'Valid Until date cannot be earlier than Valid From date.';
+      }
+    }
+
+    if (form.notes && form.notes.length > 500) {
+      errs.notes = 'Remarks / Notes cannot exceed 500 characters.';
+    }
+
+    return errs;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.software_name.trim()) {
-      showToast('Software Name is required.', 'error');
+    const errs = validateLicenseForm();
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      showToast(Object.values(errs)[0], 'error');
       return;
     }
-    if (!form.license_key.trim()) {
-      showToast('License Key is required.', 'error');
-      return;
-    }
+    setErrors({});
 
     setSaving(true);
     try {
@@ -334,7 +369,8 @@ export default function LicensePage() {
               <input
                 placeholder="Search by software title or license key..."
                 value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
+                maxLength={100}
+                onChange={(e) => setSearchInput(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
                 className="w-full text-sm text-slate-800 placeholder-slate-400 focus:outline-hidden bg-transparent border-none p-0"
               />
               {searchInput && (
@@ -587,10 +623,17 @@ export default function LicensePage() {
               <input
                 placeholder="e.g. Adobe Photoshop CC, Microsoft Office 365"
                 value={form.software_name}
-                onChange={(e) => setForm({ ...form, software_name: e.target.value })}
-                className="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 text-slate-800"
+                maxLength={50}
+                onChange={(e) => {
+                  setForm({ ...form, software_name: e.target.value.replace(/[^a-zA-Z0-9\s.\-+_]/g, '') });
+                  if (errors.software_name) setErrors(prev => ({ ...prev, software_name: '' }));
+                }}
+                className={`w-full text-sm border rounded-xl px-4 py-2.5 outline-hidden focus:ring-1 text-slate-800 ${
+                  errors.software_name ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20' : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20'
+                }`}
                 required
               />
+              {errors.software_name && <p className="text-xs text-rose-500 mt-1">{errors.software_name}</p>}
             </div>
 
             <div>
@@ -598,10 +641,17 @@ export default function LicensePage() {
               <input
                 placeholder="e.g. AAAA-BBBB-CCCC-DDDD"
                 value={form.license_key}
-                onChange={(e) => setForm({ ...form, license_key: e.target.value })}
-                className="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 text-slate-800 font-mono"
+                maxLength={255}
+                onChange={(e) => {
+                  setForm({ ...form, license_key: e.target.value.replace(/[^a-zA-Z0-9\-_.]/g, '') });
+                  if (errors.license_key) setErrors(prev => ({ ...prev, license_key: '' }));
+                }}
+                className={`w-full text-sm border rounded-xl px-4 py-2.5 outline-hidden focus:ring-1 text-slate-800 font-mono ${
+                  errors.license_key ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20' : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20'
+                }`}
                 required
               />
+              {errors.license_key && <p className="text-xs text-rose-500 mt-1">{errors.license_key}</p>}
             </div>
 
             <div>
@@ -637,7 +687,10 @@ export default function LicensePage() {
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Valid From</label>
                 <DatePicker
                   value={form.valid_from}
-                  onChange={(dateStr) => setForm({ ...form, valid_from: dateStr })}
+                  onChange={(dateStr) => {
+                    setForm({ ...form, valid_from: dateStr });
+                    if (errors.valid_until) setErrors(prev => ({ ...prev, valid_until: '' }));
+                  }}
                   placeholder="Select Start Date"
                 />
               </div>
@@ -645,9 +698,13 @@ export default function LicensePage() {
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Valid Until</label>
                 <DatePicker
                   value={form.valid_until}
-                  onChange={(dateStr) => setForm({ ...form, valid_until: dateStr })}
+                  onChange={(dateStr) => {
+                    setForm({ ...form, valid_until: dateStr });
+                    if (errors.valid_until) setErrors(prev => ({ ...prev, valid_until: '' }));
+                  }}
                   placeholder="Select End Date"
                 />
+                {errors.valid_until && <p className="text-xs text-rose-500 mt-1">{errors.valid_until}</p>}
               </div>
             </div>
 
@@ -697,10 +754,17 @@ export default function LicensePage() {
               <textarea
                 placeholder="Add any additional details or licensing terms..."
                 value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                maxLength={500}
+                onChange={(e) => {
+                  setForm({ ...form, notes: e.target.value });
+                  if (errors.notes) setErrors(prev => ({ ...prev, notes: '' }));
+                }}
                 rows={3}
-                className="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 text-slate-800"
+                className={`w-full text-sm border rounded-xl px-4 py-2.5 outline-hidden focus:ring-1 text-slate-800 ${
+                  errors.notes ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20' : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20'
+                }`}
               />
+              {errors.notes && <p className="text-xs text-rose-500 mt-1">{errors.notes}</p>}
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
