@@ -537,15 +537,16 @@ export function ProceduralSticker({ locationName = 'Location' }) {
  * Main LocationSticker Component
  * Automatically switches between hand-crafted PNG and auto-generated die-cut sticker
  */
-export default function LocationSticker({ locationName, className = '' }) {
+export default function LocationSticker({ locationName, image, className = '' }) {
   const sticker = getLocationSticker(locationName);
+  const displayImage = image || sticker?.image;
 
-  if (sticker?.image) {
+  if (displayImage) {
     return (
       <div className={`relative w-full h-full flex items-center justify-center select-none group-hover:scale-105 transition-transform duration-300 ${className}`}>
         <img
-          src={sticker.image}
-          alt={locationName || sticker.name}
+          src={displayImage}
+          alt={locationName || sticker?.name || 'Location'}
           className="w-full h-full max-h-[145px] object-contain pointer-events-none"
           style={{ mixBlendMode: 'multiply', filter: 'contrast(1.08) brightness(1.04)' }}
           loading="lazy"

@@ -6,11 +6,11 @@ import Modal from '@/components/Modal';
 import SearchableSelect from '@/components/SearchableSelect';
 import LocationSticker from '@/components/LocationSticker';
 import { locationApi } from '@/lib/api';
-import { Search, Plus, Pencil, Trash2, MapPin, X, Globe, Phone } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, MapPin, X, Globe, Phone, Upload, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { useAuth } from '@/context/AuthContext';
-import { getLocationSticker } from '@/lib/locationStickers';
+import { getLocationSticker, PRESET_STICKERS } from '@/lib/locationStickers';
 
 export default function LocationsPage() {
   const { showToast } = useToast();
@@ -96,14 +96,36 @@ export default function LocationsPage() {
 
   const openAdd = () => {
     setEditingLoc(null);
-    setForm({ name: '', address: '', country_code: '' });
+    setForm({ name: '', address: '', country_code: '', image: '' });
     setShowModal(true);
   };
 
   const openEdit = (loc) => {
     setEditingLoc(loc);
-    setForm({ id: loc.id, name: loc.name, address: loc.address || '', country_code: loc.country_code || '' });
+    setForm({
+      id: loc.id,
+      name: loc.name,
+      address: loc.address || '',
+      country_code: loc.country_code || '',
+      image: loc.image || loc.image_url || '',
+    });
     setShowModal(true);
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Image size should be less than 5MB', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (uploadEvent) => {
+      setForm((prev) => ({ ...prev, image: uploadEvent.target?.result }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSave = async () => {
@@ -327,7 +349,7 @@ export default function LocationsPage() {
 
                     {/* Hero Die-Cut Travel Sticker Showcase */}
                     <div className="h-32 sm:h-36 w-full flex items-center justify-center my-1.5 relative">
-                      <LocationSticker locationName={loc.name} />
+                      <LocationSticker locationName={loc.name} image={loc.image || loc.image_url} />
                     </div>
 
                     {/* Location Name & Details */}
@@ -470,6 +492,91 @@ export default function LocationsPage() {
             value={form.address || ''}
             onChange={(e) => setForm({ ...form, address: e.target.value.replace(/[^a-zA-Z0-9\s,.-]/g, '') })}
           />
+        </div>
+
+        {/* Upload Image / Sticker Field */}
+        <div className="mb-2">
+          <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+            Location Sticker / Image
+          </label>
+
+          {form.image ? (
+            <div className="relative border border-slate-200 rounded-2xl p-3.5 bg-slate-50/70 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-16 h-16 rounded-xl bg-white border border-slate-200/80 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
+                  <img
+                    src={form.image}
+                    alt="Location Preview"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold text-slate-800 truncate">Image Selected</div>
+                  <div className="text-[11px] text-slate-400">Will be displayed on the location hub card</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, image: '' })}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 cursor-pointer transition-colors shrink-0"
+              >
+                <Trash2 size={13} />
+                Remove
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* File Upload Box */}
+              <label className="border-2 border-dashed border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/30 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all text-center group">
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg, image/webp, image/svg+xml"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Upload size={18} />
+                </div>
+                <div>
+                  <span className="text-xs font-semibold text-slate-700 group-hover:text-emerald-600 transition-colors">
+                    Click to upload location sticker
+                  </span>
+                  <span className="text-[11px] text-slate-400 block mt-0.5">
+                    PNG, JPG, WebP, or SVG (Max 5MB)
+                  </span>
+                </div>
+              </label>
+
+              {/* Preset Stickers Quick Selector */}
+              <div>
+                <div className="text-[11px] font-semibold text-slate-500 mb-1.5">
+                  Or select a preset city sticker:
+                </div>
+                <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                  {PRESET_STICKERS.map((preset) => (
+                    <button
+                      key={preset.name}
+                      type="button"
+                      onClick={() => setForm({ ...form, image: preset.path })}
+                      className="group/btn flex flex-col items-center p-1.5 rounded-xl border border-slate-200/80 hover:border-emerald-500 hover:bg-emerald-50/50 bg-white transition-all cursor-pointer shadow-2xs hover:scale-105"
+                      title={preset.name}
+                    >
+                      <div className="w-9 h-9 flex items-center justify-center p-0.5">
+                        <img
+                          src={preset.path}
+                          alt={preset.name}
+                          className="w-full h-full object-contain pointer-events-none"
+                        />
+                      </div>
+                      <span className="text-[10px] font-medium text-slate-600 group-hover/btn:text-emerald-700 truncate w-full text-center mt-1">
+                        {preset.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </Modal>
     </AppLayout>

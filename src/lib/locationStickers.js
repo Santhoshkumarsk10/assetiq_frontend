@@ -78,6 +78,16 @@ export const locationStickers = {
   },
 };
 
+export const PRESET_STICKERS = [
+  { name: 'Bangalore', path: '/images/stickers/bangalore.png' },
+  { name: 'Chennai', path: '/images/stickers/chennai.png' },
+  { name: 'Dubai', path: '/images/stickers/dubai.png' },
+  { name: 'Kenya', path: '/images/stickers/kenya.png' },
+  { name: 'London', path: '/images/stickers/london.png' },
+  { name: 'Malaysia', path: '/images/stickers/malaysia.png' },
+  { name: 'Mumbai', path: '/images/stickers/mumbai.png' },
+];
+
 export const getLocationSticker = (name) => {
   if (!name) return null;
   const cleanName = name.toLowerCase().trim();
