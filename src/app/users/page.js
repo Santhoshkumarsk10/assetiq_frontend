@@ -21,6 +21,10 @@ import {
   UserCheck,
   ShieldCheck,
   MapPin,
+  SlidersHorizontal,
+  RotateCcw,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
@@ -60,6 +64,7 @@ export default function UsersPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showMobileFilterSheet, setShowMobileFilterSheet] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
@@ -515,77 +520,77 @@ export default function UsersPage() {
 
   return (
     <AppLayout>
-      <div className="flex justify-between items-center mb-6 -mt-3 sm:-mt-4">
-        <div>
+      <div className="flex justify-between items-center gap-2 sm:gap-4 mb-6 -mt-3 sm:-mt-4">
+        <div className="min-w-0">
           <AnimatedPageTitle title="Users" />
         </div>
         {canAdd && (
           <button
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shrink-0 whitespace-nowrap shadow-xs"
             onClick={openAdd}
           >
-            <Plus size={18} /> Add User
+            <Plus size={18} className="w-3.5 h-3.5 sm:w-[18px] sm:h-[18px] shrink-0" /> Add User
           </button>
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-6 mb-4 sm:mb-8">
         {/* Card 1: Total Users */}
-        <div className="bg-blue-50 border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4 group">
-          <div className="w-11 h-11 rounded-xl bg-blue-100/70 text-blue-600 border border-blue-200/60 flex items-center justify-center shrink-0 shadow-2xs">
-            <UsersIcon size={22} strokeWidth={2.2} />
+        <div className="bg-blue-50 border border-slate-200 rounded-xl sm:rounded-2xl p-2.5 sm:p-5 shadow-xs sm:shadow-sm flex items-center gap-2.5 sm:gap-4 group min-w-0">
+          <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-blue-100/70 text-blue-600 border border-blue-200/60 flex items-center justify-center shrink-0 shadow-2xs">
+            <UsersIcon size={20} className="w-4 h-4 sm:w-[22px] sm:h-[22px]" strokeWidth={2.2} />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xs font-medium text-slate-500">Total Users</div>
-            <div className="text-2xl font-bold text-slate-900 tracking-tight leading-none mt-1">
+            <div className="text-[10.5px] sm:text-xs font-medium text-slate-500 truncate">Total Users</div>
+            <div className="text-base sm:text-2xl font-bold text-slate-900 tracking-tight leading-none mt-0.5 sm:mt-1">
               {users.length.toLocaleString()}
             </div>
           </div>
         </div>
 
         {/* Card 2: Active Users */}
-        <div className="bg-emerald-50 border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4 group">
-          <div className="w-11 h-11 rounded-xl bg-emerald-100/70 text-emerald-600 border border-emerald-200/60 flex items-center justify-center shrink-0 shadow-2xs">
-            <UserCheck size={22} strokeWidth={2.2} />
+        <div className="bg-emerald-50 border border-slate-200 rounded-xl sm:rounded-2xl p-2.5 sm:p-5 shadow-xs sm:shadow-sm flex items-center gap-2.5 sm:gap-4 group min-w-0">
+          <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-emerald-100/70 text-emerald-600 border border-emerald-200/60 flex items-center justify-center shrink-0 shadow-2xs">
+            <UserCheck size={20} className="w-4 h-4 sm:w-[22px] sm:h-[22px]" strokeWidth={2.2} />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xs font-medium text-slate-500">Active Users</div>
-            <div className="text-2xl font-bold text-slate-900 tracking-tight leading-none mt-1">
+            <div className="text-[10.5px] sm:text-xs font-medium text-slate-500 truncate">Active Users</div>
+            <div className="text-base sm:text-2xl font-bold text-slate-900 tracking-tight leading-none mt-0.5 sm:mt-1">
               {activeCount.toLocaleString()}
             </div>
           </div>
         </div>
 
         {/* Card 3: Admins */}
-        <div className="bg-violet-50 border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4 group">
-          <div className="w-11 h-11 rounded-xl bg-violet-100/70 text-violet-600 border border-violet-200/60 flex items-center justify-center shrink-0 shadow-2xs">
-            <ShieldCheck size={22} strokeWidth={2.2} />
+        <div className="bg-violet-50 border border-slate-200 rounded-xl sm:rounded-2xl p-2.5 sm:p-5 shadow-xs sm:shadow-sm flex items-center gap-2.5 sm:gap-4 group min-w-0">
+          <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-violet-100/70 text-violet-600 border border-violet-200/60 flex items-center justify-center shrink-0 shadow-2xs">
+            <ShieldCheck size={20} className="w-4 h-4 sm:w-[22px] sm:h-[22px]" strokeWidth={2.2} />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xs font-medium text-slate-500">Admins</div>
-            <div className="text-2xl font-bold text-slate-900 tracking-tight leading-none mt-1">
+            <div className="text-[10.5px] sm:text-xs font-medium text-slate-500 truncate">Admins</div>
+            <div className="text-base sm:text-2xl font-bold text-slate-900 tracking-tight leading-none mt-0.5 sm:mt-1">
               {adminCount.toLocaleString()}
             </div>
           </div>
         </div>
 
         {/* Card 4: Locations */}
-        <div className="bg-amber-50 border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4 group">
-          <div className="w-11 h-11 rounded-xl bg-amber-100/70 text-amber-600 border border-amber-200/60 flex items-center justify-center shrink-0 shadow-2xs">
-            <MapPin size={22} strokeWidth={2.2} />
+        <div className="bg-amber-50 border border-slate-200 rounded-xl sm:rounded-2xl p-2.5 sm:p-5 shadow-xs sm:shadow-sm flex items-center gap-2.5 sm:gap-4 group min-w-0">
+          <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-amber-100/70 text-amber-600 border border-amber-200/60 flex items-center justify-center shrink-0 shadow-2xs">
+            <MapPin size={20} className="w-4 h-4 sm:w-[22px] sm:h-[22px]" strokeWidth={2.2} />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xs font-medium text-slate-500">Locations</div>
-            <div className="text-2xl font-bold text-slate-900 tracking-tight leading-none mt-1">
+            <div className="text-[10.5px] sm:text-xs font-medium text-slate-500 truncate">Locations</div>
+            <div className="text-base sm:text-2xl font-bold text-slate-900 tracking-tight leading-none mt-0.5 sm:mt-1">
               {locations.length.toLocaleString()}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+      <div className="bg-white border border-slate-200 rounded-xl p-3.5 sm:p-6 shadow-xs">
         {/* Navigation Tabs */}
-        <div className="flex border-b border-slate-200 mb-6">
+        <div className="flex border-b border-slate-200 mb-4 sm:mb-6">
           <button
             type="button"
             className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all cursor-pointer bg-transparent border-none ${
@@ -612,7 +617,8 @@ export default function UsersPage() {
 
         {activeTab === "users" ? (
           <>
-            <div className="flex gap-4 items-center mb-5">
+            {/* Desktop Filters Row */}
+            <div className="hidden md:flex gap-4 items-center mb-5">
               <div className="flex-1 relative">
                 <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-2.5">
                   <Search size={18} className="text-slate-400 shrink-0" />
@@ -697,6 +703,134 @@ export default function UsersPage() {
               />
             </div>
 
+            {/* Mobile Search & Filter Bar */}
+            <div className="block md:hidden mb-4">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 relative">
+                  <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-2xs">
+                    <Search size={16} className="text-slate-400 shrink-0" />
+                    <input
+                      placeholder="Search users..."
+                      value={searchInput}
+                      maxLength={100}
+                      onChange={(e) => handleSearchInputChange(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          setSearch(searchInput);
+                          setPage(1);
+                          setShowSuggestions(false);
+                        }
+                      }}
+                      onFocus={() => setShowSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                      className="border-none bg-transparent outline-none text-xs text-slate-800 w-full placeholder-slate-400"
+                    />
+                    {searchInput && (
+                      <button
+                        onClick={() => handleSearchInputChange('')}
+                        className="text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer border-none bg-transparent p-0.5 rounded"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Mobile Suggestions Dropdown */}
+                  {showSuggestions && suggestions.length > 0 && (
+                    <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-52 overflow-y-auto py-1.5 divide-y divide-slate-50">
+                      {suggestions.map((item, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            setSearchInput(item.value);
+                            setSearch(item.value);
+                            setPage(1);
+                            setShowSuggestions(false);
+                          }}
+                          className="w-full text-left px-3.5 py-2 hover:bg-emerald-50/50 transition-colors flex flex-col gap-0.5 border-none bg-transparent cursor-pointer"
+                        >
+                          <span className="text-[10px] text-emerald-600 font-bold tracking-wider uppercase">{item.type}</span>
+                          <span className="text-xs text-slate-800 font-semibold">{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Single Filter Button Trigger */}
+                <button
+                  onClick={() => setShowMobileFilterSheet(true)}
+                  className={`relative inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border transition-all cursor-pointer shrink-0 text-xs font-semibold ${
+                    Boolean(locationFilter) || limit !== 10 || Boolean(search)
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-xs'
+                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs'
+                  }`}
+                  aria-label="Filter Users"
+                  title="Filter Users"
+                >
+                  <SlidersHorizontal size={15} />
+                  <span>Filter</span>
+                  {(Boolean(locationFilter) || limit !== 10 || Boolean(search)) && (
+                    <span className="w-4 h-4 bg-emerald-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                      {(locationFilter ? 1 : 0) + (limit !== 10 ? 1 : 0) + (search ? 1 : 0)}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {/* Active Filter Badges on Mobile */}
+              {(Boolean(locationFilter) || limit !== 10 || Boolean(search)) && (
+                <div className="flex items-center gap-1.5 mt-2 overflow-x-auto pb-0.5 text-xs">
+                  <span className="text-[11px] font-semibold text-slate-400 shrink-0">Filters:</span>
+                  {search && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-medium shrink-0">
+                      &quot;{search}&quot;
+                      <button
+                        onClick={() => { setSearch(''); setSearchInput(''); setPage(1); }}
+                        className="hover:text-emerald-950 border-none bg-transparent cursor-pointer p-0"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  )}
+                  {locationFilter && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-medium shrink-0">
+                      {locations.find(l => String(l.id) === String(locationFilter))?.name || 'Location'}
+                      <button
+                        onClick={() => { setLocationFilter(''); setPage(1); }}
+                        className="hover:text-emerald-950 border-none bg-transparent cursor-pointer p-0"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  )}
+                  {limit !== 10 && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-medium shrink-0">
+                      {limit} per page
+                      <button
+                        onClick={() => { setLimit(10); setPage(1); }}
+                        className="hover:text-slate-900 border-none bg-transparent cursor-pointer p-0"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  )}
+                  <button
+                    onClick={() => {
+                      setSearch('');
+                      setSearchInput('');
+                      setLocationFilter('');
+                      setLimit(10);
+                      setPage(1);
+                    }}
+                    className="text-[11px] text-rose-600 hover:text-rose-700 font-semibold underline shrink-0 border-none bg-transparent cursor-pointer ml-1"
+                  >
+                    Reset all
+                  </button>
+                </div>
+              )}
+            </div>
+
             {loading ? (
               <div className="flex items-center justify-center p-15 text-slate-400 gap-2.5 text-sm">
                 <div className="w-6 h-6 border-3 border-slate-200 border-t-emerald-500 rounded-full animate-spin" />{" "}
@@ -708,137 +842,297 @@ export default function UsersPage() {
                 <p className="text-sm">No users found</p>
               </div>
             ) : (
-              filtered.map((u) => (
-                <div
-                  className="flex flex-col sm:flex-row sm:items-center gap-4 px-5 py-4 border-b border-slate-100 transition-all duration-150 hover:bg-slate-50"
-                  key={u.id}
-                >
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="w-11 h-11 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm font-semibold shrink-0">
-                      {getInitials(u.name)}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-sm font-semibold text-slate-800">
-                          {u.name}
-                        </span>
-                        <span
-                          className={`px-2 py-0.5 rounded text-xs font-medium ${getRoleBadgeClass(u.role?.name)}`}
-                        >
-                          {u.role?.name || "User"}
-                        </span>
-                        {u.mfa_enabled ? (
-                          u.mfa_configured ? (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              MFA Active
+              <>
+                {/* Desktop Users Table/List View */}
+                <div className="hidden md:block">
+                  {filtered.map((u) => (
+                    <div
+                      className="flex flex-col sm:flex-row sm:items-center gap-4 px-5 py-4 border-b border-slate-100 transition-all duration-150 hover:bg-slate-50"
+                      key={u.id}
+                    >
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="w-11 h-11 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm font-semibold shrink-0">
+                          {getInitials(u.name)}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <span className="text-sm font-semibold text-slate-800">
+                              {u.name}
                             </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
-                              MFA Pending
-                            </span>
-                          )
-                        ) : null}
-                        <StatusBadge status={u.status} />
-                      </div>
-                      <div className="flex items-center gap-4 text-xs text-slate-400 flex-wrap">
-                        <span className="flex items-center gap-1">
-                          <Mail size={14} className="shrink-0" /> {u.email}
-                        </span>
-                        {u.phone && (
-                          <span className="flex items-center gap-1">
-                            <Phone size={14} className="shrink-0" /> {u.phone}
-                          </span>
-                        )}
-                        {u.reportingManager && (
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-50 text-slate-600 border border-slate-200">
-                            Manager: {u.reportingManager.name}
-                          </span>
-                        )}
-                        {u.generalManager && (
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                            General Manager: {u.generalManager.name}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center sm:flex-col sm:items-end gap-2 border-t border-slate-100 pt-3 sm:border-none sm:pt-0">
-                    <div className="text-sm font-medium text-slate-700">
-                      {u.department || "—"}
-                    </div>
-                    <div className="text-xs text-slate-400 mt-0.5">
-                      {u.location?.name || "—"}
-                    </div>
-                  </div>
-                  <div className="relative flex gap-1.5 items-center justify-end border-t border-slate-100 pt-3 sm:border-none sm:pt-0">
-                    {/* Super Admin MFA Actions */}
-                    {isSuperAdmin && (
-                      <div className="flex gap-1 mr-2">
-                        {u.mfa_enabled ? (
-                          <>
-                            <button
-                              className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 transition-colors cursor-pointer"
-                              onClick={() => handleToggleMfa(u.id, u.name, 'disable')}
-                              title="Disable MFA"
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs font-medium ${getRoleBadgeClass(u.role?.name)}`}
                             >
-                              Disable MFA
-                            </button>
-                            {u.mfa_configured && (
+                              {u.role?.name || "User"}
+                            </span>
+                            {u.mfa_enabled ? (
+                              u.mfa_configured ? (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  MFA Active
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+                                  MFA Pending
+                                </span>
+                              )
+                            ) : null}
+                            <StatusBadge status={u.status} />
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-slate-400 flex-wrap">
+                            <span className="flex items-center gap-1">
+                              <Mail size={14} className="shrink-0" /> {u.email}
+                            </span>
+                            {u.phone && (
+                              <span className="flex items-center gap-1">
+                                <Phone size={14} className="shrink-0" /> {u.phone}
+                              </span>
+                            )}
+                            {u.reportingManager && (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-50 text-slate-600 border border-slate-200">
+                                Manager: {u.reportingManager.name}
+                              </span>
+                            )}
+                            {u.generalManager && (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                General Manager: {u.generalManager.name}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center sm:flex-col sm:items-end gap-2 border-t border-slate-100 pt-3 sm:border-none sm:pt-0">
+                        <div className="text-sm font-medium text-slate-700">
+                          {u.department || "—"}
+                        </div>
+                        <div className="text-xs text-slate-400 mt-0.5">
+                          {u.location?.name || "—"}
+                        </div>
+                      </div>
+                      <div className="relative flex gap-1.5 items-center justify-end border-t border-slate-100 pt-3 sm:border-none sm:pt-0">
+                        {/* Super Admin MFA Actions */}
+                        {isSuperAdmin && (
+                          <div className="flex gap-1 mr-2">
+                            {u.mfa_enabled ? (
+                              <>
+                                <button
+                                  className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 transition-colors cursor-pointer"
+                                  onClick={() => handleToggleMfa(u.id, u.name, 'disable')}
+                                  title="Disable MFA"
+                                >
+                                  Disable MFA
+                                </button>
+                                {u.mfa_configured && (
+                                  <button
+                                    className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer"
+                                    onClick={() => handleToggleMfa(u.id, u.name, 'reset')}
+                                    title="Reset MFA"
+                                  >
+                                    Reset
+                                  </button>
+                                )}
+                              </>
+                            ) : (
                               <button
-                                className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer"
-                                onClick={() => handleToggleMfa(u.id, u.name, 'reset')}
-                                title="Reset MFA"
+                                className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer"
+                                onClick={() => handleToggleMfa(u.id, u.name, 'enable')}
+                                title="Enable MFA"
                               >
-                                Reset
+                                Enable MFA
                               </button>
                             )}
-                          </>
-                        ) : (
+                          </div>
+                        )}
+                        {u.status === "active" && canResign && (
                           <button
-                            className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer"
-                            onClick={() => handleToggleMfa(u.id, u.name, 'enable')}
-                            title="Enable MFA"
+                            className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer"
+                            onClick={() => handleResign(u.id, u.name)}
+                            title="Resign User"
                           >
-                            Enable MFA
+                            Resign
+                          </button>
+                        )}
+                        {canEdit && (
+                          <button
+                            className="w-[34px] h-[34px] p-0 inline-flex items-center justify-center rounded-lg border-none bg-transparent cursor-pointer text-slate-400 hover:bg-slate-100 hover:text-slate-800 transition-colors"
+                            onClick={() => openEdit(u)}
+                            title="Edit"
+                          >
+                            <MoreVertical size={18} />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            className="w-[34px] h-[34px] p-0 inline-flex items-center justify-center rounded-lg border-none bg-transparent cursor-pointer text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors text-lg font-bold"
+                            onClick={() => handleDelete(u.id, u.name)}
+                            title="Delete"
+                          >
+                            ×
                           </button>
                         )}
                       </div>
-                    )}
-                    {u.status === "active" && canResign && (
-                      <button
-                        className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer"
-                        onClick={() => handleResign(u.id, u.name)}
-                        title="Resign User"
-                      >
-                        Resign
-                      </button>
-                    )}
-                    {canEdit && (
-                      <button
-                        className="w-[34px] h-[34px] p-0 inline-flex items-center justify-center rounded-lg border-none bg-transparent cursor-pointer text-slate-400 hover:bg-slate-100 hover:text-slate-800 transition-colors"
-                        onClick={() => openEdit(u)}
-                        title="Edit"
-                      >
-                        <MoreVertical size={18} />
-                      </button>
-                    )}
-                    {canDelete && (
-                      <button
-                        className="w-[34px] h-[34px] p-0 inline-flex items-center justify-center rounded-lg border-none bg-transparent cursor-pointer text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors text-lg font-bold"
-                        onClick={() => handleDelete(u.id, u.name)}
-                        title="Delete"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              ))
+
+                {/* Mobile Users Cards View */}
+                <div className="block md:hidden space-y-2.5">
+                  {filtered.map((u) => (
+                    <div
+                      key={u.id}
+                      className="bg-white border border-slate-200/90 hover:border-slate-300 rounded-xl p-3 shadow-2xs flex flex-col transition-all"
+                    >
+                      {/* Top Row: Avatar, Name, Role badge, MFA, Status Badge */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 flex items-center justify-center text-xs font-bold shrink-0">
+                            {getInitials(u.name)}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h4 className="text-[13.5px] font-bold text-slate-900 leading-tight truncate">
+                                {u.name}
+                              </h4>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold leading-none ${getRoleBadgeClass(u.role?.name)}`}>
+                                {u.role?.name || "User"}
+                              </span>
+                              {u.mfa_enabled ? (
+                                u.mfa_configured ? (
+                                  <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 leading-none">
+                                    MFA Active
+                                  </span>
+                                ) : (
+                                  <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse leading-none">
+                                    MFA Pending
+                                  </span>
+                                )
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                        <StatusBadge status={u.status} className="!text-[10px] !px-2 !py-0.5 shrink-0" />
+                      </div>
+
+                      {/* Contact info: Email and Phone */}
+                      <div className="mt-2 text-xs text-slate-600 flex flex-col gap-1">
+                        <span className="flex items-center gap-1.5 text-[11.5px] text-slate-600 truncate">
+                          <Mail size={12.5} className="text-slate-400 shrink-0" /> {u.email}
+                        </span>
+                        {u.phone && (
+                          <span className="flex items-center gap-1.5 text-[11.5px] text-slate-600">
+                            <Phone size={12.5} className="text-slate-400 shrink-0" /> {u.phone}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* 2-Column Metadata Info Grid */}
+                      <div className="mt-2 pt-2 border-t border-slate-100 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                        <div className="min-w-0">
+                          <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">
+                            Department
+                          </span>
+                          <span className="font-semibold text-slate-800 text-[12px] truncate block leading-tight">
+                            {u.department || "—"}
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">
+                            Location
+                          </span>
+                          <span className="font-semibold text-slate-800 text-[12px] truncate block leading-tight">
+                            {u.location?.name || "—"}
+                          </span>
+                        </div>
+                        {u.reportingManager && (
+                          <div className="col-span-2 min-w-0 mt-0.5">
+                            <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">
+                              Reporting Manager
+                            </span>
+                            <span className="font-medium text-slate-700 text-[11.5px] truncate block leading-tight">
+                              {u.reportingManager.name}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Compact Actions Row */}
+                      <div className="flex items-center justify-end gap-1.5 mt-2.5 pt-2 border-t border-slate-100/90 flex-wrap">
+                        {/* Super Admin MFA Actions */}
+                        {isSuperAdmin && (
+                          <>
+                            {u.mfa_enabled ? (
+                              <>
+                                <button
+                                  className="px-2 py-1 text-[11px] font-semibold rounded-lg bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 transition-colors cursor-pointer"
+                                  onClick={() => handleToggleMfa(u.id, u.name, 'disable')}
+                                  title="Disable MFA"
+                                >
+                                  Disable MFA
+                                </button>
+                                {u.mfa_configured && (
+                                  <button
+                                    className="px-2 py-1 text-[11px] font-semibold rounded-lg bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer"
+                                    onClick={() => handleToggleMfa(u.id, u.name, 'reset')}
+                                    title="Reset MFA"
+                                  >
+                                    Reset
+                                  </button>
+                                )}
+                              </>
+                            ) : (
+                              <button
+                                className="px-2 py-1 text-[11px] font-semibold rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer"
+                                onClick={() => handleToggleMfa(u.id, u.name, 'enable')}
+                                title="Enable MFA"
+                              >
+                                Enable MFA
+                              </button>
+                            )}
+                          </>
+                        )}
+
+                        {/* Resign Action */}
+                        {u.status === "active" && canResign && (
+                          <button
+                            className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer"
+                            onClick={() => handleResign(u.id, u.name)}
+                            title="Resign User"
+                          >
+                            Resign
+                          </button>
+                        )}
+
+                        {/* Edit Button */}
+                        {canEdit && (
+                          <button
+                            className="w-7 h-7 rounded-lg border border-slate-200 bg-slate-50 text-slate-650 hover:bg-slate-100 hover:text-slate-900 active:scale-95 transition-all cursor-pointer flex items-center justify-center"
+                            onClick={() => openEdit(u)}
+                            title="Edit User"
+                            aria-label="Edit User"
+                          >
+                            <Pencil size={13.5} />
+                          </button>
+                        )}
+
+                        {/* Delete Button */}
+                        {canDelete && (
+                          <button
+                            className="w-7 h-7 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 hover:text-rose-700 active:scale-95 transition-all cursor-pointer flex items-center justify-center"
+                            onClick={() => handleDelete(u.id, u.name)}
+                            title="Delete User"
+                            aria-label="Delete User"
+                          >
+                            <Trash2 size={13.5} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
 
-            {/* Pagination Controls */}
+            {/* Desktop Pagination Controls */}
             {totalPages > 1 && (
-              <div className="flex justify-between items-center mt-5 pt-4 border-t border-slate-200">
+              <div className="hidden md:flex justify-between items-center mt-5 pt-4 border-t border-slate-200">
                 <div className="text-sm text-slate-500">
                   Showing {Math.min((page - 1) * limit + 1, total)} to{" "}
                   {Math.min(page * limit, total)} of {total} entries
@@ -876,10 +1170,33 @@ export default function UsersPage() {
                 </div>
               </div>
             )}
+
+            {/* Mobile Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex md:hidden justify-between items-center mt-3 pt-3 border-t border-slate-200 text-xs">
+                <button
+                  className="px-3 py-1.5 rounded-lg font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                  disabled={page === 1}
+                >
+                  Previous
+                </button>
+                <span className="text-slate-500 font-medium text-[11px]">
+                  Page {page} of {totalPages}
+                </span>
+                <button
+                  className="px-3 py-1.5 rounded-lg font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                  disabled={page === totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </>
         ) : (
           <div>
-            <p className="text-xs text-slate-500 mb-6">
+            <p className="text-xs text-slate-500 mb-4 sm:mb-6">
               Below is the offboarding queue of employees in{" "}
               <strong>resigned</strong> state. Both the{" "}
               <strong>Location Admin</strong> and <strong>General Admin</strong>{" "}
@@ -902,38 +1219,31 @@ export default function UsersPage() {
                 </p>
               </div>
             ) : (
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-4 sm:gap-6">
                 {offboardQueue.map((item) => {
                   const hasPendingAssets =
                     item.allocations && item.allocations.length > 0;
                   return (
                     <div
                       key={item.id}
-                      className="border border-slate-200 rounded-xl p-5 bg-slate-50/50 shadow-2xs"
+                      className="border border-slate-200 rounded-xl p-3.5 sm:p-5 bg-slate-50/50 shadow-2xs"
                     >
-                      <div className="flex justify-between items-start mb-4">
+                      <div className="flex justify-between items-start mb-3 sm:mb-4 flex-wrap gap-2">
                         <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-slate-800 text-base">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-slate-800 text-sm sm:text-base">
                               {item.name}
                             </span>
                             <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-100 text-amber-800">
                               Resigned
                             </span>
                           </div>
-                          <div className="text-xs text-slate-500 mt-1">
-                            Emp ID:{" "}
-                            <span className="font-semibold">
-                              {item.employee_id || "—"}
-                            </span>{" "}
-                            | Dept:{" "}
-                            <span className="font-semibold">
-                              {item.department || "—"}
-                            </span>{" "}
-                            | Location:{" "}
-                            <span className="font-semibold">
-                              {item.location?.name || "Global"}
-                            </span>
+                          <div className="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+                            <span>Emp ID: <span className="font-semibold text-slate-700">{item.employee_id || "—"}</span></span>
+                            <span className="text-slate-300 hidden sm:inline">|</span>
+                            <span>Dept: <span className="font-semibold text-slate-700">{item.department || "—"}</span></span>
+                            <span className="text-slate-300 hidden sm:inline">|</span>
+                            <span>Location: <span className="font-semibold text-slate-700">{item.location?.name || "Global"}</span></span>
                           </div>
                         </div>
                         {!hasPendingAssets && (
@@ -1053,7 +1363,7 @@ export default function UsersPage() {
                           </div>
 
                           {/* Mobile Cards View */}
-                          <div className="block md:hidden space-y-4">
+                          <div className="block md:hidden space-y-2.5">
                             {item.allocations.map((alloc) => {
                               const isLocAdmin =
                                 currentUser?.role_name === "Location Admin";
@@ -1073,50 +1383,48 @@ export default function UsersPage() {
                                   !alloc.verified_by_general_admin);
 
                               return (
-                                <div key={alloc.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex flex-col gap-3">
-                                  <div className="flex justify-between items-start">
-                                    <div>
-                                      <h4 className="text-sm font-bold text-slate-800">{alloc.asset?.name || "—"}</h4>
-                                      <span className="text-xs text-slate-450 font-mono mt-0.5 block">{alloc.asset?.asset_tag || "—"}</span>
-                                    </div>
+                                <div key={alloc.id} className="bg-white border border-slate-200/90 rounded-xl p-3 shadow-2xs flex flex-col gap-2.5">
+                                  <div>
+                                    <h4 className="text-[13.5px] font-bold text-slate-900 leading-tight">{alloc.asset?.name || "—"}</h4>
+                                    <span className="text-[11px] text-slate-400 font-mono mt-0.5 block">{alloc.asset?.asset_tag || "—"}</span>
                                   </div>
 
-                                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 border-t border-b border-slate-100 py-2">
-                                    <div>
-                                      <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('category')}</span>
-                                      <span className="font-semibold text-slate-700">{t(alloc.asset?.type) || "—"}</span>
+                                  <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs border-t border-b border-slate-100 py-2">
+                                    <div className="min-w-0">
+                                      <span className="block text-[9.5px] text-slate-400 font-bold uppercase tracking-wider leading-none mb-1">{t('category')}</span>
+                                      <span className="font-semibold text-slate-800 text-[12px] truncate block leading-tight">{t(alloc.asset?.type) || "—"}</span>
                                     </div>
-                                    <div>
-                                      <span className="block text-[10px] text-slate-400 font-bold uppercase">Brand</span>
-                                      <span className="font-semibold text-slate-700">{alloc.asset?.brand || "—"}</span>
+                                    <div className="min-w-0">
+                                      <span className="block text-[9.5px] text-slate-400 font-bold uppercase tracking-wider leading-none mb-1">Brand</span>
+                                      <span className="font-semibold text-slate-800 text-[12px] truncate block leading-tight">{alloc.asset?.brand || "—"}</span>
                                     </div>
-                                    <div>
-                                      <span className="block text-[10px] text-slate-400 font-bold uppercase">Location Admin</span>
+                                    <div className="min-w-0">
+                                      <span className="block text-[9.5px] text-slate-400 font-bold uppercase tracking-wider leading-none mb-1">Location Admin</span>
                                       {alloc.verified_by_location_admin ? (
-                                        <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold">
-                                          Verified
+                                        <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold text-[11.5px]">
+                                          <Check size={12} className="stroke-[3px]" /> Verified
                                         </span>
                                       ) : (
-                                        <span className="inline-flex items-center gap-1 text-slate-450">
-                                          Pending
+                                        <span className="inline-flex items-center gap-1 text-slate-400 text-[11.5px]">
+                                          <AlertCircle size={12} /> Pending
                                         </span>
                                       )}
                                     </div>
-                                    <div>
-                                      <span className="block text-[10px] text-slate-400 font-bold uppercase">General Admin</span>
+                                    <div className="min-w-0">
+                                      <span className="block text-[9.5px] text-slate-400 font-bold uppercase tracking-wider leading-none mb-1">General Admin</span>
                                       {alloc.verified_by_general_admin ? (
-                                        <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold">
-                                          Verified
+                                        <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold text-[11.5px]">
+                                          <Check size={12} className="stroke-[3px]" /> Verified
                                         </span>
                                       ) : (
-                                        <span className="inline-flex items-center gap-1 text-slate-450">
-                                          Pending
+                                        <span className="inline-flex items-center gap-1 text-slate-400 text-[11.5px]">
+                                          <AlertCircle size={12} /> Pending
                                         </span>
                                       )}
                                     </div>
                                   </div>
 
-                                  <div className="flex justify-end pt-1">
+                                  <div className="pt-0.5">
                                     <button
                                       type="button"
                                       onClick={() =>
@@ -1127,7 +1435,7 @@ export default function UsersPage() {
                                         alreadyVerified
                                           ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
                                           : canVerify
-                                            ? "bg-emerald-600 hover:bg-emerald-700 text-white border-none"
+                                            ? "bg-emerald-600 hover:bg-emerald-700 text-white border-none shadow-2xs"
                                             : "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
                                       }`}
                                     >
@@ -1156,248 +1464,357 @@ export default function UsersPage() {
         )}
       </div>
 
+      {/* Mobile Filter Drawer Sheet Modal */}
+      <Modal
+        isOpen={showMobileFilterSheet}
+        onClose={() => setShowMobileFilterSheet(false)}
+        title="Filter Users"
+        size="md"
+        overflowVisible={true}
+        footer={
+          <div className="flex gap-2 w-full">
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                setSearchInput('');
+                setLocationFilter('');
+                setLimit(10);
+                setPage(1);
+                setShowMobileFilterSheet(false);
+              }}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 text-xs font-semibold hover:bg-slate-100 transition-colors cursor-pointer"
+            >
+              <RotateCcw size={14} /> Reset
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSearch(searchInput);
+                setPage(1);
+                setShowMobileFilterSheet(false);
+              }}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-none bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors cursor-pointer shadow-xs"
+            >
+              Apply Filters
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {/* Search input */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Search User</label>
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5">
+              <Search size={16} className="text-slate-400 shrink-0" />
+              <input
+                type="text"
+                placeholder="Search by name, email, department..."
+                value={searchInput}
+                maxLength={100}
+                onChange={(e) => handleSearchInputChange(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
+                className="w-full bg-transparent border-none outline-none text-xs sm:text-sm text-slate-800 placeholder-slate-400"
+              />
+              {searchInput && (
+                <button
+                  onClick={() => handleSearchInputChange('')}
+                  className="text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer p-0.5"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Location Filter */}
+          {currentUser?.role?.name !== "Location Admin" && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Location</label>
+              <SearchableSelect
+                options={[
+                  { value: "", label: "All Locations" },
+                  ...locations.map((l) => ({ value: l.id, label: l.name }))
+                ]}
+                value={locationFilter}
+                onChange={(val) => {
+                  setLocationFilter(val);
+                  setPage(1);
+                }}
+                className="w-full"
+              />
+            </div>
+          )}
+
+          {/* Per Page Limit */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Users Per Page</label>
+            <SearchableSelect
+              options={[
+                { value: 5, label: "5 per page" },
+                { value: 10, label: "10 per page" },
+                { value: 20, label: "20 per page" },
+                { value: 50, label: "50 per page" }
+              ]}
+              value={limit}
+              onChange={(val) => {
+                setLimit(val);
+                setPage(1);
+              }}
+              className="w-full"
+            />
+          </div>
+        </div>
+      </Modal>
+
       <Modal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         title={editingUser ? "Edit User" : "Add User"}
         size="lg"
         footer={
-          <>
+          <div className="flex justify-end gap-2 sm:gap-2.5 w-full sm:w-auto">
             <button
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors"
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors"
               onClick={() => setShowModal(false)}
             >
               Cancel
             </button>
             <button
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-xs"
               onClick={handleSave}
               disabled={saving}
             >
               {saving ? "Saving..." : "Save"}
             </button>
-          </>
+          </div>
         }
       >
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="mb-4">
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">
-              Employee ID
-            </label>
-            <input
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
-              value={form.employee_id || ""}
-              maxLength={30}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  employee_id: e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""),
-                })
-              }
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">
-              Full Name *
-            </label>
-            <input
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
-              value={form.name || ""}
-              maxLength={30}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  name: e.target.value.replace(/[^a-zA-Z\s'-]/g, ""),
-                })
-              }
-              required
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="mb-4">
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">
-              Email *
-            </label>
-            <input
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
-              type="email"
-              placeholder="name@company.com"
-              maxLength={100}
-              value={form.email || ""}
-              onChange={(e) => setForm({ ...form, email: sanitizeEmailInput(e.target.value) })}
-              required
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">
-              Phone
-            </label>
-            <div className="flex gap-2">
-              {countryCode && (
-                <span className="inline-flex items-center px-3.5 border border-slate-200 bg-slate-50 text-slate-500 rounded-lg text-sm font-semibold select-none">
-                  {countryCode}
-                </span>
-              )}
+        <div className="space-y-3 sm:space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Employee ID
+              </label>
               <input
-                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
-                placeholder={
-                  countryCode === "+91" ? "e.g. 9876543210" : "e.g. 567361461"
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 placeholder-slate-400 transition-all"
+                value={form.employee_id || ""}
+                maxLength={30}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    employee_id: e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""),
+                  })
                 }
-                value={form.phone || ""}
-                onChange={(e) => {
-                  let cleaned = e.target.value.replace(/\D/g, "");
-                  if (countryCode === "+91") {
-                    cleaned = cleaned.slice(0, 10);
-                    if (cleaned.length > 0 && parseInt(cleaned[0]) < 6) return;
-                  } else {
-                    cleaned = cleaned.slice(0, 12);
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Full Name *
+              </label>
+              <input
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 placeholder-slate-400 transition-all"
+                value={form.name || ""}
+                maxLength={30}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    name: e.target.value.replace(/[^a-zA-Z\s'-]/g, ""),
+                  })
+                }
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Email *
+              </label>
+              <input
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 placeholder-slate-400 transition-all"
+                type="email"
+                placeholder="name@company.com"
+                maxLength={100}
+                value={form.email || ""}
+                onChange={(e) => setForm({ ...form, email: sanitizeEmailInput(e.target.value) })}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Phone
+              </label>
+              <div className="flex gap-2">
+                {countryCode && (
+                  <span className="inline-flex items-center px-3.5 border border-slate-200 bg-slate-50 text-slate-600 rounded-xl text-xs sm:text-sm font-semibold select-none">
+                    {countryCode}
+                  </span>
+                )}
+                <input
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 placeholder-slate-400 transition-all"
+                  placeholder={
+                    countryCode === "+91" ? "e.g. 9876543210" : "e.g. 567361461"
                   }
-                  setForm({ ...form, phone: cleaned });
+                  value={form.phone || ""}
+                  onChange={(e) => {
+                    let cleaned = e.target.value.replace(/\D/g, "");
+                    if (countryCode === "+91") {
+                      cleaned = cleaned.slice(0, 10);
+                      if (cleaned.length > 0 && parseInt(cleaned[0]) < 6) return;
+                    } else {
+                      cleaned = cleaned.slice(0, 12);
+                    }
+                    setForm({ ...form, phone: cleaned });
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {!editingUser && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Password *
+              </label>
+              <input
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 placeholder-slate-400 transition-all"
+                type="password"
+                maxLength={100}
+                value={form.password || ""}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                required
+              />
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Role *
+              </label>
+              <SearchableSelect
+                options={roles.map((r) => ({ value: r.id, label: r.name }))}
+                value={form.role_id || ""}
+                placeholder="Select Role"
+                onChange={(val) => {
+                  const defaults = applyRoleLocationDefaults(
+                    val,
+                    form.location_id,
+                    form,
+                  );
+                  setForm({
+                    ...form,
+                    role_id: val,
+                    ...defaults,
+                  });
+                }}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Location
+              </label>
+              <SearchableSelect
+                options={locations.map((l) => ({ value: l.id, label: l.name }))}
+                value={form.location_id || ""}
+                placeholder="Select Location"
+                onChange={(val) => {
+                  const defaults = applyRoleLocationDefaults(
+                    form.role_id,
+                    val,
+                    form,
+                  );
+                  setForm({
+                    ...form,
+                    location_id: val,
+                    ...defaults,
+                  });
                 }}
               />
             </div>
           </div>
-        </div>
-        {!editingUser && (
-          <div className="mb-4">
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">
-              Password *
-            </label>
-            <input
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
-              type="password"
-              maxLength={100}
-              value={form.password || ""}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              required
-            />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Department
+              </label>
+              <input
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 placeholder-slate-400 transition-all"
+                value={form.department || ""}
+                maxLength={50}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    department: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, ""),
+                  })
+                }
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Designation
+              </label>
+              <input
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 placeholder-slate-400 transition-all"
+                value={form.designation || ""}
+                maxLength={50}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    designation: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, ""),
+                  })
+                }
+              />
+            </div>
           </div>
-        )}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="mb-4">
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">
-              Role *
-            </label>
-            <SearchableSelect
-              options={roles.map((r) => ({ value: r.id, label: r.name }))}
-              value={form.role_id || ""}
-              placeholder="Select Role"
-              onChange={(val) => {
-                const defaults = applyRoleLocationDefaults(
-                  val,
-                  form.location_id,
-                  form,
-                );
-                setForm({
-                  ...form,
-                  role_id: val,
-                  ...defaults,
-                });
-              }}
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">
-              Location
-            </label>
-            <SearchableSelect
-              options={locations.map((l) => ({ value: l.id, label: l.name }))}
-              value={form.location_id || ""}
-              placeholder="Select Location"
-              onChange={(val) => {
-                const defaults = applyRoleLocationDefaults(
-                  form.role_id,
-                  val,
-                  form,
-                );
-                setForm({
-                  ...form,
-                  location_id: val,
-                  ...defaults,
-                });
-              }}
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="mb-4">
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">
-              Department
-            </label>
-            <input
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
-              value={form.department || ""}
-              maxLength={50}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  department: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, ""),
-                })
-              }
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">
-              Designation
-            </label>
-            <input
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors"
-              value={form.designation || ""}
-              maxLength={50}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  designation: e.target.value.replace(/[^a-zA-Z0-9\s-]/g, ""),
-                })
-              }
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="mb-4">
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">
-              Reporting Manager
-            </label>
-            <SearchableSelect
-              options={
-                isLocationAdmin && currentUser?.id
-                  ? [{ value: currentUser.id, label: `${currentUser.name} (${currentUser.role_name || "Location Admin"}) - ${currentUser.email}` }]
-                  : roles.find((r) => String(r.id) === String(form.role_id))?.name === "Location Admin"
-                  ? [{ value: editingUser ? editingUser.id : "self", label: editingUser ? `${editingUser.name} (Self)` : "Self (Same User)" }]
-                  : managers
-                      .filter((m) => String(m.id) !== String(editingUser?.id))
-                      .map((m) => ({
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Reporting Manager
+              </label>
+              <SearchableSelect
+                options={
+                  isLocationAdmin && currentUser?.id
+                    ? [{ value: currentUser.id, label: `${currentUser.name} (${currentUser.role_name || "Location Admin"}) - ${currentUser.email}` }]
+                    : roles.find((r) => String(r.id) === String(form.role_id))?.name === "Location Admin"
+                    ? [{ value: editingUser ? editingUser.id : "self", label: editingUser ? `${editingUser.name} (Self)` : "Self (Same User)" }]
+                    : managers
+                        .filter((m) => String(m.id) !== String(editingUser?.id))
+                        .map((m) => ({
+                          value: m.id,
+                          label: `${m.name} (${m.role?.name || m.designation || "No Designation"}) - ${m.email}`,
+                        }))
+                }
+                value={form.reporting_manager_id || ""}
+                disabled={isLocationAdmin || roles.find((r) => String(r.id) === String(form.role_id))?.name === "Location Admin"}
+                placeholder="Select Reporting Manager"
+                onChange={(val) =>
+                  setForm({ ...form, reporting_manager_id: val })
+                }
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                General Manager
+              </label>
+              <SearchableSelect
+                options={
+                  adminUser
+                    ? [{ value: adminUser.id, label: `${adminUser.name} (${adminUser.role?.name || "Admin"}) - ${adminUser.email}` }]
+                    : managers.map((m) => ({
                         value: m.id,
                         label: `${m.name} (${m.role?.name || m.designation || "No Designation"}) - ${m.email}`,
                       }))
-              }
-              value={form.reporting_manager_id || ""}
-              disabled={isLocationAdmin || roles.find((r) => String(r.id) === String(form.role_id))?.name === "Location Admin"}
-              placeholder="Select Reporting Manager"
-              onChange={(val) =>
-                setForm({ ...form, reporting_manager_id: val })
-              }
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">
-              General Manager
-            </label>
-            <SearchableSelect
-              options={
-                adminUser
-                  ? [{ value: adminUser.id, label: `${adminUser.name} (${adminUser.role?.name || "Admin"}) - ${adminUser.email}` }]
-                  : managers.map((m) => ({
-                      value: m.id,
-                      label: `${m.name} (${m.role?.name || m.designation || "No Designation"}) - ${m.email}`,
-                    }))
-              }
-              value={form.general_manager_id || (adminUser ? adminUser.id : "")}
-              disabled={true}
-              placeholder="Select General Manager"
-              onChange={(val) => setForm({ ...form, general_manager_id: val })}
-            />
+                }
+                value={form.general_manager_id || (adminUser ? adminUser.id : "")}
+                disabled={true}
+                placeholder="Select General Manager"
+                onChange={(val) => setForm({ ...form, general_manager_id: val })}
+              />
+            </div>
           </div>
         </div>
       </Modal>

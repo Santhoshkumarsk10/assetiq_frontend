@@ -106,3 +106,32 @@ svg:focus {
 .animate-sparkline-drift {
   animation: sparklineDrift 4s ease-in-out infinite;
 }
+
+/* Native Bottom Sheet animations */
+@keyframes sheetSlideUp {
+  0% {
+    transform: translateY(100%);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes sheetFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-sheet-slide-up {
+  animation: sheetSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-sheet-fade-in {
+  animation: sheetFadeIn 0.2s ease-out forwards;
+}

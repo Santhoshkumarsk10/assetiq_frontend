@@ -1,4 +1,4 @@
-export default function StatusBadge({ status }) {
+export default function StatusBadge({ status, className = '' }) {
   const map = {
     active: { containerCls: 'bg-emerald-50 text-emerald-700', dotCls: 'bg-emerald-500', label: 'Active' },
     available: { containerCls: 'bg-emerald-50 text-emerald-700', dotCls: 'bg-emerald-500', label: 'Available' },
@@ -22,7 +22,7 @@ export default function StatusBadge({ status }) {
   const info = map[status?.toLowerCase()] || { containerCls: 'bg-slate-100 text-slate-600', dotCls: 'bg-slate-400', label: status || 'Unknown' };
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${info.containerCls}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${info.containerCls} ${className}`}>
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${info.dotCls}`} />
       {info.label}
     </span>

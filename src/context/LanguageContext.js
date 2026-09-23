@@ -125,6 +125,7 @@ const translations = {
     licenseKey: 'License Key',
     totalSeats: 'Total Seats',
     seatsUsed: 'Seats Used',
+    validUntil: 'Valid Until',
     purchasedDate: 'Purchased Date',
     supportTickets: 'Support Tickets',
     recentSupportTickets: 'Recent Support Tickets',
