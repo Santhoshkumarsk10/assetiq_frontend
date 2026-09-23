@@ -8,6 +8,7 @@ import DateRangePicker from "@/components/DateRangePicker";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { reportApi } from "@/lib/api";
+import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 import {
   BarChart,
   Bar,
@@ -31,6 +32,8 @@ import {
   RefreshCw,
   Layers,
   X,
+  SlidersHorizontal,
+  ChevronDown,
 } from "lucide-react";
 
 const COLORS = [
@@ -50,9 +53,29 @@ const STATUS_COLORS = {
   retired: "#ef4444",
 };
 
-function TablePagination({ currentPage, totalItems, limit, onPageChange, onLimitChange }) {
-  const totalPages = Math.ceil(totalItems / limit);
-  if (totalPages <= 1) return null;
+function PageSizeSelect({ value, onChange }) {
+  return (
+    <div className="relative inline-flex items-center shrink-0">
+      <select
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        aria-label="Rows per page"
+        className="appearance-none bg-slate-50 hover:bg-slate-100/90 text-slate-700 text-xs font-semibold rounded-xl pl-3 pr-7 py-1.5 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer transition-colors shadow-2xs"
+      >
+        <option value={5}>5 / page</option>
+        <option value={10}>10 / page</option>
+        <option value={25}>25 / page</option>
+        <option value={50}>50 / page</option>
+      </select>
+      <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+    </div>
+  );
+}
+
+function TablePagination({ currentPage, totalItems, limit, onPageChange, onLimitChange, currentItemsCount = 0 }) {
+  const effectiveTotal = Math.max(Number(totalItems) || 0, Number(currentItemsCount) || 0);
+  if (effectiveTotal === 0) return null;
+  const totalPages = Math.max(1, Math.ceil(effectiveTotal / limit));
 
   const getVisiblePages = (current, total) => {
     if (total <= 5) {
@@ -70,50 +93,95 @@ function TablePagination({ currentPage, totalItems, limit, onPageChange, onLimit
   const visiblePages = getVisiblePages(currentPage, totalPages);
 
   return (
-    <div className="flex flex-col sm:flex-row justify-between items-center mt-5 p-4 border-t border-slate-100 gap-4">
-      <div className="text-xs text-slate-500 font-medium">
-        Showing {Math.min((currentPage - 1) * limit + 1, totalItems)} to {Math.min(currentPage * limit, totalItems)} of {totalItems} entries
-      </div>
-      <div className="flex items-center gap-3">
-        <SearchableSelect
-          options={[
-            { value: 5, label: "5 per page" },
-            { value: 10, label: "10 per page" },
-            { value: 25, label: "25 per page" },
-            { value: 50, label: "50 per page" }
-          ]}
-          value={limit}
-          onChange={val => onLimitChange(Number(val))}
-          className="w-[130px]"
-        />
-        <div className="flex gap-1">
-          <button 
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" 
-            onClick={() => onPageChange(Math.max(currentPage - 1, 1))} 
-            disabled={currentPage === 1}
-          >
-            Prev
-          </button>
-          {visiblePages.map(p => (
-            <button 
-              key={p} 
-              className={currentPage === p 
-                ? "px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white cursor-pointer" 
-                : "px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer"
-              } 
-              onClick={() => onPageChange(p)}
-            >
-              {p}
-            </button>
-          ))}
-          <button 
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" 
-            onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))} 
-            disabled={currentPage === totalPages}
-          >
-            Next
-          </button>
+    <div className="border-t border-slate-100 p-3 sm:p-4 bg-white">
+      {/* Desktop Pagination */}
+      <div className="hidden sm:flex justify-between items-center gap-4">
+        <div className="text-xs text-slate-500 font-medium">
+          Showing <span className="font-semibold text-slate-700">{Math.min((currentPage - 1) * limit + 1, effectiveTotal)}</span> to{" "}
+          <span className="font-semibold text-slate-700">{Math.min(currentPage * limit, effectiveTotal)}</span> of{" "}
+          <span className="font-semibold text-slate-700">{effectiveTotal}</span> entries
         </div>
+        <div className="flex items-center gap-3">
+          <PageSizeSelect
+            value={limit}
+            onChange={(newLimit) => {
+              onLimitChange(newLimit);
+              onPageChange(1);
+            }}
+          />
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1">
+              <button 
+                type="button"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors" 
+                onClick={() => onPageChange(Math.max(currentPage - 1, 1))} 
+                disabled={currentPage === 1}
+              >
+                Prev
+              </button>
+              {visiblePages.map(p => (
+                <button 
+                  key={p} 
+                  type="button"
+                  className={currentPage === p 
+                    ? "px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white cursor-pointer shadow-2xs" 
+                    : "px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer transition-colors"
+                  } 
+                  onClick={() => onPageChange(p)}
+                >
+                  {p}
+                </button>
+              ))}
+              <button 
+                type="button"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors" 
+                onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))} 
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile Pagination */}
+      <div className="flex sm:hidden flex-col gap-2.5">
+        <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+          <span>
+            {Math.min((currentPage - 1) * limit + 1, effectiveTotal)}-{Math.min(currentPage * limit, effectiveTotal)} of {effectiveTotal}
+          </span>
+          <PageSizeSelect
+            value={limit}
+            onChange={(newLimit) => {
+              onLimitChange(newLimit);
+              onPageChange(1);
+            }}
+          />
+        </div>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
+            <button 
+              type="button"
+              className="flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-center" 
+              onClick={() => onPageChange(Math.max(currentPage - 1, 1))} 
+              disabled={currentPage === 1}
+            >
+              Prev
+            </button>
+            <span className="text-xs font-semibold text-slate-600 px-2 whitespace-nowrap">
+              {currentPage} / {totalPages}
+            </span>
+            <button 
+              type="button"
+              className="flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-center" 
+              onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))} 
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -135,7 +203,28 @@ function InventoryReportPageInner() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
+  // Mobile Filter Sheet Modal State
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
+
   const initialized = useRef(false);
+
+  // Background Scroll Locking when Mobile Filter Sheet is Open
+  useEffect(() => {
+    if (showFilterSheet) {
+      lockScroll();
+    } else {
+      unlockScroll();
+    }
+    return () => unlockScroll();
+  }, [showFilterSheet]);
+
+  // Debounced search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInput);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   useEffect(() => {
     let filters = null;
@@ -205,9 +294,9 @@ function InventoryReportPageInner() {
 
   // Reset page to 1 when filters change
   useEffect(() => {
-    setTimeout(()=>{
+    setTimeout(() => {
       setPage(1);
-    },0)
+    }, 0);
   }, [searchQuery, selectedLocation, selectedType, selectedStatus, startDate, endDate]);
 
   const loadData = useCallback(async () => {
@@ -225,7 +314,8 @@ function InventoryReportPageInner() {
       });
       setAssets(assetsData.assets || []);
       setLocations(assetsData.locations || []);
-      setTotalItems(assetsData.pagination?.total || assetsData.total || 0);
+      const totalCount = assetsData.pagination?.total ?? assetsData.total ?? (Array.isArray(assetsData.assets) ? assetsData.assets.length : 0);
+      setTotalItems(totalCount);
       setSummary(assetsData.summary || null);
     } catch (e) {
       console.error("Error loading inventory data:", e);
@@ -234,9 +324,9 @@ function InventoryReportPageInner() {
   }, [page, limit, searchQuery, selectedLocation, selectedType, selectedStatus, startDate, endDate]);
 
   useEffect(() => {
-    setTimeout(()=>{
+    setTimeout(() => {
       loadData();
-    },0)
+    }, 0);
   }, [loadData]);
 
   const handleExport = async (format) => {
@@ -285,6 +375,20 @@ function InventoryReportPageInner() {
     }
   };
 
+  const activeFilterCount =
+    (selectedLocation ? 1 : 0) +
+    (selectedType ? 1 : 0) +
+    (selectedStatus ? 1 : 0) +
+    (startDate || endDate ? 1 : 0);
+
+  const resetFilters = () => {
+    setSelectedLocation("");
+    setSelectedType("");
+    setSelectedStatus("");
+    setStartDate("");
+    setEndDate("");
+  };
+
   // Metrics (prefer server-side summary, fallback to active state)
   const totalAssetsCount = summary?.totalAssetsCount ?? totalItems;
   const availableAssetsCount = summary?.availableAssetsCount ?? assets.filter((a) => a.status === "available").length;
@@ -301,86 +405,89 @@ function InventoryReportPageInner() {
 
   return (
     <AppLayout>
-      <div className="mx-auto space-y-6 mb-6">
+      <div className="mx-auto space-y-4 sm:space-y-6 mb-6 pt-3 sm:pt-5">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-xs">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-xs">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-800">
               Asset Inventory Summary
             </h1>
-            <p className="text-slate-450 text-sm mt-1">
+            <p className="text-slate-450 text-xs sm:text-sm mt-0.5 sm:mt-1">
               Generate and analyze dynamic hardware and software inventory reports.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
             <button
               onClick={loadData}
-              className="p-2.5 rounded-xl border border-slate-200 text-slate-650 hover:bg-slate-55 transition-colors cursor-pointer bg-white"
+              className="p-2 sm:p-2.5 rounded-xl border border-slate-200 text-slate-650 hover:bg-slate-50 transition-colors cursor-pointer bg-white"
               title="Refresh Data"
             >
-              <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+              <RefreshCw size={16} className={`sm:w-[18px] sm:h-[18px] ${loading ? "animate-spin" : ""}`} />
             </button>
             <ExportDropdown onExport={handleExport} disabled={loading} />
           </div>
         </div>
 
         {/* Metrics Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-5 border border-slate-100 bg-slate-50/50 rounded-2xl flex items-center gap-4">
-            <div className="w-12 h-12 bg-slate-200/50 rounded-xl flex items-center justify-center text-slate-600">
-              <Package size={22} />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+          <div className="p-3 sm:p-5 border border-slate-100 bg-slate-50/50 rounded-2xl flex items-center gap-2.5 sm:gap-4 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-200/50 rounded-xl flex items-center justify-center text-slate-600 shrink-0">
+              <Package size={20} className="sm:w-[22px] sm:h-[22px]" />
             </div>
-            <div>
-              <div className="text-2xl font-bold text-slate-800">{totalAssetsCount}</div>
-              <div className="text-xs text-slate-455 font-medium">Total Active Assets</div>
-            </div>
-          </div>
-
-          <div className="p-5 border border-emerald-100 bg-emerald-50/30 rounded-2xl flex items-center gap-4">
-            <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center">
-              <Zap size={22} />
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-emerald-700">{availableAssetsCount}</div>
-              <div className="text-xs text-emerald-500 font-medium">Available Assets</div>
+            <div className="min-w-0 flex-1">
+              <div className="text-lg sm:text-2xl font-bold text-slate-800 truncate font-mono">{totalAssetsCount}</div>
+              <div className="text-[10px] sm:text-xs text-slate-500 font-medium truncate">Total Active Assets</div>
             </div>
           </div>
 
-          <div className="p-5 border border-blue-100 bg-blue-50/30 rounded-2xl flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
-              <CheckCircle size={22} />
+          <div className="p-3 sm:p-5 border border-emerald-100 bg-emerald-50/30 rounded-2xl flex items-center gap-2.5 sm:gap-4 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
+              <Zap size={20} className="sm:w-[22px] sm:h-[22px]" />
             </div>
-            <div>
-              <div className="text-2xl font-bold text-blue-700">{allocatedAssetsCount}</div>
-              <div className="text-xs text-blue-500 font-medium">Allocated Assets</div>
+            <div className="min-w-0 flex-1">
+              <div className="text-lg sm:text-2xl font-bold text-emerald-700 truncate font-mono">{availableAssetsCount}</div>
+              <div className="text-[10px] sm:text-xs text-emerald-600 font-medium truncate">Available Assets</div>
             </div>
           </div>
 
-          <div className="p-5 border border-amber-100 bg-amber-50/30 rounded-2xl flex items-center gap-4">
-            <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center">
-              <AlertTriangle size={22} />
+          <div className="p-3 sm:p-5 border border-blue-100 bg-blue-50/30 rounded-2xl flex items-center gap-2.5 sm:gap-4 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
+              <CheckCircle size={20} className="sm:w-[22px] sm:h-[22px]" />
             </div>
-            <div>
-              <div className="text-2xl font-bold text-amber-700">{maintenanceAssetsCount}</div>
-              <div className="text-xs text-amber-500 font-medium">Under Maintenance</div>
+            <div className="min-w-0 flex-1">
+              <div className="text-lg sm:text-2xl font-bold text-blue-700 truncate font-mono">{allocatedAssetsCount}</div>
+              <div className="text-[10px] sm:text-xs text-blue-600 font-medium truncate">Allocated Assets</div>
+            </div>
+          </div>
+
+          <div className="p-3 sm:p-5 border border-amber-100 bg-amber-50/30 rounded-2xl flex items-center gap-2.5 sm:gap-4 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center shrink-0">
+              <AlertTriangle size={20} className="sm:w-[22px] sm:h-[22px]" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-lg sm:text-2xl font-bold text-amber-700 truncate font-mono">{maintenanceAssetsCount}</div>
+              <div className="text-[10px] sm:text-xs text-amber-600 font-medium truncate">Under Maintenance</div>
             </div>
           </div>
         </div>
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="p-5 border border-slate-100 rounded-2xl bg-white space-y-4 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+        {/* Charts: Full, Robust, Uninterrupted Visualizations */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          {/* Chart 1: Bar Chart */}
+          <div className="p-4 sm:p-5 border border-slate-100 rounded-2xl bg-white space-y-4 shadow-sm">
+            <h3 className="text-xs sm:text-sm font-bold text-slate-700 flex items-center gap-2">
               <Layers size={16} /> Asset Type Distribution
             </h3>
-            <div className="h-64">
+            <div className="h-64 sm:h-72 w-full">
               {typeBreakdownData.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-xs text-slate-400">No data available</div>
+                <div className="h-full flex items-center justify-center text-xs text-slate-400">
+                  No data available
+                </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={typeBreakdownData}>
+                  <BarChart data={typeBreakdownData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" fontSize={11} stroke="#94a3b8" />
+                    <XAxis dataKey="name" fontSize={11} stroke="#94a3b8" interval={0} angle={-25} textAnchor="end" />
                     <YAxis fontSize={11} stroke="#94a3b8" allowDecimals={false} />
                     <Tooltip cursor={{ fill: "#f8fafc" }} />
                     <Bar dataKey="value" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={45}>
@@ -394,16 +501,17 @@ function InventoryReportPageInner() {
             </div>
           </div>
 
-          <div className="p-5 border border-slate-100 rounded-2xl bg-white space-y-4 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+          {/* Chart 2: Donut Chart */}
+          <div className="p-4 sm:p-5 border border-slate-100 rounded-2xl bg-white space-y-4 shadow-sm">
+            <h3 className="text-xs sm:text-sm font-bold text-slate-700 flex items-center gap-2">
               <Filter size={16} /> Allocation & Status Share
             </h3>
-            <div className="h-64 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="h-64 sm:h-72 w-full flex flex-col sm:flex-row items-center justify-center gap-4">
               {statusBreakdownData.length === 0 ? (
                 <div className="text-xs text-slate-400">No data available</div>
               ) : (
                 <>
-                  <div className="flex-1 h-full w-full">
+                  <div className="w-full h-44 sm:h-full sm:flex-1">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -426,17 +534,17 @@ function InventoryReportPageInner() {
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="flex flex-col gap-2.5 shrink-0 self-center">
+                  <div className="flex flex-wrap sm:flex-col justify-center gap-2.5 shrink-0 self-center">
                     {statusBreakdownData.map((entry, idx) => (
                       <div key={idx} className="flex items-center gap-2 text-xs">
                         <span
-                          className="w-3.5 h-3.5 rounded-md"
+                          className="w-3.5 h-3.5 rounded-md shrink-0"
                           style={{
                             backgroundColor: STATUS_COLORS[entry.name.toLowerCase()] || COLORS[idx % COLORS.length],
                           }}
                         />
                         <span className="font-semibold text-slate-650">{entry.name}:</span>
-                        <span className="font-extrabold text-slate-800">{entry.value}</span>
+                        <span className="font-extrabold text-slate-800 font-mono">{entry.value}</span>
                       </div>
                     ))}
                   </div>
@@ -446,22 +554,17 @@ function InventoryReportPageInner() {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 bg-slate-50 border border-slate-100 p-4 rounded-xl shadow-xs items-center">
-          <div className="lg:col-span-4 relative h-10 flex items-center">
-            <Search 
-              size={16} 
-              className="absolute left-3 text-slate-400 cursor-pointer hover:text-emerald-600 transition-colors" 
-              onClick={() => setSearchQuery(searchInput)}
-              title="Click to search"
-            />
+        {/* Desktop Filter Row */}
+        <div className="hidden md:flex items-center gap-3 bg-slate-50 border border-slate-100 p-3.5 rounded-2xl shadow-xs">
+          <div className="flex-1 relative h-10 flex items-center">
+            <Search size={16} className="absolute left-3.5 text-slate-400 pointer-events-none" />
             <input
               type="text"
-              placeholder="Search by tag, name, brand, serial (Press Enter)..."
-              className="w-full h-full pl-9 pr-9 border border-slate-200 rounded-lg text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800"
+              placeholder="Search by tag, name, brand, serial..."
+              className="w-full h-full pl-9 pr-9 border border-slate-200 rounded-xl text-xs sm:text-sm bg-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 transition-all text-slate-800 placeholder-slate-400"
               value={searchInput}
               maxLength={100}
-              onChange={(e) => setSearchInput(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
+              onChange={(e) => setSearchInput(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ""))}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -476,21 +579,22 @@ function InventoryReportPageInner() {
                   setSearchInput("");
                   setSearchQuery("");
                 }}
-                className="absolute right-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+                className="absolute right-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors cursor-pointer border-none bg-transparent"
                 title="Clear search"
               >
                 <X size={14} />
               </button>
             )}
           </div>
-          <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-4 gap-2 w-full">
+          <div className="flex items-center gap-2.5 shrink-0">
             <SearchableSelect
               options={[
                 { value: "", label: "All Locations" },
-                ...locations.map((loc) => ({ value: loc.id, label: loc.name }))
+                ...locations.map((loc) => ({ value: loc.id, label: loc.name })),
               ]}
               value={selectedLocation}
-              onChange={val => setSelectedLocation(val)}
+              onChange={(val) => setSelectedLocation(val)}
+              className="w-[150px]"
             />
             <SearchableSelect
               options={[
@@ -500,10 +604,11 @@ function InventoryReportPageInner() {
                 { value: "Mobile", label: "Mobile" },
                 { value: "Monitor", label: "Monitor" },
                 { value: "Accessories", label: "Accessories" },
-                { value: "Other", label: "Other" }
+                { value: "Other", label: "Other" },
               ]}
               value={selectedType}
-              onChange={val => setSelectedType(val)}
+              onChange={(val) => setSelectedType(val)}
+              className="w-[130px]"
             />
             <SearchableSelect
               options={[
@@ -511,10 +616,11 @@ function InventoryReportPageInner() {
                 { value: "available", label: "Available" },
                 { value: "allocated", label: "Allocated" },
                 { value: "maintenance", label: "Maintenance" },
-                { value: "retired", label: "Retired" }
+                { value: "retired", label: "Retired" },
               ]}
               value={selectedStatus}
-              onChange={val => setSelectedStatus(val)}
+              onChange={(val) => setSelectedStatus(val)}
+              className="w-[130px]"
             />
             <DateRangePicker
               startDate={startDate}
@@ -524,7 +630,132 @@ function InventoryReportPageInner() {
                 setEndDate(end);
               }}
             />
+            {activeFilterCount > 0 && (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="px-3 py-2 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl border border-rose-200 transition-colors cursor-pointer shrink-0"
+                title="Reset all filters"
+              >
+                Clear
+              </button>
+            )}
           </div>
+        </div>
+
+        {/* Mobile Filter & Search Bar */}
+        <div className="block md:hidden">
+          <div className="flex items-center gap-2">
+            <div className="flex-1 relative">
+              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/15 shadow-2xs transition-all">
+                <Search size={16} className="text-slate-400 shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Search assets..."
+                  value={searchInput}
+                  maxLength={100}
+                  onChange={(e) => setSearchInput(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ""))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      setSearchQuery(searchInput);
+                    }
+                  }}
+                  className="border-none bg-transparent outline-none text-xs text-slate-800 w-full placeholder-slate-400"
+                />
+                {searchInput && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchInput("");
+                      setSearchQuery("");
+                    }}
+                    className="text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer"
+                    title="Clear search"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Single Filter Button Trigger */}
+            <button
+              type="button"
+              onClick={() => setShowFilterSheet(true)}
+              className={`relative inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border transition-all cursor-pointer shrink-0 text-xs font-semibold ${
+                activeFilterCount > 0
+                  ? "bg-emerald-50 border-emerald-300 text-emerald-700 shadow-xs"
+                  : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs"
+              }`}
+              aria-label="Filter Inventory"
+              title="Filter Inventory"
+            >
+              <SlidersHorizontal size={15} />
+              <span>Filters</span>
+              {activeFilterCount > 0 && (
+                <span className="w-4 h-4 bg-emerald-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Active Filter Badges on Mobile */}
+          {activeFilterCount > 0 && (
+            <div className="flex items-center gap-1.5 mt-2 overflow-x-auto pb-0.5 text-xs custom-scrollbar">
+              {selectedLocation && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-medium shrink-0">
+                  {locations.find((l) => String(l.id) === String(selectedLocation))?.name || "Location"}
+                  <X
+                    size={12}
+                    className="cursor-pointer hover:text-emerald-900"
+                    onClick={() => setSelectedLocation("")}
+                  />
+                </span>
+              )}
+              {selectedType && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-medium shrink-0">
+                  {selectedType}
+                  <X
+                    size={12}
+                    className="cursor-pointer hover:text-emerald-900"
+                    onClick={() => setSelectedType("")}
+                  />
+                </span>
+              )}
+              {selectedStatus && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-medium shrink-0 capitalize">
+                  {selectedStatus}
+                  <X
+                    size={12}
+                    className="cursor-pointer hover:text-emerald-900"
+                    onClick={() => setSelectedStatus("")}
+                  />
+                </span>
+              )}
+              {(startDate || endDate) && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-medium shrink-0">
+                  {startDate} {endDate ? `→ ${endDate}` : ""}
+                  <X
+                    size={12}
+                    className="cursor-pointer hover:text-emerald-900"
+                    onClick={() => {
+                      setStartDate("");
+                      setEndDate("");
+                    }}
+                  />
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="text-[11px] font-bold text-rose-600 hover:text-rose-700 bg-transparent border-none cursor-pointer underline shrink-0 px-1"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Data Table */}
@@ -581,14 +812,19 @@ function InventoryReportPageInner() {
               <div className="text-center py-10 text-slate-400 text-xs">No assets found.</div>
             ) : (
               assets.map((asset) => (
-                <div key={asset.id} className="p-4 flex flex-col gap-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800">{asset.name}</h4>
-                      <span className="text-xs font-mono text-emerald-600 font-bold mt-0.5 block">{asset.asset_tag}</span>
+                <div key={asset.id} className="p-3.5 sm:p-4 flex flex-col gap-2.5 hover:bg-slate-50/50 transition-colors">
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-sm font-bold text-slate-800 truncate">{asset.name}</h4>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span className="text-xs font-mono text-emerald-600 font-bold">{asset.asset_tag}</span>
+                        {asset.brand && (
+                          <span className="text-[10px] text-slate-400 font-medium truncate">• {asset.brand}</span>
+                        )}
+                      </div>
                     </div>
                     <span
-                      className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase"
+                      className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase shrink-0"
                       style={{
                         backgroundColor: `${STATUS_COLORS[asset.status]}15`,
                         color: STATUS_COLORS[asset.status],
@@ -598,22 +834,22 @@ function InventoryReportPageInner() {
                       {t(asset.status) || asset.status}
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 border-t border-slate-50 pt-2">
-                    <div>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 border-t border-slate-100 pt-2">
+                    <div className="min-w-0">
                       <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('category')}</span>
-                      <span className="font-semibold text-slate-700">{t(asset.type) || asset.type}</span>
+                      <span className="font-semibold text-slate-700 truncate block">{t(asset.type) || asset.type}</span>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('location')}</span>
-                      <span className="font-semibold text-slate-700">{asset.location?.name || "—"}</span>
+                      <span className="font-semibold text-slate-700 truncate block">{asset.location?.name || "—"}</span>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('allocatedTo')}</span>
-                      <span className="font-semibold text-slate-750">{asset.allocated_user_name || "—"}</span>
+                      <span className="font-semibold text-slate-750 truncate block">{asset.allocated_user_name || "—"}</span>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <span className="block text-[10px] text-slate-400 font-bold uppercase">SN</span>
-                      <span className="font-semibold text-slate-700">{asset.serial_number || "—"}</span>
+                      <span className="font-semibold text-slate-700 font-mono truncate block">{asset.serial_number || "—"}</span>
                     </div>
                   </div>
                 </div>
@@ -627,9 +863,132 @@ function InventoryReportPageInner() {
             limit={limit}
             onPageChange={setPage}
             onLimitChange={setLimit}
+            currentItemsCount={assets.length}
           />
         </div>
       </div>
+
+      {/* Mobile Filter Bottom Sheet Drawer */}
+      {showFilterSheet && (
+        <div className="fixed inset-0 z-[500] md:hidden" onClick={() => setShowFilterSheet(false)}>
+          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs animate-sheet-fade-in" />
+
+          {/* Bottom Sheet Drawer */}
+          <div
+            className="fixed inset-x-0 bottom-0 max-h-[85vh] bg-white rounded-t-3xl shadow-2xl z-[501] flex flex-col animate-sheet-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drag Handle */}
+            <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto my-3 shrink-0" />
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pb-3 border-b border-slate-100 shrink-0">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal size={18} className="text-emerald-600" />
+                <h3 className="text-base font-bold text-slate-900">Filter Inventory</h3>
+                {activeFilterCount > 0 && (
+                  <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                    {activeFilterCount} active
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFilterSheet(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer border-none"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Scrollable Body */}
+            <div className="p-5 overflow-y-auto flex-1 space-y-4">
+              {/* Location */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Location</label>
+                <SearchableSelect
+                  options={[
+                    { value: "", label: "All Locations" },
+                    ...locations.map((loc) => ({ value: loc.id, label: loc.name })),
+                  ]}
+                  value={selectedLocation}
+                  onChange={(val) => setSelectedLocation(val)}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Asset Type */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Asset Type</label>
+                <SearchableSelect
+                  options={[
+                    { value: "", label: "All Types" },
+                    { value: "Laptop", label: "Laptop" },
+                    { value: "Desktop", label: "Desktop" },
+                    { value: "Mobile", label: "Mobile" },
+                    { value: "Monitor", label: "Monitor" },
+                    { value: "Accessories", label: "Accessories" },
+                    { value: "Other", label: "Other" },
+                  ]}
+                  value={selectedType}
+                  onChange={(val) => setSelectedType(val)}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Status */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Asset Status</label>
+                <SearchableSelect
+                  options={[
+                    { value: "", label: "All Status" },
+                    { value: "available", label: "Available" },
+                    { value: "allocated", label: "Allocated" },
+                    { value: "maintenance", label: "Maintenance" },
+                    { value: "retired", label: "Retired" },
+                  ]}
+                  value={selectedStatus}
+                  onChange={(val) => setSelectedStatus(val)}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Date Range */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Date Range</label>
+                <DateRangePicker
+                  startDate={startDate}
+                  endDate={endDate}
+                  onChange={(start, end) => {
+                    setStartDate(start);
+                    setEndDate(end);
+                  }}
+                  className="w-full"
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-100 flex items-center justify-between gap-3 bg-slate-50/50 shrink-0">
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:text-slate-800 border border-slate-200 rounded-xl bg-white cursor-pointer"
+              >
+                Reset All
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowFilterSheet(false)}
+                className="px-6 py-2.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs cursor-pointer border-none"
+              >
+                Apply Filters
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }

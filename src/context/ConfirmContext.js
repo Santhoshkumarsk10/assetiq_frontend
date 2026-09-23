@@ -1,6 +1,7 @@
 'use client';
-import { createContext, useContext, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
+import { lockScroll, unlockScroll } from '@/lib/scrollLock';
 
 const ConfirmContext = createContext(null);
 
@@ -10,6 +11,15 @@ export function ConfirmProvider({ children }) {
   const [message, setMessage] = useState('');
   const [options, setOptions] = useState({});
   const resolverRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      lockScroll();
+      return () => {
+        unlockScroll();
+      };
+    }
+  }, [isOpen]);
 
   const confirm = useCallback((confirmTitle, confirmMessage, confirmOptions = {}) => {
     setTitle(confirmTitle);

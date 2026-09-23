@@ -328,9 +328,19 @@ export default function LicensePage() {
   return (
     <AppLayout>
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2.5 sm:gap-4 mb-4 sm:mb-6 -mt-2 sm:-mt-4">
-        <div className="w-full sm:w-auto">
-          <AnimatedPageTitle title="License Management" className="!text-xl sm:!text-2xl md:!text-3xl" />
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2.5 sm:gap-4 mb-4 sm:mb-6 pt-3 sm:pt-5">
+        <div className="w-full sm:w-auto flex items-center justify-between gap-2.5">
+          <AnimatedPageTitle title="License Management" className="!text-lg sm:!text-2xl md:!text-3xl whitespace-nowrap" />
+          {canAdd && (
+            <button
+              className="sm:hidden inline-flex items-center justify-center w-8 h-8 rounded-lg border-none bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white transition-all shrink-0 shadow-xs cursor-pointer"
+              onClick={openAdd}
+              title="Add License"
+              aria-label="Add License"
+            >
+              <Plus size={18} />
+            </button>
+          )}
         </div>
         {(canAdd || canDecideRenew) && (
           <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap shrink-0">
@@ -357,13 +367,12 @@ export default function LicensePage() {
                   <span className="sm:hidden">Test Alert</span>
                 </button>
                 <button
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shrink-0 whitespace-nowrap shadow-xs"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shrink-0 whitespace-nowrap shadow-xs"
                   onClick={openAdd}
                   title="Add License"
                 >
                   <Plus size={16} className="w-3.5 h-3.5 sm:w-[18px] sm:h-[18px] shrink-0" />
-                  <span className="hidden sm:inline">Add License</span>
-                  <span className="sm:hidden">Add License</span>
+                  <span>Add License</span>
                 </button>
               </>
             )}

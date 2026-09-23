@@ -186,34 +186,42 @@ export default function LocationsPage() {
   return (
     <AppLayout>
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-3 sm:mb-6 -mt-2 sm:-mt-4">
-        <div className="w-full sm:w-auto">
-          <AnimatedPageTitle title="Locations" />
-        </div>
-        
-        {/* Actions & Count Row on Mobile (Inline on Desktop) */}
-        <div className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2.5">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 pt-3 sm:pt-5">
+        <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <AnimatedPageTitle title="Locations" />
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white border border-slate-200 shadow-2xs">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="text-[11px] sm:text-xs text-slate-500 font-medium">Locations</span>
+              <span className="text-[11px] sm:text-xs font-bold text-slate-900 font-mono bg-slate-100 border border-slate-200/80 px-1.5 py-0.5 rounded-md leading-none">
+                {total}
+              </span>
+            </div>
+          </div>
+
           {canAdd && (
             <button
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm hover:shadow transition-all duration-200 shrink-0"
+              className="sm:hidden inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors shrink-0"
               onClick={openAdd}
             >
-              <Plus size={16} className="sm:w-[18px] sm:h-[18px]" /> Add New Location
+              <Plus size={15} /> Add
             </button>
           )}
-
-          {/* Subheader Count Pill for Mobile */}
-          <div className="inline-flex sm:hidden items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-white shadow-xs shrink-0">
-            Locations <span className="bg-white/20 px-1.5 py-0.5 rounded-full ml-0.5 text-[10.5px] font-bold">{total}</span>
-          </div>
         </div>
-      </div>
 
-      {/* Desktop Tabs / Subheader Bar */}
-      <div className="hidden sm:flex gap-2 mb-6">
-        <button className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-slate-900 text-white border-none cursor-pointer shadow-xs">
-          Locations <span className="bg-white/25 px-2 py-0.5 rounded-full ml-1 text-[11px] font-bold">{total}</span>
-        </button>
+        {canAdd && (
+          <div className="hidden sm:flex items-center justify-end gap-2.5 shrink-0">
+            <button
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm hover:shadow transition-all duration-200 shrink-0"
+              onClick={openAdd}
+            >
+              <Plus size={18} /> Add New Location
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main Container */}
@@ -347,11 +355,10 @@ export default function LocationsPage() {
             {/* Single Filter Button Trigger */}
             <button
               onClick={() => setShowMobileFilterSheet(true)}
-              className={`relative inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border transition-all cursor-pointer shrink-0 text-xs font-semibold ${
-                limit !== 12 || search
+              className={`relative inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border transition-all cursor-pointer shrink-0 text-xs font-semibold ${limit !== 12 || search
                   ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-xs'
                   : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs'
-              }`}
+                }`}
               aria-label="Filter Locations"
               title="Filter Locations"
             >
@@ -394,6 +401,8 @@ export default function LocationsPage() {
             </div>
           )}
         </div>
+
+        <p className="text-xs text-slate-500 mb-2.5 sm:mb-3">Showing <strong>{filtered.length}</strong> of {total} locations</p>
 
         {/* Card Grid Layout (2-Column on Mobile, 2-Column on SM, 3-Column on LG) */}
         {loading ? (
@@ -459,18 +468,16 @@ export default function LocationsPage() {
                       {/* Right: Active/Inactive Status Badge */}
                       <div className="shrink-0">
                         <span
-                          className={`inline-flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full text-[9px] sm:text-[11px] font-semibold transition-colors ${
-                            isActive
+                          className={`inline-flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full text-[9px] sm:text-[11px] font-semibold transition-colors ${isActive
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
                               : 'bg-slate-100 text-slate-600 border border-slate-200'
-                          }`}
+                            }`}
                         >
                           <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              isActive
+                            className={`w-1.5 h-1.5 rounded-full ${isActive
                                 ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]'
                                 : 'bg-slate-400'
-                            }`}
+                              }`}
                           />
                           {isActive ? 'Active' : 'Inactive'}
                         </span>

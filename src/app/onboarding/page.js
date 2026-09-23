@@ -17,6 +17,7 @@ import {
   SlidersHorizontal, RotateCcw
 } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
+import { lockScroll, unlockScroll } from '@/lib/scrollLock';
  
 export default function OnboardingPage() {
   const { t } = useLanguage();
@@ -47,6 +48,15 @@ export default function OnboardingPage() {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showMobileFilterSheet, setShowMobileFilterSheet] = useState(false);
+
+  useEffect(() => {
+    if (showMobileFilterSheet) {
+      lockScroll();
+      return () => {
+        unlockScroll();
+      };
+    }
+  }, [showMobileFilterSheet]);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -712,21 +722,24 @@ export default function OnboardingPage() {
 
   return (
     <AppLayout>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-5 sm:mb-6 -mt-3 sm:-mt-4">
-        <div className="min-w-0">
-          <AnimatedPageTitle title="User Onboarding" />
+      <div className="flex justify-between items-center gap-2 sm:gap-4 mb-4 sm:mb-6 pt-3 sm:pt-5">
+        <div className="min-w-0 flex-1">
+          <AnimatedPageTitle title="User Onboarding" className="!text-lg sm:!text-2xl md:!text-3xl whitespace-nowrap" />
         </div>
-        <div className="flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto justify-end sm:justify-start shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           <button
-            className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium cursor-pointer border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors shrink-0 whitespace-nowrap shadow-2xs"
+            className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium cursor-pointer border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors shrink-0 whitespace-nowrap shadow-2xs"
             onClick={loadData}
             disabled={loading}
+            title="Refresh"
+            aria-label="Refresh"
           >
-            <RefreshCw size={16} className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${loading ? 'animate-spin' : ''}`} /> Refresh
+            <RefreshCw size={16} className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
           </button>
           {canAddOnboarding && (
             <button 
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shrink-0 whitespace-nowrap shadow-xs" 
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shrink-0 whitespace-nowrap shadow-xs" 
               onClick={() => {
                 const defaultLocId = isLocationAdmin ? user?.location_id : '';
                 const userRole = roles.find(r => r.name === 'User');
@@ -746,49 +759,54 @@ export default function OnboardingPage() {
                 });
                 setShowAddModal(true);
               }}
+              title="Start Onboarding"
             >
-              <UserPlus size={18} className="w-3.5 h-3.5 sm:w-[18px] sm:h-[18px] shrink-0" /> Start Onboarding
+              <UserPlus size={18} className="w-3.5 h-3.5 sm:w-[18px] sm:h-[18px] shrink-0" />
+              <span className="hidden sm:inline">Start Onboarding</span>
+              <span className="sm:hidden">Onboard</span>
             </button>
           )}
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-200 mb-5 overflow-x-auto no-scrollbar gap-1 sm:gap-0">
+      <div className="flex w-full border-b border-slate-200 mb-4 sm:mb-5">
         {isHRorAdmin && (
           <>
             <button 
-              className={`px-3.5 sm:px-5 py-2.5 sm:py-3 border-b-2 text-xs sm:text-sm font-medium cursor-pointer transition-colors whitespace-nowrap shrink-0 ${
+              className={`flex-1 sm:flex-initial px-2 sm:px-5 py-2.5 sm:py-3 border-b-2 text-xs sm:text-sm font-medium cursor-pointer transition-colors text-center truncate ${
                 activeTab === 'active' 
                   ? 'border-emerald-600 text-emerald-600 font-semibold' 
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
               onClick={() => { setActiveTab('active'); setPage(1); }}
             >
-              Active Pipeline
+              <span className="hidden sm:inline">Active Pipeline</span>
+              <span className="sm:hidden">Active</span>
             </button>
             <button 
-              className={`px-3.5 sm:px-5 py-2.5 sm:py-3 border-b-2 text-xs sm:text-sm font-medium cursor-pointer transition-colors whitespace-nowrap shrink-0 ${
+              className={`flex-1 sm:flex-initial px-2 sm:px-5 py-2.5 sm:py-3 border-b-2 text-xs sm:text-sm font-medium cursor-pointer transition-colors text-center truncate ${
                 activeTab === 'completed' 
                   ? 'border-emerald-600 text-emerald-600 font-semibold' 
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
               onClick={() => { setActiveTab('completed'); setPage(1); }}
             >
-              Completed
+              <span>Completed</span>
             </button>
           </>
         )}
         {isITAdmin && (
           <button 
-            className={`px-3.5 sm:px-5 py-2.5 sm:py-3 border-b-2 text-xs sm:text-sm font-medium cursor-pointer transition-colors whitespace-nowrap shrink-0 ${
+            className={`flex-1 sm:flex-initial px-2 sm:px-5 py-2.5 sm:py-3 border-b-2 text-xs sm:text-sm font-medium cursor-pointer transition-colors text-center truncate ${
               activeTab === 'emails' 
                 ? 'border-emerald-600 text-emerald-600 font-semibold' 
                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
             onClick={() => { setActiveTab('emails'); setPage(1); }}
           >
-            IT Admin: Email Queue
+            <span className="hidden sm:inline">IT Admin: Email Queue</span>
+            <span className="sm:hidden">Email Queue</span>
           </button>
         )}
       </div>
