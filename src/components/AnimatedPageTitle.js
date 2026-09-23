@@ -32,22 +32,28 @@ const letterVariants = {
 export default function AnimatedPageTitle({ title, className = '' }) {
   if (!title) return null;
   const text = String(title);
+  const words = text.split(' ');
 
   return (
     <motion.h1
-      className={`text-3xl font-bold tracking-tight text-slate-900 inline-block cursor-default select-none ${className}`}
+      className={`text-lg sm:text-2xl md:text-3xl font-bold tracking-tight text-slate-900 inline-block cursor-default select-none leading-tight ${className}`}
       variants={titleContainerVariants}
       initial="hidden"
       animate="visible"
     >
-      {text.split('').map((char, index) => (
-        <motion.span
-          key={index}
-          variants={letterVariants}
-          className="inline-block"
-        >
-          {char === ' ' ? '\u00A0' : char}
-        </motion.span>
+      {words.map((word, wordIndex) => (
+        <span key={wordIndex} className="inline-block whitespace-nowrap">
+          {word.split('').map((char, index) => (
+            <motion.span
+              key={index}
+              variants={letterVariants}
+              className="inline-block"
+            >
+              {char}
+            </motion.span>
+          ))}
+          {wordIndex < words.length - 1 && <span className="inline-block">&nbsp;</span>}
+        </span>
       ))}
     </motion.h1>
   );

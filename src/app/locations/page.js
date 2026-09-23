@@ -6,7 +6,7 @@ import Modal from '@/components/Modal';
 import SearchableSelect from '@/components/SearchableSelect';
 import LocationSticker from '@/components/LocationSticker';
 import { locationApi } from '@/lib/api';
-import { Search, Plus, Pencil, Trash2, MapPin, X, Globe, Phone, Upload, Image as ImageIcon } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, MapPin, X, Globe, Phone, Upload, Image as ImageIcon, SlidersHorizontal } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { useAuth } from '@/context/AuthContext';
@@ -30,6 +30,7 @@ export default function LocationsPage() {
   const [editingLoc, setEditingLoc] = useState(null);
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
+  const [showMobileFilterSheet, setShowMobileFilterSheet] = useState(false);
 
   // Pagination states
   const [page, setPage] = useState(1);
@@ -185,32 +186,41 @@ export default function LocationsPage() {
   return (
     <AppLayout>
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 -mt-3 sm:-mt-4">
-        <div>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-3 sm:mb-6 -mt-2 sm:-mt-4">
+        <div className="w-full sm:w-auto">
           <AnimatedPageTitle title="Locations" />
         </div>
-        {canAdd && (
-          <button
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm hover:shadow transition-all duration-200"
-            onClick={openAdd}
-          >
-            <Plus size={18} /> Add New Location
-          </button>
-        )}
+        
+        {/* Actions & Count Row on Mobile (Inline on Desktop) */}
+        <div className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2.5">
+          {canAdd && (
+            <button
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm hover:shadow transition-all duration-200 shrink-0"
+              onClick={openAdd}
+            >
+              <Plus size={16} className="sm:w-[18px] sm:h-[18px]" /> Add New Location
+            </button>
+          )}
+
+          {/* Subheader Count Pill for Mobile */}
+          <div className="inline-flex sm:hidden items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-white shadow-xs shrink-0">
+            Locations <span className="bg-white/20 px-1.5 py-0.5 rounded-full ml-0.5 text-[10.5px] font-bold">{total}</span>
+          </div>
+        </div>
       </div>
 
-      {/* Tabs / Subheader Bar */}
-      <div className="flex gap-2 mb-6">
-        <button className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-emerald-600 text-white border-none cursor-pointer shadow-xs">
+      {/* Desktop Tabs / Subheader Bar */}
+      <div className="hidden sm:flex gap-2 mb-6">
+        <button className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-slate-900 text-white border-none cursor-pointer shadow-xs">
           Locations <span className="bg-white/25 px-2 py-0.5 rounded-full ml-1 text-[11px] font-bold">{total}</span>
         </button>
       </div>
 
       {/* Main Container */}
-      <div className="space-y-6">
-        {/* Search & Filter Bar */}
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs flex flex-col md:flex-row gap-4 items-center justify-between">
-          <div className="w-full md:flex-1 relative">
+      <div className="space-y-4 sm:space-y-6">
+        {/* Desktop Search & Filter Bar */}
+        <div className="hidden md:flex bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs flex-row gap-4 items-center justify-between">
+          <div className="flex-1 relative">
             <div className="flex items-center gap-2 bg-slate-50/70 border border-slate-200/80 rounded-xl px-4 py-2.5 focus-within:border-emerald-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-100 transition-all">
               <Search size={18} className="text-slate-400 shrink-0" />
               <input
@@ -261,7 +271,7 @@ export default function LocationsPage() {
             )}
           </div>
 
-          <div className="w-full md:w-auto flex items-center justify-end gap-3">
+          <div className="w-auto flex items-center justify-end gap-3">
             <SearchableSelect
               options={[
                 { value: 6, label: '6 per page' },
@@ -275,23 +285,128 @@ export default function LocationsPage() {
                 setLimit(val);
                 setPage(1);
               }}
-              className="w-full md:w-[150px]"
+              className="w-[150px]"
             />
           </div>
         </div>
 
-        {/* Card Grid Layout */}
+        {/* Mobile Search & Filter Bar */}
+        <div className="block md:hidden">
+          <div className="flex items-center gap-2">
+            <div className="flex-1 relative">
+              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-2xs">
+                <Search size={16} className="text-slate-400 shrink-0" />
+                <input
+                  placeholder="Search locations..."
+                  value={searchInput}
+                  maxLength={100}
+                  onChange={(e) => handleSearchInputChange(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setSearch(searchInput);
+                      setPage(1);
+                      setShowSuggestions(false);
+                    }
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  className="border-none bg-transparent outline-none text-xs text-slate-800 w-full placeholder-slate-400"
+                />
+                {searchInput && (
+                  <button
+                    onClick={() => handleSearchInputChange('')}
+                    className="text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer border-none bg-transparent p-0.5 rounded"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              {/* Mobile Suggestions Dropdown */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-52 overflow-y-auto py-1.5 divide-y divide-slate-50">
+                  {suggestions.map((item, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setSearchInput(item.value);
+                        setSearch(item.value);
+                        setPage(1);
+                        setShowSuggestions(false);
+                      }}
+                      className="w-full text-left px-3.5 py-2 hover:bg-emerald-50/50 transition-colors flex flex-col gap-0.5 border-none bg-transparent cursor-pointer"
+                    >
+                      <span className="text-[10px] text-emerald-600 font-bold tracking-wider uppercase">{item.type}</span>
+                      <span className="text-xs text-slate-800 font-semibold">{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Single Filter Button Trigger */}
+            <button
+              onClick={() => setShowMobileFilterSheet(true)}
+              className={`relative inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border transition-all cursor-pointer shrink-0 text-xs font-semibold ${
+                limit !== 12 || search
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-xs'
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs'
+              }`}
+              aria-label="Filter Locations"
+              title="Filter Locations"
+            >
+              <SlidersHorizontal size={15} />
+              <span>Filter</span>
+              {(limit !== 12 || search) && (
+                <span className="w-4 h-4 bg-emerald-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                  {(limit !== 12 ? 1 : 0) + (search ? 1 : 0)}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Active Filter Badges on Mobile */}
+          {(limit !== 12 || search) && (
+            <div className="flex items-center gap-1.5 mt-2 overflow-x-auto pb-0.5 text-xs">
+              {search && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-medium shrink-0">
+                  &quot;{search}&quot;
+                  <X size={12} className="cursor-pointer hover:text-emerald-900" onClick={() => { setSearch(''); setSearchInput(''); setPage(1); }} />
+                </span>
+              )}
+              {limit !== 12 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-medium shrink-0">
+                  {limit} per page
+                  <X size={12} className="cursor-pointer hover:text-emerald-900" onClick={() => { setLimit(12); setPage(1); }} />
+                </span>
+              )}
+              <button
+                onClick={() => {
+                  setSearch('');
+                  setSearchInput('');
+                  setLimit(12);
+                  setPage(1);
+                }}
+                className="text-[11px] text-slate-400 hover:text-rose-600 underline ml-1 cursor-pointer shrink-0 border-none bg-transparent"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Card Grid Layout (2-Column on Mobile, 2-Column on SM, 3-Column on LG) */}
         {loading ? (
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-20 flex flex-col items-center justify-center text-slate-400 gap-3 text-sm shadow-xs">
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-16 sm:p-20 flex flex-col items-center justify-center text-slate-400 gap-3 text-sm shadow-xs">
             <div className="w-8 h-8 border-3 border-slate-200 border-t-emerald-500 rounded-full animate-spin" />
             <span>Loading locations...</span>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white border border-slate-200/90 rounded-2xl py-20 px-6 text-center text-slate-400 flex flex-col items-center justify-center shadow-xs">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-500 flex items-center justify-center mb-4">
-              <MapPin size={32} />
+          <div className="bg-white border border-slate-200/90 rounded-2xl py-16 sm:py-20 px-6 text-center text-slate-400 flex flex-col items-center justify-center shadow-xs">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-500 flex items-center justify-center mb-4">
+              <MapPin size={28} className="sm:w-8 sm:h-8" />
             </div>
-            <h3 className="text-base font-bold text-slate-800">No locations found</h3>
+            <h3 className="text-sm sm:text-base font-bold text-slate-800">No locations found</h3>
             <p className="text-xs text-slate-500 mt-1 max-w-sm">
               {search ? `No locations matched "${search}". Try searching for something else.` : 'Get started by adding your first location hub.'}
             </p>
@@ -309,7 +424,7 @@ export default function LocationsPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4 lg:gap-5">
             {filtered.map((loc) => {
               const sticker = getLocationSticker(loc.name);
               const isActive = loc.is_active !== false && loc.status !== 'inactive';
@@ -317,25 +432,25 @@ export default function LocationsPage() {
               return (
                 <div
                   key={loc.id}
-                  className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between group relative overflow-hidden"
+                  className="bg-white border border-slate-200/90 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between group relative overflow-hidden"
                 >
                   {/* Top Header inside Card */}
                   <div>
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <div className="flex items-start sm:items-center justify-between gap-1 sm:gap-2 mb-1 sm:mb-1.5">
                       {/* Left: Country / Region Pill */}
-                      <div className="flex items-center gap-1.5 flex-wrap">
+                      <div className="flex items-center gap-1 flex-wrap min-w-0">
                         {sticker?.country ? (
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${sticker.badgeBg}`}>
+                          <span className={`px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full text-[8.5px] sm:text-[10px] font-bold uppercase tracking-wider border shrink-0 ${sticker.badgeBg}`}>
                             {sticker.country}
                           </span>
                         ) : (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border bg-slate-50 text-slate-600 border-slate-200">
+                          <span className="px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full text-[8.5px] sm:text-[10px] font-bold uppercase tracking-wider border bg-slate-50 text-slate-600 border-slate-200 shrink-0">
                             Global
                           </span>
                         )}
                         {loc.country_code && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200/70">
-                            <Phone size={10} className="text-slate-400" />
+                          <span className="hidden xs:inline-flex items-center gap-0.5 sm:gap-1 px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-full text-[8.5px] sm:text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200/70 shrink-0">
+                            <Phone size={9} className="text-slate-400 sm:w-2.5 sm:h-2.5" />
                             {loc.country_code}
                           </span>
                         )}
@@ -344,16 +459,18 @@ export default function LocationsPage() {
                       {/* Right: Active/Inactive Status Badge */}
                       <div className="shrink-0">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-colors ${isActive
+                          className={`inline-flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full text-[9px] sm:text-[11px] font-semibold transition-colors ${
+                            isActive
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
                               : 'bg-slate-100 text-slate-600 border border-slate-200'
-                            }`}
+                          }`}
                         >
                           <span
-                            className={`w-1.5 h-1.5 rounded-full ${isActive
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isActive
                                 ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]'
                                 : 'bg-slate-400'
-                              }`}
+                            }`}
                           />
                           {isActive ? 'Active' : 'Inactive'}
                         </span>
@@ -361,17 +478,17 @@ export default function LocationsPage() {
                     </div>
 
                     {/* Hero Die-Cut Travel Sticker Showcase */}
-                    <div className="h-32 sm:h-36 w-full flex items-center justify-center my-1.5 relative">
+                    <div className="h-20 sm:h-32 md:h-36 w-full flex items-center justify-center my-1 sm:my-1.5 relative">
                       <LocationSticker locationName={loc.name} image={loc.image || loc.image_url} />
                     </div>
 
                     {/* Location Name & Details */}
                     <div className="mt-1 text-center">
-                      <h3 className="text-[15px] font-bold text-slate-900 group-hover:text-emerald-600 transition-colors tracking-tight line-clamp-1">
+                      <h3 className="text-xs sm:text-[15px] font-bold text-slate-900 group-hover:text-emerald-600 transition-colors tracking-tight line-clamp-1" title={loc.name}>
                         {loc.name}
                       </h3>
-                      <div className="text-[11px] sm:text-xs text-slate-500 mt-0.5 flex items-center justify-center gap-1 px-1 text-center line-clamp-1">
-                        <MapPin size={12} className="text-slate-400 shrink-0" />
+                      <div className="text-[9.5px] sm:text-xs text-slate-500 mt-0.5 flex items-center justify-center gap-0.5 sm:gap-1 px-0.5 text-center line-clamp-1" title={loc.address || 'No address specified'}>
+                        <MapPin size={10} className="text-slate-400 shrink-0 sm:w-3 sm:h-3" />
                         <span className="truncate">
                           {loc.address || 'No address specified'}
                         </span>
@@ -380,30 +497,30 @@ export default function LocationsPage() {
                   </div>
 
                   {/* Card Bottom / Footer with Action Buttons */}
-                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
-                    <div className="text-[11px] font-medium text-slate-400 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <div className="mt-2 sm:mt-3 pt-1.5 sm:pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                    <div className="text-[9px] sm:text-[11px] font-medium text-slate-400 flex items-center gap-1 truncate">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
                       ID #{loc.id || '—'}
                     </div>
 
                     {/* Action buttons (Edit & Delete - ALWAYS visible) */}
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1 sm:gap-1.5">
                       {canEdit && (
                         <button
                           onClick={() => openEdit(loc)}
                           title="Edit Location"
-                          className="w-7.5 h-7.5 sm:w-8 sm:h-8 rounded-lg border border-slate-200/90 bg-slate-50/70 text-slate-600 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 flex items-center justify-center transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+                          className="w-6.5 h-6.5 sm:w-8 sm:h-8 rounded-lg border border-slate-200/90 bg-slate-50/70 text-slate-600 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 flex items-center justify-center transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
                         >
-                          <Pencil size={13} />
+                          <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         </button>
                       )}
                       {canDelete && (
                         <button
                           onClick={() => handleDelete(loc.id, loc.name)}
                           title="Delete Location"
-                          className="w-7.5 h-7.5 sm:w-8 sm:h-8 rounded-lg border border-slate-200/90 bg-slate-50/70 text-slate-600 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 flex items-center justify-center transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+                          className="w-6.5 h-6.5 sm:w-8 sm:h-8 rounded-lg border border-slate-200/90 bg-slate-50/70 text-slate-600 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 flex items-center justify-center transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
                         >
-                          <Trash2 size={13} />
+                          <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         </button>
                       )}
                     </div>
@@ -416,35 +533,59 @@ export default function LocationsPage() {
 
         {/* Pagination Controls */}
         {totalPages > 1 && (
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="text-xs text-slate-500 font-medium">
-              Showing <span className="font-semibold text-slate-700">{Math.min((page - 1) * limit + 1, total)}</span> to{' '}
-              <span className="font-semibold text-slate-700">{Math.min(page * limit, total)}</span> of{' '}
-              <span className="font-semibold text-slate-700">{total}</span> entries
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 shadow-xs">
+            {/* Desktop Pagination */}
+            <div className="hidden sm:flex justify-between items-center gap-4">
+              <div className="text-xs text-slate-500 font-medium">
+                Showing <span className="font-semibold text-slate-700">{Math.min((page - 1) * limit + 1, total)}</span> to{' '}
+                <span className="font-semibold text-slate-700">{Math.min(page * limit, total)}</span> of{' '}
+                <span className="font-semibold text-slate-700">{total}</span> entries
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                  disabled={page === 1}
+                >
+                  Previous
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    className={
+                      page === p
+                        ? 'px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white cursor-pointer shadow-xs'
+                        : 'px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer transition-colors'
+                    }
+                    onClick={() => setPage(p)}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <button
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                  disabled={page === totalPages}
+                >
+                  Next
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5">
+
+            {/* Mobile Pagination */}
+            <div className="flex sm:hidden justify-between items-center text-xs">
               <button
-                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-1.5 rounded-lg font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={() => setPage((p) => Math.max(p - 1, 1))}
                 disabled={page === 1}
               >
                 Previous
               </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                <button
-                  key={p}
-                  className={
-                    page === p
-                      ? 'px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white cursor-pointer shadow-xs'
-                      : 'px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer transition-colors'
-                  }
-                  onClick={() => setPage(p)}
-                >
-                  {p}
-                </button>
-              ))}
+              <span className="text-slate-500 font-medium">
+                Page {page} of {totalPages}
+              </span>
               <button
-                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-1.5 rounded-lg font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
                 disabled={page === totalPages}
               >
@@ -454,6 +595,83 @@ export default function LocationsPage() {
           </div>
         )}
       </div>
+
+      {/* Mobile Filter Bottom Sheet Modal */}
+      {showMobileFilterSheet && (
+        <Modal
+          isOpen={showMobileFilterSheet}
+          onClose={() => setShowMobileFilterSheet(false)}
+          title="Filter Locations"
+          footer={
+            <>
+              <button
+                type="button"
+                className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                onClick={() => {
+                  setSearch('');
+                  setSearchInput('');
+                  setLimit(12);
+                  setPage(1);
+                  setShowMobileFilterSheet(false);
+                }}
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                onClick={() => {
+                  setSearch(searchInput);
+                  setPage(1);
+                  setShowMobileFilterSheet(false);
+                }}
+              >
+                Apply Filters
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Search Query</label>
+              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5">
+                <Search size={16} className="text-slate-400 shrink-0" />
+                <input
+                  placeholder="Search locations by name..."
+                  value={searchInput}
+                  maxLength={100}
+                  onChange={(e) => handleSearchInputChange(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
+                  className="w-full text-xs text-slate-800 outline-none bg-transparent"
+                />
+                {searchInput && (
+                  <button
+                    type="button"
+                    onClick={() => handleSearchInputChange('')}
+                    className="text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer p-0.5"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Locations Per Page</label>
+              <SearchableSelect
+                options={[
+                  { value: 6, label: '6 per page' },
+                  { value: 9, label: '9 per page' },
+                  { value: 12, label: '12 per page' },
+                  { value: 24, label: '24 per page' },
+                  { value: 48, label: '48 per page' },
+                ]}
+                value={limit}
+                onChange={(val) => setLimit(val)}
+              />
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* Add / Edit Location Modal */}
       <Modal

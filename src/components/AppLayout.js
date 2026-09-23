@@ -151,10 +151,10 @@ export default function AppLayout({ children }) {
         />
       )}
       <TopBar isOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-      <main className={`flex-1 pt-[60px] transition-all duration-300 ${
+      <main className={`flex-1 pt-[60px] max-w-full overflow-x-hidden transition-all duration-300 ${
         sidebarOpen ? 'ml-0 lg:ml-[220px]' : 'ml-0 lg:ml-[80px]'
       }`}>
-        <div className="p-4 md:p-8">{children}</div>
+        <div className="p-3 sm:p-4 md:p-8 max-w-full">{children}</div>
       </main>
     </div>
   );

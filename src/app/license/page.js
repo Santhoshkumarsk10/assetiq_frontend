@@ -8,7 +8,7 @@ import SearchableSelect from '@/components/SearchableSelect';
 import DatePicker from '@/components/DatePicker';
 import { licenseApi } from '@/lib/api';
 import { socket } from '@/lib/socket';
-import { Search, Plus, Eye, Pencil, Trash2, KeyRound, X, Calendar, User, RefreshCw, CheckCircle, XCircle, Bell } from 'lucide-react';
+import { Search, Plus, Eye, Pencil, Trash2, KeyRound, X, Calendar, User, RefreshCw, CheckCircle, XCircle, Bell, SlidersHorizontal } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { useAuth } from '@/context/AuthContext';
@@ -22,13 +22,13 @@ export default function LicensePage() {
 
   // Dynamic permission checks (driven by JWT permissions from backend)
   const permissions = user?.permissions || [];
-  const canList        = permissions.includes('license.list');
-  const canAdd         = permissions.includes('license.add');
-  const canEdit        = permissions.includes('license.edit');
-  const canDelete      = permissions.includes('license.delete');
+  const canList = permissions.includes('license.list');
+  const canAdd = permissions.includes('license.add');
+  const canEdit = permissions.includes('license.edit');
+  const canDelete = permissions.includes('license.delete');
   const canSubmitRenew = permissions.includes('license.renewal.submit');
   const canDecideRenew = permissions.includes('license.renewal.decide');
-  const canNotify      = permissions.includes('license.notify');
+  const canNotify = permissions.includes('license.notify');
 
   // Derived helper flags (kept for UI branching)
   const canManage = canAdd || canEdit || canDelete;
@@ -40,12 +40,13 @@ export default function LicensePage() {
 
   // Pagination & Filtering
   const [page, setPage] = useState(1);
-  const [limit] = useState(10);
+  const [limit, setLimit] = useState(10);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [showMobileFilterSheet, setShowMobileFilterSheet] = useState(false);
 
   // Modals state
   const [showModal, setShowModal] = useState(false);
@@ -326,33 +327,43 @@ export default function LicensePage() {
 
   return (
     <AppLayout>
-      <div className="flex justify-between items-center mb-6 -mt-3 sm:-mt-4">
-        <div>
-          <AnimatedPageTitle title="License Management" />
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2.5 sm:gap-4 mb-4 sm:mb-6 -mt-2 sm:-mt-4">
+        <div className="w-full sm:w-auto">
+          <AnimatedPageTitle title="License Management" className="!text-xl sm:!text-2xl md:!text-3xl" />
         </div>
         {(canAdd || canDecideRenew) && (
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap shrink-0">
             {canDecideRenew && (
               <button
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-medium cursor-pointer border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium cursor-pointer border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors shrink-0 whitespace-nowrap"
                 onClick={openRenewalList}
+                title="Renewal Requests"
               >
-                <RefreshCw size={16} /> Renewal Requests
+                <RefreshCw size={15} className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                <span className="hidden sm:inline">Renewal Requests</span>
+                <span className="sm:hidden">Renewals</span>
               </button>
             )}
             {canAdd && (
               <>
                 <button
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-medium cursor-pointer border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium cursor-pointer border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shrink-0 whitespace-nowrap"
                   onClick={handleTriggerTest}
+                  title="Test Alert"
                 >
-                  <Bell size={16} className="text-slate-500" /> Test Alert
+                  <Bell size={15} className="text-slate-500 w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                  <span className="hidden sm:inline">Test Alert</span>
+                  <span className="sm:hidden">Test Alert</span>
                 </button>
                 <button
-                  className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shrink-0 whitespace-nowrap shadow-xs"
                   onClick={openAdd}
+                  title="Add License"
                 >
-                  <Plus size={18} /> Add License
+                  <Plus size={16} className="w-3.5 h-3.5 sm:w-[18px] sm:h-[18px] shrink-0" />
+                  <span className="hidden sm:inline">Add License</span>
+                  <span className="sm:hidden">Add License</span>
                 </button>
               </>
             )}
@@ -360,9 +371,10 @@ export default function LicensePage() {
         )}
       </div>
 
-      {/* Filters and Search */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs mb-6">
-        <div className="flex items-center gap-3 flex-wrap">
+      {/* Main Content Box */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-6 shadow-xs w-full max-w-full">
+        {/* Desktop Filter Row */}
+        <div className="hidden md:flex items-center gap-3 mb-4 flex-wrap">
           <form onSubmit={handleSearchSubmit} className="flex-1 relative min-w-[280px]">
             <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-2.5">
               <Search size={18} className="text-slate-400 shrink-0" />
@@ -394,197 +406,321 @@ export default function LicensePage() {
           />
         </div>
 
-        {/* License Table */}
-        <div className="mt-6 overflow-x-auto">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-12 text-slate-500 text-sm">
-              <KeyRound className="animate-pulse text-emerald-500 mb-2" size={32} />
-              Loading licenses...
+        {/* Mobile Filter & Search Bar */}
+        <div className="block md:hidden mb-3">
+          <div className="flex items-center gap-2">
+            <div className="flex-1 relative">
+              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+                <Search size={16} className="text-slate-400 shrink-0" />
+                <input
+                  placeholder="Search licenses..."
+                  value={searchInput}
+                  maxLength={100}
+                  onChange={(e) => setSearchInput(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setSearch(searchInput);
+                      setPage(1);
+                    }
+                  }}
+                  className="border-none bg-transparent outline-none text-xs text-slate-800 w-full placeholder-slate-400"
+                />
+                {searchInput && (
+                  <button
+                    onClick={handleClearSearch}
+                    className="text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer border-none bg-transparent"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
             </div>
-          ) : (
-            <>
-              {/* Desktop Table View */}
-              <div className="hidden md:block">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-slate-400 text-xs font-semibold uppercase tracking-wider">
-                      <th className="py-3 px-4">{t('software')}</th>
-                      <th className="py-3 px-4">{t('licenseKey')}</th>
-                      <th className="py-3 px-4">Type</th>
-                      <th className="py-3 px-4">{t('assignedTo')}</th>
-                      <th className="py-3 px-4">{t('validUntil')}</th>
-                      <th className="py-3 px-4">{t('status')}</th>
-                      <th className="py-3 px-4 text-right">{t('actions')}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {licenses.map((license) => (
-                      <tr key={license.id} className="text-slate-700 text-sm hover:bg-slate-50/50 transition-colors">
-                        <td className="py-3.5 px-4 font-semibold text-slate-900">{license.software_name}</td>
-                        <td className="py-3.5 px-4 font-mono text-xs text-slate-500">{license.license_key.substring(0, 12)}...</td>
-                        <td className="py-3.5 px-4">
-                          <span className="capitalize font-semibold text-slate-600">{license.license_type || 'validity'}</span>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          {license.user ? (
-                            <div className="flex items-center gap-1.5">
-                              <User size={15} className="text-slate-400" />
-                              <span>{license.user.name}</span>
-                            </div>
-                          ) : (
-                            <span className="text-slate-400 font-light italic">{t('unassigned')}</span>
-                          )}
-                        </td>
 
-                        <td className="py-3.5 px-4 text-xs text-slate-600">
-                          {license.valid_until ? (
-                            <div className="flex items-center gap-1">
-                              <Calendar size={13} className="text-slate-400" />
-                              <span>Expires {license.valid_until}</span>
-                            </div>
-                          ) : (
-                            <span className="text-slate-400">Perpetual / Ongoing</span>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <StatusBadge status={license.status} />
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="flex justify-end gap-1.5 flex-wrap">
-                            <button
-                              onClick={() => openViewDetails(license)}
-                              className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 border-none bg-transparent cursor-pointer"
-                              title={t('view')}
-                            >
-                              <Eye size={16} />
-                            </button>
-                            {/* IT Admin / Admin: Submit renewal request for expired licenses */}
-                            {canSubmitRenew && license.status === 'expired' && (
-                              <button
-                                onClick={() => openRenewalModal(license)}
-                                className="p-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 border-none bg-transparent cursor-pointer"
-                                title="Submit Renewal Request"
-                              >
-                                <RefreshCw size={16} />
-                              </button>
-                            )}
-                            {/* Location Admin: Notify user if license is active (just renewed) */}
-                            {canNotify && license.status === 'active' && license.user && (
-                              <button
-                                onClick={() => handleNotifyUser(license.id, license.software_name)}
-                                className="p-2 text-emerald-500 hover:text-emerald-700 rounded-lg hover:bg-emerald-50 border-none bg-transparent cursor-pointer"
-                                title="Notify Assigned User"
-                              >
-                                <Bell size={16} />
-                              </button>
-                            )}
-                            {(canEdit || canDelete) && (
-                              <>
-                                {canEdit && (
-                                  <button
-                                    onClick={() => openEdit(license)}
-                                    className="p-2 text-slate-400 hover:text-emerald-600 rounded-lg hover:bg-emerald-50 border-none bg-transparent cursor-pointer"
-                                    title={t('edit')}
-                                  >
-                                    <Pencil size={16} />
-                                  </button>
-                                )}
-                                {canDelete && (
-                                  <button
-                                    onClick={() => handleDelete(license.id, license.software_name)}
-                                    className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 border-none bg-transparent cursor-pointer"
-                                    title={t('delete')}
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            {/* Single Filter Button Trigger */}
+            <button
+              onClick={() => setShowMobileFilterSheet(true)}
+              className={`relative inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border transition-all cursor-pointer shrink-0 text-xs font-semibold ${statusFilter
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-xs'
+                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                }`}
+              aria-label="Filter Licenses"
+              title="Filter Licenses"
+            >
+              <SlidersHorizontal size={15} />
+              <span>Filter</span>
+              {statusFilter && (
+                <span className="w-4 h-4 bg-emerald-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                  1
+                </span>
+              )}
+            </button>
+          </div>
 
-              {/* Mobile Cards View */}
-              <div className="block md:hidden space-y-4">
-                {licenses.map((license) => (
-                  <div key={license.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex flex-col gap-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-800">{license.software_name}</h4>
-                        <span className="text-xs text-slate-450 font-mono mt-0.5 block">{license.license_key.substring(0, 16)}...</span>
-                      </div>
-                      <StatusBadge status={license.status} />
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 text-xs text-slate-500 border-t border-b border-slate-100 py-2">
-                      <div>
-                        <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('assignedTo')}</span>
-                        <span className="font-semibold text-slate-700 truncate block max-w-[80px]">{license.user?.name || t('unassigned')}</span>
-                      </div>
-                      <div>
-                        <span className="block text-[10px] text-slate-400 font-bold uppercase">Type</span>
-                        <span className="font-semibold text-slate-700 capitalize">{license.license_type || 'validity'}</span>
-                      </div>
-                      <div>
-                        <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('validUntil')}</span>
-                        <span className="font-semibold text-slate-700">{license.valid_until || 'Perpetual'}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end gap-1.5 pt-1">
-                      <button
-                        onClick={() => openViewDetails(license)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-650 text-xs font-bold hover:bg-slate-100 transition-colors cursor-pointer"
-                      >
-                        <Eye size={14} /> {t('view')}
-                      </button>
-                      {canSubmitRenew && license.status === 'expired' && (
-                        <button
-                          onClick={() => openRenewalModal(license)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors cursor-pointer"
-                        >
-                          <RefreshCw size={14} /> {t('refresh')}
-                        </button>
-                      )}
-                      {canNotify && license.status === 'active' && license.user && (
-                        <button
-                          onClick={() => handleNotifyUser(license.id, license.software_name)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors cursor-pointer"
-                        >
-                          <Bell size={14} /> {t('actions')}
-                        </button>
-                      )}
-                      {canEdit && (
-                        <button
-                          onClick={() => openEdit(license)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-650 text-xs font-bold hover:bg-slate-100 transition-colors cursor-pointer"
-                        >
-                          <Pencil size={14} /> {t('edit')}
-                        </button>
-                      )}
-                      {canDelete && (
-                        <button
-                          onClick={() => handleDelete(license.id, license.software_name)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold transition-colors cursor-pointer"
-                        >
-                          <Trash2 size={14} /> {t('delete')}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
+          {/* Active Filters Badges on Mobile */}
+          {statusFilter && (
+            <div className="flex items-center gap-1.5 mt-2 overflow-x-auto pb-0.5 text-xs">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-medium shrink-0">
+                {statusFilter === 'available' ? 'Available' : statusFilter === 'active' ? 'Active' : 'Expired'}
+                <X size={12} className="cursor-pointer hover:text-emerald-900" onClick={() => { setStatusFilter(''); setPage(1); }} />
+              </span>
+              <button
+                onClick={() => {
+                  setStatusFilter('');
+                  setPage(1);
+                }}
+                className="text-[11px] text-slate-400 hover:text-rose-600 underline ml-1 cursor-pointer shrink-0 border-none bg-transparent"
+              >
+                Clear
+              </button>
+            </div>
           )}
         </div>
 
-        {/* Pagination footer */}
+        <p className="text-xs text-slate-500 mb-2.5 sm:mb-3">Showing <strong>{licenses.length}</strong> of {total} licenses</p>
+
+        {/* License Table & Mobile Cards */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-12 text-slate-500 text-sm">
+            <KeyRound className="animate-pulse text-emerald-500 mb-2" size={32} />
+            Loading licenses...
+          </div>
+        ) : licenses.length === 0 ? (
+          <div className="text-center py-10 sm:py-15 px-5 text-slate-400 flex flex-col items-center justify-center">
+            <KeyRound size={44} className="mb-2.5 opacity-40" />
+            <p className="text-sm">No software licenses found</p>
+          </div>
+        ) : (
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-100 text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                    <th className="py-3 px-4">{t('software')}</th>
+                    <th className="py-3 px-4">{t('licenseKey')}</th>
+                    <th className="py-3 px-4">Type</th>
+                    <th className="py-3 px-4">{t('assignedTo')}</th>
+                    <th className="py-3 px-4">{t('validUntil')}</th>
+                    <th className="py-3 px-4">{t('status')}</th>
+                    <th className="py-3 px-4 text-right">{t('actions')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {licenses.map((license) => (
+                    <tr key={license.id} className="text-slate-700 text-sm hover:bg-slate-50/50 transition-colors">
+                      <td className="py-3.5 px-4 font-semibold text-slate-900">{license.software_name}</td>
+                      <td className="py-3.5 px-4 font-mono text-xs text-slate-500">{license.license_key.substring(0, 12)}...</td>
+                      <td className="py-3.5 px-4">
+                        <span className="capitalize font-semibold text-slate-600">{license.license_type || 'validity'}</span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        {license.user ? (
+                          <div className="flex items-center gap-1.5">
+                            <User size={15} className="text-slate-400" />
+                            <span>{license.user.name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 font-light italic">{t('unassigned')}</span>
+                        )}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-xs text-slate-600">
+                        {license.valid_until ? (
+                          <div className="flex items-center gap-1">
+                            <Calendar size={13} className="text-slate-400" />
+                            <span>Expires {license.valid_until}</span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">Perpetual / Ongoing</span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <StatusBadge status={license.status} />
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex justify-end gap-1.5 flex-wrap">
+                          <button
+                            onClick={() => openViewDetails(license)}
+                            className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 border-none bg-transparent cursor-pointer"
+                            title={t('view')}
+                          >
+                            <Eye size={16} />
+                          </button>
+                          {/* IT Admin / Admin: Submit renewal request for expired licenses */}
+                          {canSubmitRenew && license.status === 'expired' && (
+                            <button
+                              onClick={() => openRenewalModal(license)}
+                              className="p-2 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 border-none bg-transparent cursor-pointer"
+                              title="Submit Renewal Request"
+                            >
+                              <RefreshCw size={16} />
+                            </button>
+                          )}
+                          {/* Location Admin: Notify user if license is active (just renewed) */}
+                          {canNotify && license.status === 'active' && license.user && (
+                            <button
+                              onClick={() => handleNotifyUser(license.id, license.software_name)}
+                              className="p-2 text-emerald-500 hover:text-emerald-700 rounded-lg hover:bg-emerald-50 border-none bg-transparent cursor-pointer"
+                              title="Notify Assigned User"
+                            >
+                              <Bell size={16} />
+                            </button>
+                          )}
+                          {(canEdit || canDelete) && (
+                            <>
+                              {canEdit && (
+                                <button
+                                  onClick={() => openEdit(license)}
+                                  className="p-2 text-slate-400 hover:text-emerald-600 rounded-lg hover:bg-emerald-50 border-none bg-transparent cursor-pointer"
+                                  title={t('edit')}
+                                >
+                                  <Pencil size={16} />
+                                </button>
+                              )}
+                              {canDelete && (
+                                <button
+                                  onClick={() => handleDelete(license.id, license.software_name)}
+                                  className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 border-none bg-transparent cursor-pointer"
+                                  title={t('delete')}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Compact Cards View */}
+            <div className="block md:hidden space-y-2.5">
+              {licenses.map((license) => (
+                <div
+                  key={license.id}
+                  className="bg-white border border-slate-200/90 hover:border-slate-300 rounded-xl px-3 py-2.5 shadow-2xs flex flex-col transition-all"
+                >
+                  {/* 1. Top Row: License Key/ID Badge + Status Badge */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10.5px] text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-md font-bold font-mono tracking-tight inline-flex items-center">
+                      {license.license_key ? (license.license_key.length > 20 ? `${license.license_key.substring(0, 18)}...` : license.license_key) : 'LICENSE'}
+                    </span>
+                    <StatusBadge status={license.status} className="!text-[10px] !px-2 !py-0.5" />
+                  </div>
+
+                  {/* 2. Software Name: Bold Title */}
+                  <div className="mt-1.5">
+                    <h4 className="text-[13.5px] font-bold text-slate-900 leading-tight tracking-tight truncate" title={license.software_name}>
+                      {license.software_name}
+                    </h4>
+                  </div>
+
+                  {/* 3. Metadata Info: Clean Open 2-Column Grid (No nested boxes) */}
+                  <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex flex-col gap-2">
+                    {/* Row 1: Assigned To & License Type */}
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                      <div className="min-w-0">
+                        <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">
+                          {t('assignedTo')}
+                        </span>
+                        <span className="font-semibold text-slate-800 text-[12px] truncate block leading-tight">
+                          {license.user?.name || <span className="text-slate-400 italic font-normal">{t('unassigned')}</span>}
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">
+                          Type
+                        </span>
+                        <span className="font-semibold text-slate-800 text-[12px] truncate block leading-tight capitalize">
+                          {license.license_type || 'Validity'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Row 2: Valid Until & Renewal Alert */}
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                      <div className="min-w-0">
+                        <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">
+                          {t('validUntil')}
+                        </span>
+                        <span className="font-semibold text-slate-800 text-[12px] truncate block leading-tight">
+                          {license.valid_until || 'Perpetual'}
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">
+                          Renewal Alert
+                        </span>
+                        <span className="text-[12px] font-medium text-amber-700 truncate block leading-tight">
+                          {license.renewal_alert ? (license.renewal_alert.toString().includes('day') ? license.renewal_alert : `${license.renewal_alert} days`) : '30 days'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 4. Action Icons Row (Icon-Only, Same as Assets Page) */}
+                  <div className="flex items-center justify-end gap-1.5 mt-2 pt-2 border-t border-slate-100/90">
+                    <button
+                      onClick={() => openViewDetails(license)}
+                      className="w-7 h-7 rounded-lg border border-slate-200 bg-slate-50 text-slate-650 hover:bg-slate-100 hover:text-slate-900 active:scale-95 transition-all cursor-pointer flex items-center justify-center"
+                      title={t('view')}
+                      aria-label={t('view')}
+                    >
+                      <Eye size={13.5} />
+                    </button>
+                    {canSubmitRenew && license.status === 'expired' && (
+                      <button
+                        onClick={() => openRenewalModal(license)}
+                        className="w-7 h-7 rounded-md bg-blue-600 hover:bg-blue-700 text-white active:scale-95 transition-all cursor-pointer flex items-center justify-center shadow-2xs"
+                        title="Request Renewal"
+                        aria-label="Request Renewal"
+                      >
+                        <RefreshCw size={13.5} />
+                      </button>
+                    )}
+                    {canNotify && license.status === 'active' && license.user && (
+                      <button
+                        onClick={() => handleNotifyUser(license.id, license.software_name)}
+                        className="w-7 h-7 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95 transition-all cursor-pointer flex items-center justify-center shadow-2xs"
+                        title="Notify Assigned User"
+                        aria-label="Notify Assigned User"
+                      >
+                        <Bell size={13.5} />
+                      </button>
+                    )}
+                    {canEdit && (
+                      <button
+                        onClick={() => openEdit(license)}
+                        className="w-7 h-7 rounded-lg border border-slate-200 bg-slate-50 text-slate-650 hover:bg-slate-100 hover:text-slate-900 active:scale-95 transition-all cursor-pointer flex items-center justify-center"
+                        title={t('edit')}
+                        aria-label={t('edit')}
+                      >
+                        <Pencil size={13.5} />
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        onClick={() => handleDelete(license.id, license.software_name)}
+                        className="w-7 h-7 rounded-md bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 hover:text-rose-700 active:scale-95 transition-all cursor-pointer flex items-center justify-center"
+                        title={t('delete')}
+                        aria-label={t('delete')}
+                      >
+                        <Trash2 size={13.5} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Desktop Pagination Controls */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-6 pt-6 border-t border-slate-100 text-sm text-slate-500">
+          <div className="hidden md:flex items-center justify-between mt-6 pt-6 border-t border-slate-100 text-sm text-slate-500">
             <div>
               Showing <span className="font-semibold text-slate-700">{(page - 1) * limit + 1}</span> to{' '}
               <span className="font-semibold text-slate-700">{Math.min(page * limit, total)}</span> of{' '}
@@ -608,9 +744,104 @@ export default function LicensePage() {
             </div>
           </div>
         )}
+
+        {/* Mobile Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex md:hidden justify-between items-center mt-3 pt-3 border-t border-slate-200 text-xs">
+            <button
+              className="px-3 py-1.5 rounded-lg font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => setPage(p => Math.max(p - 1, 1))}
+              disabled={page === 1}
+            >
+              Previous
+            </button>
+            <span className="text-slate-500 font-medium">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              className="px-3 py-1.5 rounded-lg font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => setPage(p => Math.min(p + 1, totalPages))}
+              disabled={page === totalPages}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Add / Edit Modal */}
+      {/* Mobile Filter Bottom Sheet */}
+      {showMobileFilterSheet && (
+        <Modal
+          isOpen={showMobileFilterSheet}
+          onClose={() => setShowMobileFilterSheet(false)}
+          title="Filter Software Licenses"
+          footer={
+            <>
+              <button
+                type="button"
+                className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                onClick={() => {
+                  setStatusFilter('');
+                  setSearchInput('');
+                  setSearch('');
+                  setPage(1);
+                  setShowMobileFilterSheet(false);
+                }}
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                onClick={() => {
+                  setSearch(searchInput);
+                  setPage(1);
+                  setShowMobileFilterSheet(false);
+                }}
+              >
+                Apply Filters
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Search</label>
+              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5">
+                <Search size={16} className="text-slate-400 shrink-0" />
+                <input
+                  placeholder="Search by title or key..."
+                  value={searchInput}
+                  maxLength={100}
+                  onChange={(e) => setSearchInput(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
+                  className="w-full text-xs text-slate-800 outline-none bg-transparent"
+                />
+                {searchInput && (
+                  <button type="button" onClick={() => setSearchInput('')} className="text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">License Status</label>
+              <SearchableSelect
+                options={[
+                  { value: "", label: "All Status" },
+                  { value: "available", label: "Available" },
+                  { value: "active", label: "Active" },
+                  { value: "expired", label: "Expired" }
+                ]}
+                value={statusFilter}
+                onChange={val => setStatusFilter(val)}
+              />
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Add / Edit Software License Modal */}
       {showModal && (
         <Modal
           isOpen={showModal}
@@ -628,9 +859,8 @@ export default function LicensePage() {
                   setForm({ ...form, software_name: e.target.value.replace(/[^a-zA-Z0-9\s.\-+_]/g, '') });
                   if (errors.software_name) setErrors(prev => ({ ...prev, software_name: '' }));
                 }}
-                className={`w-full text-sm border rounded-xl px-4 py-2.5 outline-hidden focus:ring-1 text-slate-800 ${
-                  errors.software_name ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20' : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20'
-                }`}
+                className={`w-full text-sm border rounded-xl px-4 py-2.5 outline-hidden focus:ring-1 text-slate-800 ${errors.software_name ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20' : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20'
+                  }`}
                 required
               />
               {errors.software_name && <p className="text-xs text-rose-500 mt-1">{errors.software_name}</p>}
@@ -646,9 +876,8 @@ export default function LicensePage() {
                   setForm({ ...form, license_key: e.target.value.replace(/[^a-zA-Z0-9\-_.]/g, '') });
                   if (errors.license_key) setErrors(prev => ({ ...prev, license_key: '' }));
                 }}
-                className={`w-full text-sm border rounded-xl px-4 py-2.5 outline-hidden focus:ring-1 text-slate-800 font-mono ${
-                  errors.license_key ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20' : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20'
-                }`}
+                className={`w-full text-sm border rounded-xl px-4 py-2.5 outline-hidden focus:ring-1 text-slate-800 font-mono ${errors.license_key ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20' : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20'
+                  }`}
                 required
               />
               {errors.license_key && <p className="text-xs text-rose-500 mt-1">{errors.license_key}</p>}
@@ -682,7 +911,7 @@ export default function LicensePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Valid From</label>
                 <DatePicker
@@ -721,7 +950,7 @@ export default function LicensePage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Status</label>
                 <SearchableSelect
@@ -760,9 +989,8 @@ export default function LicensePage() {
                   if (errors.notes) setErrors(prev => ({ ...prev, notes: '' }));
                 }}
                 rows={3}
-                className={`w-full text-sm border rounded-xl px-4 py-2.5 outline-hidden focus:ring-1 text-slate-800 ${
-                  errors.notes ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20' : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20'
-                }`}
+                className={`w-full text-sm border rounded-xl px-4 py-2.5 outline-hidden focus:ring-1 text-slate-800 ${errors.notes ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20' : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20'
+                  }`}
               />
               {errors.notes && <p className="text-xs text-rose-500 mt-1">{errors.notes}</p>}
             </div>
@@ -804,7 +1032,7 @@ export default function LicensePage() {
               <StatusBadge status={viewingLicense.status} />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <span className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">License key</span>
                 <span className="block mt-1 font-mono text-sm text-slate-800 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 select-all">{viewingLicense.license_key}</span>
@@ -815,7 +1043,7 @@ export default function LicensePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <div>
                 <span className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Duration / Validity</span>
                 <span className="block mt-2 text-sm text-slate-800">
@@ -910,11 +1138,10 @@ export default function LicensePage() {
                     {rr.proposed_valid_until && <p className="text-xs text-slate-600 mt-1">Proposed validity: <strong>{rr.proposed_valid_until}</strong></p>}
                     {rr.renewal_notes && <p className="text-xs text-slate-500 italic mt-1">&ldquo;{rr.renewal_notes}&rdquo;</p>}
                   </div>
-                  <span className={`text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0 ${
-                    rr.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                    rr.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
-                    'bg-rose-100 text-rose-700'
-                  }`}>{rr.status.toUpperCase()}</span>
+                  <span className={`text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0 ${rr.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                      rr.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                        'bg-rose-100 text-rose-700'
+                    }`}>{rr.status.toUpperCase()}</span>
                 </div>
 
                 {/* Decision panel for Admin */}

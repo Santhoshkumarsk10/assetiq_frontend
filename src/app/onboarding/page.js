@@ -13,7 +13,8 @@ import { isValidEmail, sanitizeEmailInput } from '@/lib/validation';
 import { 
   UserPlus, CheckCircle2, ChevronRight, User, Mail, 
   Phone, Briefcase, MapPin, Laptop, ShieldCheck, 
-  Send, Server, RefreshCw, XCircle, Search, X
+  Send, Server, RefreshCw, XCircle, Search, X,
+  SlidersHorizontal, RotateCcw
 } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
  
@@ -45,6 +46,7 @@ export default function OnboardingPage() {
   const [searchInput, setSearchInput] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showMobileFilterSheet, setShowMobileFilterSheet] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -710,17 +712,21 @@ export default function OnboardingPage() {
 
   return (
     <AppLayout>
-      <div className="flex justify-between items-center mb-6 -mt-3 sm:-mt-4">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-5 sm:mb-6 -mt-3 sm:-mt-4">
+        <div className="min-w-0">
           <AnimatedPageTitle title="User Onboarding" />
         </div>
-        <div className="flex gap-2.5">
-          <button className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors" onClick={loadData} disabled={loading}>
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Refresh
+        <div className="flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto justify-end sm:justify-start shrink-0">
+          <button
+            className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium cursor-pointer border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors shrink-0 whitespace-nowrap shadow-2xs"
+            onClick={loadData}
+            disabled={loading}
+          >
+            <RefreshCw size={16} className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </button>
           {canAddOnboarding && (
             <button 
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors" 
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shrink-0 whitespace-nowrap shadow-xs" 
               onClick={() => {
                 const defaultLocId = isLocationAdmin ? user?.location_id : '';
                 const userRole = roles.find(r => r.name === 'User');
@@ -741,18 +747,18 @@ export default function OnboardingPage() {
                 setShowAddModal(true);
               }}
             >
-              <UserPlus size={18} /> Start Onboarding
+              <UserPlus size={18} className="w-3.5 h-3.5 sm:w-[18px] sm:h-[18px] shrink-0" /> Start Onboarding
             </button>
           )}
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-200 mb-5">
+      <div className="flex border-b border-slate-200 mb-5 overflow-x-auto no-scrollbar gap-1 sm:gap-0">
         {isHRorAdmin && (
           <>
             <button 
-              className={`px-5 py-3 border-b-2 text-sm font-medium cursor-pointer transition-colors ${
+              className={`px-3.5 sm:px-5 py-2.5 sm:py-3 border-b-2 text-xs sm:text-sm font-medium cursor-pointer transition-colors whitespace-nowrap shrink-0 ${
                 activeTab === 'active' 
                   ? 'border-emerald-600 text-emerald-600 font-semibold' 
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
@@ -762,7 +768,7 @@ export default function OnboardingPage() {
               Active Pipeline
             </button>
             <button 
-              className={`px-5 py-3 border-b-2 text-sm font-medium cursor-pointer transition-colors ${
+              className={`px-3.5 sm:px-5 py-2.5 sm:py-3 border-b-2 text-xs sm:text-sm font-medium cursor-pointer transition-colors whitespace-nowrap shrink-0 ${
                 activeTab === 'completed' 
                   ? 'border-emerald-600 text-emerald-600 font-semibold' 
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
@@ -775,7 +781,7 @@ export default function OnboardingPage() {
         )}
         {isITAdmin && (
           <button 
-            className={`px-5 py-3 border-b-2 text-sm font-medium cursor-pointer transition-colors ${
+            className={`px-3.5 sm:px-5 py-2.5 sm:py-3 border-b-2 text-xs sm:text-sm font-medium cursor-pointer transition-colors whitespace-nowrap shrink-0 ${
               activeTab === 'emails' 
                 ? 'border-emerald-600 text-emerald-600 font-semibold' 
                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
@@ -787,8 +793,8 @@ export default function OnboardingPage() {
         )}
       </div>
 
-      {/* Search and limit controls */}
-      <div className="flex gap-4 items-center mb-5">
+      {/* Search and limit controls - Desktop */}
+      <div className="hidden md:flex gap-4 items-center mb-5">
         <div className="flex-1 relative">
           <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-2.5">
             <Search size={18} className="text-slate-400 shrink-0" />
@@ -848,9 +854,131 @@ export default function OnboardingPage() {
             { value: 50, label: "50 per page" }
           ]}
           value={limit}
-          onChange={val => setLimit(val)}
+          onChange={val => { setLimit(val); setPage(1); }}
           className="w-[150px]"
         />
+      </div>
+
+      {/* Search and limit controls - Mobile */}
+      <div className="block md:hidden mb-4">
+        <div className="flex items-center gap-2">
+          <div className="flex-1 relative">
+            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-2xs">
+              <Search size={16} className="text-slate-400 shrink-0" />
+              <input
+                placeholder="Search onboarding..."
+                value={searchInput}
+                maxLength={100}
+                onChange={(e) => handleSearchInputChange(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setSearch(searchInput);
+                    setPage(1);
+                    setShowSuggestions(false);
+                  }
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                className="border-none bg-transparent outline-none text-xs text-slate-800 w-full placeholder-slate-400"
+              />
+              {searchInput && (
+                <button
+                  onClick={() => handleSearchInputChange('')}
+                  className="text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer border-none bg-transparent p-0.5 rounded"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Mobile Suggestions Dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-52 overflow-y-auto py-1.5 divide-y divide-slate-50">
+                {suggestions.map((item, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setSearchInput(item.value);
+                      setSearch(item.value);
+                      setPage(1);
+                      setShowSuggestions(false);
+                    }}
+                    className="w-full text-left px-3.5 py-2 hover:bg-emerald-50/50 transition-colors flex flex-col gap-0.5 border-none bg-transparent cursor-pointer"
+                  >
+                    <span className="text-[10px] text-emerald-600 font-bold tracking-wider uppercase">{item.type}</span>
+                    <span className="text-xs text-slate-800 font-semibold">{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Single Filter Button Trigger */}
+          <button
+            onClick={() => setShowMobileFilterSheet(true)}
+            className={`relative inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border transition-all cursor-pointer shrink-0 text-xs font-semibold ${
+              limit !== 10 || search
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-xs'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs'
+            }`}
+            aria-label="Filter Onboarding"
+            title="Filter Onboarding"
+          >
+            <SlidersHorizontal size={15} />
+            <span>Filter</span>
+            {(limit !== 10 || search) && (
+              <span className="w-4 h-4 bg-emerald-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                {(limit !== 10 ? 1 : 0) + (search ? 1 : 0)}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Active Filter Badges on Mobile */}
+        {(limit !== 10 || search) && (
+          <div className="flex items-center gap-1.5 mt-2 overflow-x-auto no-scrollbar pb-0.5 text-xs">
+            {search && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium shrink-0">
+                Search: &quot;{search}&quot;
+                <button
+                  onClick={() => {
+                    setSearch('');
+                    setSearchInput('');
+                    setPage(1);
+                  }}
+                  className="hover:text-emerald-900 border-none bg-transparent cursor-pointer p-0"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            {limit !== 10 && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium shrink-0">
+                {limit} per page
+                <button
+                  onClick={() => {
+                    setLimit(10);
+                    setPage(1);
+                  }}
+                  className="hover:text-emerald-900 border-none bg-transparent cursor-pointer p-0"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            <button
+              onClick={() => {
+                setSearch('');
+                setSearchInput('');
+                setLimit(10);
+                setPage(1);
+              }}
+              className="text-[11px] text-slate-400 hover:text-slate-600 font-medium underline shrink-0 cursor-pointer border-none bg-transparent"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -859,8 +987,8 @@ export default function OnboardingPage() {
         </div>
       ) : activeTab === 'emails' ? (
         // Email queue tab
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
-          <div className="text-sm text-slate-500 mb-4">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-6 shadow-xs">
+          <div className="text-xs sm:text-sm text-slate-500 mb-4">
             Showing <strong className="font-semibold text-slate-700">{emailRequests.length}</strong> corporate email requests
           </div>
           <div className="overflow-x-auto">
@@ -949,62 +1077,70 @@ export default function OnboardingPage() {
           </div>
 
           {/* Mobile Card View */}
-          <div className="block md:hidden divide-y divide-slate-100">
+          <div className="block md:hidden space-y-3">
             {emailRequests.length === 0 ? (
               <div className="text-center py-10 text-slate-400 text-xs">
                 No email provisioning requests found.
               </div>
             ) : (
               emailRequests.map(req => (
-                <div key={req.id} className="p-4 flex flex-col gap-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800">{req.onboardingRequest?.name}</h4>
-                      <span className="text-xs text-slate-500 mt-0.5 block">
-                        ID: {req.onboardingRequest?.employee_id} | {req.onboardingRequest?.designation}
-                      </span>
+                <div key={req.id} className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs space-y-3">
+                  {/* Top: Name, ID, Designation & Status badge */}
+                  <div className="flex items-start justify-between gap-2.5">
+                    <div className="min-w-0">
+                      <h4 className="text-sm font-bold text-slate-900 truncate">{req.onboardingRequest?.name}</h4>
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium mt-0.5">
+                        <span className="font-mono text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">ID: {req.onboardingRequest?.employee_id || '—'}</span>
+                        <span className="text-slate-300">•</span>
+                        <span className="truncate">{req.onboardingRequest?.designation || '—'}</span>
+                      </div>
                     </div>
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold border ${
-                      req.status === 'approved' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 
-                      req.status === 'rejected' ? 'bg-rose-100 text-rose-700 border-rose-200' : 'bg-amber-100 text-amber-800 border-amber-200'
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border shrink-0 ${
+                      req.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
+                      req.status === 'rejected' ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-amber-50 text-amber-800 border-amber-200'
                     }`}>
                       <span className="w-1.5 h-1.5 rounded-full bg-current" />
                       {t(req.status) || req.status}
                     </span>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 border-t border-slate-50 pt-2">
-                    <div>
-                      <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('location')}</span>
-                      <span className="font-semibold text-slate-700">{req.onboardingRequest?.location?.name || '—'}</span>
+                  {/* 2-Column Info: Location & Onboarding Status */}
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-2.5 border-t border-slate-100">
+                    <div className="space-y-0.5 min-w-0">
+                      <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('location')}</span>
+                      <span className="font-semibold text-slate-700 truncate block">{req.onboardingRequest?.location?.name || '—'}</span>
                     </div>
-                    <div>
-                      <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('onboardingStatus')}</span>
+                    <div className="space-y-0.5 min-w-0">
+                      <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('onboardingStatus')}</span>
                       {req.onboardingRequest ? (
-                        <div className="flex flex-col gap-0.5 mt-0.5">
-                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border w-fit ${
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10.5px] font-semibold border ${
                             req.onboardingRequest.status === 'completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
                             req.onboardingRequest.status === 'draft' ? 'bg-slate-50 text-slate-600 border-slate-200' : 
                             req.onboardingRequest.status === 'pending_approval' ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200'
                           }`}>
                             {t(req.onboardingRequest.status) || req.onboardingRequest.status.replace('_', ' ')}
                           </span>
-                          <span className="text-[9px] text-slate-400">Step {req.onboardingRequest.step} / 6</span>
+                          <span className="text-[10px] text-slate-400 font-medium">Step {req.onboardingRequest.step} / 6</span>
                         </div>
-                      ) : '—'}
+                      ) : <span className="text-slate-400">—</span>}
                     </div>
                   </div>
 
-                  <div className="text-xs text-slate-500 border-t border-slate-50 pt-2">
-                    <span className="block text-[10px] text-slate-400 font-bold uppercase mb-1">{t('suggestedCorporateEmail')}</span>
-                    <span className="inline-block px-2 py-0.5 rounded bg-slate-50 border border-slate-200 font-mono text-xs text-slate-700">{req.suggested_email}</span>
+                  {/* Suggested Corporate Email */}
+                  <div className="pt-2.5 border-t border-slate-100 space-y-1">
+                    <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('suggestedCorporateEmail')}</span>
+                    <div className="inline-block px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 font-mono text-xs text-slate-800 font-medium max-w-full truncate">
+                      {req.suggested_email}
+                    </div>
                   </div>
 
-                  <div className="border-t border-slate-50 pt-3 flex justify-end">
+                  {/* Bottom: Action / Processed Note */}
+                  <div className="pt-2.5 border-t border-slate-100">
                     {req.status === 'pending' ? (
                       canProcessEmails && (
                         <button 
-                          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white border-none cursor-pointer w-full" 
+                          className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white border-none cursor-pointer shadow-xs transition-colors" 
                           onClick={() => {
                             setSelectedEmailReq(req);
                             setEmailRemarks('');
@@ -1015,9 +1151,10 @@ export default function OnboardingPage() {
                         </button>
                       )
                     ) : (
-                      <span className="text-xs text-slate-400">
-                        Processed by {req.processor?.name || 'Admin'}
-                      </span>
+                      <div className="flex items-center justify-between text-xs text-slate-400 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
+                        <span className="font-medium text-slate-500">Status:</span>
+                        <span>Processed by <strong className="text-slate-700 font-semibold">{req.processor?.name || 'Admin'}</strong></span>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -1028,7 +1165,7 @@ export default function OnboardingPage() {
         </div>
       ) : (
         // HR/Admin Pipeline tabs
-        <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col gap-3 sm:gap-4 mb-6">
           {((activeTab === 'active' ? activeRequests : completedRequests)).length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-xl p-8 shadow-xs text-center text-slate-400 flex flex-col items-center justify-center">
               <UserPlus size={48} className="mb-3 opacity-40" />
@@ -1036,41 +1173,114 @@ export default function OnboardingPage() {
             </div>
           ) : (
             (activeTab === 'active' ? activeRequests : completedRequests).map(req => (
-              <div 
-                className="flex items-center justify-between p-5 bg-white border border-slate-200 rounded-xl shadow-xs hover:border-slate-350 hover:shadow-sm cursor-pointer transition-all duration-150" 
-                key={req.id}
-                onClick={() => openWizard(req.id)}
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${
-                    req.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
-                  }`}>
-                    {req.status === 'completed' ? <CheckCircle2 size={20} /> : <User size={20} />}
-                  </div>
-                  <div className="flex flex-col">
-                    <h3 className="text-sm font-semibold text-slate-800">{req.name}</h3>
-                    <div className="flex items-center gap-4 text-xs text-slate-400 mt-1">
-                      <span className="flex items-center gap-1"><Briefcase size={14} /> {req.designation} ({req.department})</span>
-                      <span className="flex items-center gap-1"><MapPin size={14} /> {req.location?.name || 'Global'}</span>
-                      <span>ID: {req.employee_id}</span>
+              <div key={req.id}>
+                {/* Desktop List Row */}
+                <div 
+                  className="hidden md:flex items-center justify-between p-5 bg-white border border-slate-200 rounded-xl shadow-xs hover:border-slate-350 hover:shadow-sm cursor-pointer transition-all duration-150" 
+                  onClick={() => openWizard(req.id)}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${
+                      req.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
+                    }`}>
+                      {req.status === 'completed' ? <CheckCircle2 size={20} /> : <User size={20} />}
                     </div>
+                    <div className="flex flex-col">
+                      <h3 className="text-sm font-semibold text-slate-800">{req.name}</h3>
+                      <div className="flex items-center gap-4 text-xs text-slate-400 mt-1">
+                        <span className="flex items-center gap-1"><Briefcase size={14} /> {req.designation} ({req.department})</span>
+                        <span className="flex items-center gap-1"><MapPin size={14} /> {req.location?.name || 'Global'}</span>
+                        <span>ID: {req.employee_id}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-6">
+                    <div className="text-right">
+                      <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Wizard Step</div>
+                      <div className="text-xs font-semibold text-slate-700 mt-0.5">Step {req.step} / 6</div>
+                    </div>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold border min-w-[120px] justify-center ${
+                      req.status === 'completed' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 
+                      req.status === 'draft' ? 'bg-slate-100 text-slate-600 border-slate-200' : 
+                      req.status === 'pending_approval' ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-blue-100 text-blue-700 border-blue-200'
+                    }`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                      {req.status.replace('_', ' ')}
+                    </span>
+                    <ChevronRight size={20} className="text-slate-300" />
                   </div>
                 </div>
 
-                <div className="flex items-center gap-6">
-                  <div className="text-right">
-                    <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Wizard Step</div>
-                    <div className="text-xs font-semibold text-slate-700 mt-0.5">Step {req.step} / 6</div>
+                {/* Mobile Card Layout */}
+                <div 
+                  className="block md:hidden bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs hover:shadow-xs active:scale-[0.99] transition-all cursor-pointer space-y-3"
+                  onClick={() => openWizard(req.id)}
+                >
+                  {/* Top Row: Avatar + Name & ID on left, Status badge on right */}
+                  <div className="flex items-start justify-between gap-2.5">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
+                        req.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-200/60' : 'bg-blue-50 text-blue-600 border-blue-200/60'
+                      }`}>
+                        {req.status === 'completed' ? <CheckCircle2 size={18} /> : <User size={18} />}
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-sm font-bold text-slate-900 truncate">{req.name}</h4>
+                        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium mt-0.5">
+                          <span className="font-mono text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">ID: {req.employee_id}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Status badge */}
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border shrink-0 ${
+                      req.status === 'completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
+                      req.status === 'draft' ? 'bg-slate-50 text-slate-600 border-slate-200' : 
+                      req.status === 'pending_approval' ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200'
+                    }`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                      {req.status.replace('_', ' ')}
+                    </span>
                   </div>
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold border min-w-[120px] justify-center ${
-                    req.status === 'completed' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 
-                    req.status === 'draft' ? 'bg-slate-100 text-slate-600 border-slate-200' : 
-                    req.status === 'pending_approval' ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-blue-100 text-blue-700 border-blue-200'
-                  }`}>
-                    <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                    {req.status.replace('_', ' ')}
-                  </span>
-                  <ChevronRight size={20} className="text-slate-300" />
+
+                  {/* Middle Grid: 2-column info (Role/Department & Location) */}
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-2.5 border-t border-slate-100">
+                    <div className="space-y-0.5 min-w-0">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                        <Briefcase size={11} className="text-slate-400 shrink-0" /> Role & Dept
+                      </span>
+                      <div className="font-semibold text-slate-700 text-xs truncate">
+                        {req.designation || '—'}
+                      </div>
+                      <div className="text-[11px] text-slate-500 truncate">
+                        {req.department ? `(${req.department})` : ''}
+                      </div>
+                    </div>
+
+                    <div className="space-y-0.5 min-w-0">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                        <MapPin size={11} className="text-slate-400 shrink-0" /> Location
+                      </span>
+                      <div className="font-semibold text-slate-700 text-xs truncate">
+                        {req.location?.name || 'Global'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom Row: Wizard Step Progress Indicator + Tap to open chevron */}
+                  <div className="flex items-center justify-between pt-2.5 border-t border-slate-100/80 bg-slate-50/60 -mx-4 -mb-4 p-3 rounded-b-2xl">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Wizard:</span>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-xs font-bold text-slate-700 shadow-2xs">
+                        Step {req.step} / 6
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs font-semibold text-emerald-600">
+                      <span>View Details</span>
+                      <ChevronRight size={14} />
+                    </div>
+                  </div>
                 </div>
               </div>
             ))
@@ -1080,11 +1290,11 @@ export default function OnboardingPage() {
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex justify-between items-center mt-5 pt-4 border-t border-slate-200">
-          <div className="text-sm text-slate-500">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mt-5 pt-4 border-t border-slate-200">
+          <div className="text-xs sm:text-sm text-slate-500 text-center sm:text-left">
             Showing {Math.min((page - 1) * limit + 1, total)} to {Math.min(page * limit, total)} of {total} entries
           </div>
-          <div className="flex gap-1.5">
+          <div className="flex gap-1.5 items-center">
             <button 
               className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" 
               onClick={() => setPage(p => Math.max(p - 1, 1))} 
@@ -1092,18 +1302,23 @@ export default function OnboardingPage() {
             >
               Previous
             </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-              <button 
-                key={p} 
-                className={page === p 
-                  ? "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white cursor-pointer" 
-                  : "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer"
-                } 
-                onClick={() => setPage(p)}
-              >
-                {p}
-              </button>
-            ))}
+            <span className="text-xs font-semibold text-slate-600 px-2 sm:hidden">
+              Page {page} / {totalPages}
+            </span>
+            <div className="hidden sm:flex gap-1.5">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                <button 
+                  key={p} 
+                  className={page === p 
+                    ? "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white cursor-pointer" 
+                    : "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer"
+                  } 
+                  onClick={() => setPage(p)}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
             <button 
               className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" 
               onClick={() => setPage(p => Math.min(p + 1, totalPages))} 
@@ -1122,20 +1337,22 @@ export default function OnboardingPage() {
         title="Start User Onboarding"
         size="lg"
         overflowVisible={true}
-        footer={<>
-          <button className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors" onClick={() => setShowAddModal(false)}>Cancel</button>
-          <button 
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors" 
-            onClick={handleStartOnboarding}
-            disabled={submitting || !step1Form.employee_id || !step1Form.name || !step1Form.personal_email || !step1Form.phone || !step1Form.department || !step1Form.designation || !step1Form.state || !step1Form.city || !step1Form.address}
-          >
-            {submitting ? 'Initializing...' : 'Initialize Onboarding'}
-          </button>
-        </>}
+        footer={
+          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto justify-end">
+            <button className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-medium cursor-pointer border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors w-full sm:w-auto" onClick={() => setShowAddModal(false)}>Cancel</button>
+            <button 
+              className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-xs w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed" 
+              onClick={handleStartOnboarding}
+              disabled={submitting || !step1Form.employee_id || !step1Form.name || !step1Form.personal_email || !step1Form.phone || !step1Form.department || !step1Form.designation || !step1Form.state || !step1Form.city || !step1Form.address}
+            >
+              {submitting ? 'Initializing...' : 'Initialize Onboarding'}
+            </button>
+          </div>
+        }
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-5 gap-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">Target Role</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Target Role</label>
             <SearchableSelect
               options={roles.map(r => ({ value: r.id, label: r.name }))}
               value={step1Form.role_id}
@@ -1151,7 +1368,7 @@ export default function OnboardingPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">Onboarding Location *</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Onboarding Location *</label>
             <SearchableSelect
               options={locations.map(l => ({ value: l.id, label: l.name }))}
               value={step1Form.location_id}
@@ -1175,9 +1392,9 @@ export default function OnboardingPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">Employee ID (Auto-Generated) *</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Employee ID (Auto-Generated) *</label>
             <input 
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-slate-50 focus:border-emerald-500 placeholder-slate-400 transition-colors cursor-not-allowed" 
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-slate-50 focus:border-emerald-500 placeholder-slate-400 transition-all cursor-not-allowed font-mono font-medium" 
               placeholder="Select location to auto-generate"
               value={step1Form.employee_id} 
               readOnly
@@ -1185,9 +1402,9 @@ export default function OnboardingPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">Full Name *</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Full Name *</label>
             <input 
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 placeholder-slate-400 transition-all" 
               placeholder="John Doe"
               maxLength={30}
               value={step1Form.name} 
@@ -1195,9 +1412,9 @@ export default function OnboardingPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">Personal Email *</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Personal Email *</label>
             <input 
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 placeholder-slate-400 transition-all" 
               type="email"
               placeholder="john.doe@gmail.com"
               maxLength={100}
@@ -1206,15 +1423,15 @@ export default function OnboardingPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">Personal Phone *</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Personal Phone *</label>
             <div className="flex gap-2">
               {countryCode && (
-                <span className="inline-flex items-center px-3 border border-slate-200 bg-slate-50 text-slate-500 rounded-lg text-xs font-semibold select-none">
+                <span className="inline-flex items-center px-3 border border-slate-200 bg-slate-50 text-slate-600 rounded-xl text-xs font-semibold select-none">
                   {countryCode}
                 </span>
               )}
               <input 
-                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 placeholder-slate-400 transition-all" 
                 placeholder={countryCode === '+91' ? '9876543210' : 'e.g. 567361461'}
                 value={step1Form.phone} 
                 onChange={e => {
@@ -1232,9 +1449,9 @@ export default function OnboardingPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">Department *</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Department *</label>
             <input 
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 placeholder-slate-400 transition-all" 
               placeholder="Engineering"
               maxLength={50}
               value={step1Form.department} 
@@ -1242,9 +1459,9 @@ export default function OnboardingPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">Designation *</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Designation *</label>
             <input 
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 placeholder-slate-400 transition-all" 
               placeholder="Software Engineer"
               maxLength={50}
               value={step1Form.designation} 
@@ -1252,9 +1469,9 @@ export default function OnboardingPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">State *</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">State *</label>
             <input 
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 placeholder-slate-400 transition-all" 
               placeholder="e.g. Tamil Nadu"
               maxLength={50}
               value={step1Form.state} 
@@ -1263,9 +1480,9 @@ export default function OnboardingPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">City *</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">City *</label>
             <input 
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors" 
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 placeholder-slate-400 transition-all" 
               placeholder="e.g. Chennai"
               maxLength={50}
               value={step1Form.city} 
@@ -1273,7 +1490,7 @@ export default function OnboardingPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">Reporting Manager</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Reporting Manager</label>
             <SearchableSelect
               options={
                 isLocationAdmin && user?.id
@@ -1292,7 +1509,7 @@ export default function OnboardingPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">General Manager</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">General Manager</label>
             <SearchableSelect
               options={
                 adminUser
@@ -1309,10 +1526,10 @@ export default function OnboardingPage() {
             />
           </div>
 
-          <div className="md:col-span-3">
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">Address *</label>
+          <div className="sm:col-span-2 md:col-span-3">
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Address *</label>
             <textarea 
-              className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 placeholder-slate-400 transition-colors h-14 resize-none" 
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 placeholder-slate-400 transition-all h-20 resize-none" 
               placeholder="e.g. 123 Main Street, Suite 400"
               maxLength={300}
               value={step1Form.address} 
@@ -2012,6 +2229,112 @@ export default function OnboardingPage() {
             </div>
           </div>
         </Modal>
+      )}
+
+      {/* Mobile Filter Bottom Sheet */}
+      {showMobileFilterSheet && (
+        <div className="fixed inset-0 z-[500] md:hidden" onClick={() => setShowMobileFilterSheet(false)}>
+          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs animate-sheet-fade-in" />
+
+          {/* Bottom Sheet Drawer */}
+          <div
+            className="fixed inset-x-0 bottom-0 max-h-[85vh] bg-white rounded-t-3xl shadow-2xl z-[501] flex flex-col animate-sheet-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drag Handle */}
+            <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto my-3 shrink-0" />
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pb-3 border-b border-slate-100 shrink-0">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal size={18} className="text-emerald-600" />
+                <h3 className="text-base font-bold text-slate-900">Filter Onboarding</h3>
+                {(search || limit !== 10) && (
+                  <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                    {(search ? 1 : 0) + (limit !== 10 ? 1 : 0)} active
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => setShowMobileFilterSheet(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer border-none"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Scrollable Body */}
+            <div className="p-5 overflow-y-auto flex-1 space-y-4">
+              {/* Search input */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Search Query</label>
+                <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5">
+                  <Search size={16} className="text-slate-400 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, ID, or department..."
+                    value={searchInput}
+                    maxLength={100}
+                    onChange={(e) => handleSearchInputChange(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
+                    className="w-full bg-transparent border-none outline-none text-sm text-slate-800 placeholder-slate-400"
+                  />
+                  {searchInput && (
+                    <button
+                      onClick={() => handleSearchInputChange('')}
+                      className="text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Items Per Page */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Items Per Page</label>
+                <SearchableSelect
+                  options={[
+                    { value: 5, label: "5 per page" },
+                    { value: 10, label: "10 per page" },
+                    { value: 20, label: "20 per page" },
+                    { value: 50, label: "50 per page" }
+                  ]}
+                  value={limit}
+                  onChange={val => { setLimit(val); setPage(1); }}
+                  className="w-full"
+                />
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="p-4 border-t border-slate-100 flex gap-3 bg-white shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch('');
+                  setSearchInput('');
+                  setLimit(10);
+                  setPage(1);
+                }}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <RotateCcw size={14} /> Reset
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch(searchInput);
+                  setPage(1);
+                  setShowMobileFilterSheet(false);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors cursor-pointer shadow-xs"
+              >
+                Apply Filters
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </AppLayout>
   );
