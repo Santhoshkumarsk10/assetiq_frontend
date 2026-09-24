@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api';
 import { isValidEmail, sanitizeEmailInput } from '@/lib/validation';
-import { Settings2, Mail, ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Mail, ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ForgotPasswordPage() {
@@ -39,11 +39,8 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-[440px] bg-slate-900/40 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-8 relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
         {/* Logo and Header */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-400 mb-3 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
-            <Settings2 size={24} className="animate-[spin_40s_linear_infinite]" />
-          </div>
-          <h1 className="text-xl font-bold tracking-tight text-white">Asset<span className="text-emerald-400">IQ</span></h1>
-          <p className="text-slate-400 text-xs mt-1">Enterprise IT Asset Management</p>
+          <img src="/logo-white.png" alt="AssetCare" className="h-10 w-auto object-contain mb-2" />
+          <p className="text-slate-400 text-xs">Enterprise IT Asset Management</p>
         </div>
 
         {!submitted ? (

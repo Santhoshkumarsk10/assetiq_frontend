@@ -8,7 +8,7 @@ import SearchableSelect from '@/components/SearchableSelect';
 import DatePicker from '@/components/DatePicker';
 import { licenseApi } from '@/lib/api';
 import { socket } from '@/lib/socket';
-import { Search, Plus, Eye, Pencil, Trash2, KeyRound, X, Calendar, User, RefreshCw, CheckCircle, XCircle, Bell, SlidersHorizontal } from 'lucide-react';
+import { Search, Plus, Eye, Pencil, Trash2, KeyRound, X, Calendar, User, RefreshCw, CheckCircle, XCircle, Bell, SlidersHorizontal, MoreVertical } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { useAuth } from '@/context/AuthContext';
@@ -47,6 +47,7 @@ export default function LicensePage() {
   const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [showMobileFilterSheet, setShowMobileFilterSheet] = useState(false);
+  const [activeActionMenuId, setActiveActionMenuId] = useState(null);
 
   // Modals state
   const [showModal, setShowModal] = useState(false);
@@ -612,114 +613,159 @@ export default function LicensePage() {
                   key={license.id}
                   className="bg-white border border-slate-200/90 hover:border-slate-300 rounded-xl px-3 py-2.5 shadow-2xs flex flex-col transition-all"
                 >
-                  {/* 1. Top Row: License Key/ID Badge + Status Badge */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10.5px] text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-md font-bold font-mono tracking-tight inline-flex items-center">
-                      {license.license_key ? (license.license_key.length > 20 ? `${license.license_key.substring(0, 18)}...` : license.license_key) : 'LICENSE'}
-                    </span>
-                    <StatusBadge status={license.status} className="!text-[10px] !px-2 !py-0.5" />
-                  </div>
-
-                  {/* 2. Software Name: Bold Title */}
-                  <div className="mt-1.5">
-                    <h4 className="text-[13.5px] font-bold text-slate-900 leading-tight tracking-tight truncate" title={license.software_name}>
-                      {license.software_name}
-                    </h4>
-                  </div>
-
-                  {/* 3. Metadata Info: Clean Open 2-Column Grid (No nested boxes) */}
-                  <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex flex-col gap-2">
-                    {/* Row 1: Assigned To & License Type */}
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                      <div className="min-w-0">
-                        <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">
-                          {t('assignedTo')}
-                        </span>
-                        <span className="font-semibold text-slate-800 text-[12px] truncate block leading-tight">
-                          {license.user?.name || <span className="text-slate-400 italic font-normal">{t('unassigned')}</span>}
+                  {/* 1. Top Row: Software Name + Status Badge & 3-Dot Action Menu (License Key on next line) */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h4 className="text-[13.5px] font-bold text-slate-900 leading-snug tracking-tight" title={license.software_name}>
+                          {license.software_name}
+                        </h4>
+                        <StatusBadge status={license.status} className="!text-[10px] !px-1.5 !py-0.5 shrink-0" />
+                      </div>
+                      <div className="mt-1">
+                        <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded-md font-bold font-mono tracking-tight inline-flex items-center">
+                          {license.license_key ? (license.license_key.length > 20 ? `${license.license_key.substring(0, 18)}...` : license.license_key) : 'LICENSE'}
                         </span>
                       </div>
-                      <div className="min-w-0">
-                        <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">
+                    </div>
+
+                    {/* 3-Dot Action Menu */}
+                    <div className="relative shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setActiveActionMenuId(activeActionMenuId === license.id ? null : license.id)}
+                        className="w-7 h-7 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 hover:text-slate-800 hover:bg-slate-100 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+                        aria-label={t('actions') || 'Actions'}
+                        title={t('actions') || 'Actions'}
+                      >
+                        <MoreVertical size={14} />
+                      </button>
+
+                      {activeActionMenuId === license.id && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setActiveActionMenuId(null)}
+                          />
+                          <div className="absolute right-0 top-full mt-1.5 w-44 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                            <button
+                              type="button"
+                              className="w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer border-none bg-transparent transition-colors"
+                              onClick={() => {
+                                setActiveActionMenuId(null);
+                                openViewDetails(license);
+                              }}
+                            >
+                              <Eye size={13.5} className="text-slate-400" />
+                              <span>{t('view') || 'View Details'}</span>
+                            </button>
+
+                            {canSubmitRenew && license.status === 'expired' && (
+                              <button
+                                type="button"
+                                className="w-full px-3 py-2 text-left text-xs font-medium text-blue-700 hover:bg-blue-50 flex items-center gap-2 cursor-pointer border-none bg-transparent transition-colors"
+                                onClick={() => {
+                                  setActiveActionMenuId(null);
+                                  openRenewalModal(license);
+                                }}
+                              >
+                                <RefreshCw size={13.5} className="text-blue-600" />
+                                <span>Request Renewal</span>
+                              </button>
+                            )}
+
+                            {canNotify && license.status === 'active' && license.user && (
+                              <button
+                                type="button"
+                                className="w-full px-3 py-2 text-left text-xs font-medium text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 cursor-pointer border-none bg-transparent transition-colors"
+                                onClick={() => {
+                                  setActiveActionMenuId(null);
+                                  handleNotifyUser(license.id, license.software_name);
+                                }}
+                              >
+                                <Bell size={13.5} className="text-emerald-600" />
+                                <span>Notify User</span>
+                              </button>
+                            )}
+
+                            {canEdit && (
+                              <button
+                                type="button"
+                                className="w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer border-none bg-transparent transition-colors"
+                                onClick={() => {
+                                  setActiveActionMenuId(null);
+                                  openEdit(license);
+                                }}
+                              >
+                                <Pencil size={13.5} className="text-slate-400" />
+                                <span>{t('edit') || 'Edit'}</span>
+                              </button>
+                            )}
+
+                            {canDelete && (
+                              <button
+                                type="button"
+                                className="w-full px-3 py-2 text-left text-xs font-medium text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer border-none bg-transparent transition-colors border-t border-slate-100"
+                                onClick={() => {
+                                  setActiveActionMenuId(null);
+                                  handleDelete(license.id, license.software_name);
+                                }}
+                              >
+                                <Trash2 size={13.5} className="text-rose-500" />
+                                <span>{t('delete') || 'Delete'}</span>
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 2. Metadata Info Block: 2x2 Structured Grid */}
+                  <div className="mt-2 pt-2 border-t border-slate-100/90 flex flex-col gap-1.5">
+                    {/* Row 1: Assigned To & License Type */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">
+                          {t('assignedTo')}
+                        </span>
+                        <span className="text-[11.5px] truncate block leading-tight">
+                          {license.user?.name ? (
+                            <span className="text-slate-800 font-semibold">{license.user.name}</span>
+                          ) : (
+                            <span className="text-slate-400 italic font-normal">{t('unassigned')}</span>
+                          )}
+                        </span>
+                      </div>
+                      <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">
                           Type
                         </span>
-                        <span className="font-semibold text-slate-800 text-[12px] truncate block leading-tight capitalize">
+                        <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight capitalize">
                           {license.license_type || 'Validity'}
                         </span>
                       </div>
                     </div>
 
                     {/* Row 2: Valid Until & Renewal Alert */}
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                      <div className="min-w-0">
-                        <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">
                           {t('validUntil')}
                         </span>
-                        <span className="font-semibold text-slate-800 text-[12px] truncate block leading-tight">
+                        <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">
                           {license.valid_until || 'Perpetual'}
                         </span>
                       </div>
-                      <div className="min-w-0">
-                        <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">
+                      <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">
                           Renewal Alert
                         </span>
-                        <span className="text-[12px] font-medium text-amber-700 truncate block leading-tight">
+                        <span className="font-semibold text-amber-700 text-[11.5px] truncate block leading-tight">
                           {license.renewal_alert ? (license.renewal_alert.toString().includes('day') ? license.renewal_alert : `${license.renewal_alert} days`) : '30 days'}
                         </span>
                       </div>
                     </div>
-                  </div>
-
-                  {/* 4. Action Icons Row (Icon-Only, Same as Assets Page) */}
-                  <div className="flex items-center justify-end gap-1.5 mt-2 pt-2 border-t border-slate-100/90">
-                    <button
-                      onClick={() => openViewDetails(license)}
-                      className="w-7 h-7 rounded-lg border border-slate-200 bg-slate-50 text-slate-650 hover:bg-slate-100 hover:text-slate-900 active:scale-95 transition-all cursor-pointer flex items-center justify-center"
-                      title={t('view')}
-                      aria-label={t('view')}
-                    >
-                      <Eye size={13.5} />
-                    </button>
-                    {canSubmitRenew && license.status === 'expired' && (
-                      <button
-                        onClick={() => openRenewalModal(license)}
-                        className="w-7 h-7 rounded-md bg-blue-600 hover:bg-blue-700 text-white active:scale-95 transition-all cursor-pointer flex items-center justify-center shadow-2xs"
-                        title="Request Renewal"
-                        aria-label="Request Renewal"
-                      >
-                        <RefreshCw size={13.5} />
-                      </button>
-                    )}
-                    {canNotify && license.status === 'active' && license.user && (
-                      <button
-                        onClick={() => handleNotifyUser(license.id, license.software_name)}
-                        className="w-7 h-7 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95 transition-all cursor-pointer flex items-center justify-center shadow-2xs"
-                        title="Notify Assigned User"
-                        aria-label="Notify Assigned User"
-                      >
-                        <Bell size={13.5} />
-                      </button>
-                    )}
-                    {canEdit && (
-                      <button
-                        onClick={() => openEdit(license)}
-                        className="w-7 h-7 rounded-lg border border-slate-200 bg-slate-50 text-slate-650 hover:bg-slate-100 hover:text-slate-900 active:scale-95 transition-all cursor-pointer flex items-center justify-center"
-                        title={t('edit')}
-                        aria-label={t('edit')}
-                      >
-                        <Pencil size={13.5} />
-                      </button>
-                    )}
-                    {canDelete && (
-                      <button
-                        onClick={() => handleDelete(license.id, license.software_name)}
-                        className="w-7 h-7 rounded-md bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 hover:text-rose-700 active:scale-95 transition-all cursor-pointer flex items-center justify-center"
-                        title={t('delete')}
-                        aria-label={t('delete')}
-                      >
-                        <Trash2 size={13.5} />
-                      </button>
-                    )}
                   </div>
                 </div>
               ))}

@@ -65,6 +65,7 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showMobileFilterSheet, setShowMobileFilterSheet] = useState(false);
+  const [activeActionMenuId, setActiveActionMenuId] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
@@ -978,151 +979,211 @@ export default function UsersPage() {
                   {filtered.map((u) => (
                     <div
                       key={u.id}
-                      className="bg-white border border-slate-200/90 hover:border-slate-300 rounded-xl p-3 shadow-2xs flex flex-col transition-all"
+                      className="bg-white border border-slate-200/90 hover:border-slate-300 rounded-xl px-3 py-2.5 shadow-2xs flex flex-col transition-all"
                     >
-                      {/* Top Row: Avatar, Name, Role badge, MFA, Status Badge */}
+                      {/* 1. Top Row: Avatar + Name + Status Badge & 3-Dot Action Menu */}
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 flex items-center justify-center text-xs font-bold shrink-0">
-                            {getInitials(u.name)}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <h4 className="text-[13.5px] font-bold text-slate-900 leading-tight truncate">
-                                {u.name}
-                              </h4>
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold leading-none ${getRoleBadgeClass(u.role?.name)}`}>
-                                {u.role?.name || "User"}
-                              </span>
-                              {u.mfa_enabled ? (
-                                u.mfa_configured ? (
-                                  <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 leading-none">
-                                    MFA Active
-                                  </span>
-                                ) : (
-                                  <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse leading-none">
-                                    MFA Pending
-                                  </span>
-                                )
-                              ) : null}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <div className="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 flex items-center justify-center text-[10px] font-bold shrink-0">
+                              {getInitials(u.name)}
                             </div>
+                            <h4 className="text-[13.5px] font-bold text-slate-900 leading-snug tracking-tight truncate" title={u.name}>
+                              {u.name}
+                            </h4>
+                            <StatusBadge status={u.status} className="!text-[10px] !px-1.5 !py-0.5 shrink-0" />
                           </div>
-                        </div>
-                        <StatusBadge status={u.status} className="!text-[10px] !px-2 !py-0.5 shrink-0" />
-                      </div>
-
-                      {/* Contact info: Email and Phone */}
-                      <div className="mt-2 text-xs text-slate-600 flex flex-col gap-1">
-                        <span className="flex items-center gap-1.5 text-[11.5px] text-slate-600 truncate">
-                          <Mail size={12.5} className="text-slate-400 shrink-0" /> {u.email}
-                        </span>
-                        {u.phone && (
-                          <span className="flex items-center gap-1.5 text-[11.5px] text-slate-600">
-                            <Phone size={12.5} className="text-slate-400 shrink-0" /> {u.phone}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* 2-Column Metadata Info Grid */}
-                      <div className="mt-2 pt-2 border-t border-slate-100 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-                        <div className="min-w-0">
-                          <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">
-                            Department
-                          </span>
-                          <span className="font-semibold text-slate-800 text-[12px] truncate block leading-tight">
-                            {u.department || "—"}
-                          </span>
-                        </div>
-                        <div className="min-w-0">
-                          <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">
-                            Location
-                          </span>
-                          <span className="font-semibold text-slate-800 text-[12px] truncate block leading-tight">
-                            {u.location?.name || "—"}
-                          </span>
-                        </div>
-                        {u.reportingManager && (
-                          <div className="col-span-2 min-w-0 mt-0.5">
-                            <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">
-                              Reporting Manager
+                          <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold leading-none border inline-flex items-center ${getRoleBadgeClass(u.role?.name)}`}>
+                              {u.role?.name || "User"}
                             </span>
-                            <span className="font-medium text-slate-700 text-[11.5px] truncate block leading-tight">
-                              {u.reportingManager.name}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Compact Actions Row */}
-                      <div className="flex items-center justify-end gap-1.5 mt-2.5 pt-2 border-t border-slate-100/90 flex-wrap">
-                        {/* Super Admin MFA Actions */}
-                        {isSuperAdmin && (
-                          <>
                             {u.mfa_enabled ? (
-                              <>
-                                <button
-                                  className="px-2 py-1 text-[11px] font-semibold rounded-lg bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 transition-colors cursor-pointer"
-                                  onClick={() => handleToggleMfa(u.id, u.name, 'disable')}
-                                  title="Disable MFA"
-                                >
-                                  Disable MFA
-                                </button>
-                                {u.mfa_configured && (
+                              u.mfa_configured ? (
+                                <span className="text-[9.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 px-1.5 py-0.5 rounded-md leading-none inline-flex items-center">
+                                  MFA Active
+                                </span>
+                              ) : (
+                                <span className="text-[9.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80 px-1.5 py-0.5 rounded-md leading-none inline-flex items-center animate-pulse">
+                                  MFA Pending
+                                </span>
+                              )
+                            ) : null}
+                          </div>
+                        </div>
+
+                        {/* 3-Dot Action Menu */}
+                        <div className="relative shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setActiveActionMenuId(activeActionMenuId === u.id ? null : u.id)}
+                            className="w-7 h-7 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 hover:text-slate-800 hover:bg-slate-100 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+                            aria-label="Actions"
+                            title="Actions"
+                          >
+                            <MoreVertical size={14} />
+                          </button>
+
+                          {activeActionMenuId === u.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-40"
+                                onClick={() => setActiveActionMenuId(null)}
+                              />
+                              <div className="absolute right-0 top-full mt-1.5 w-44 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                                {canEdit && (
                                   <button
-                                    className="px-2 py-1 text-[11px] font-semibold rounded-lg bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer"
-                                    onClick={() => handleToggleMfa(u.id, u.name, 'reset')}
-                                    title="Reset MFA"
+                                    type="button"
+                                    className="w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer border-none bg-transparent transition-colors"
+                                    onClick={() => {
+                                      setActiveActionMenuId(null);
+                                      openEdit(u);
+                                    }}
                                   >
-                                    Reset
+                                    <Pencil size={13.5} className="text-slate-400" />
+                                    <span>Edit User</span>
                                   </button>
                                 )}
-                              </>
-                            ) : (
-                              <button
-                                className="px-2 py-1 text-[11px] font-semibold rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer"
-                                onClick={() => handleToggleMfa(u.id, u.name, 'enable')}
-                                title="Enable MFA"
-                              >
-                                Enable MFA
-                              </button>
-                            )}
+
+                                {u.status === "active" && canResign && (
+                                  <button
+                                    type="button"
+                                    className="w-full px-3 py-2 text-left text-xs font-medium text-amber-700 hover:bg-amber-50 flex items-center gap-2 cursor-pointer border-none bg-transparent transition-colors"
+                                    onClick={() => {
+                                      setActiveActionMenuId(null);
+                                      handleResign(u.id, u.name);
+                                    }}
+                                  >
+                                    <AlertCircle size={13.5} className="text-amber-600" />
+                                    <span>Resign User</span>
+                                  </button>
+                                )}
+
+                                {isSuperAdmin && (
+                                  <>
+                                    {u.mfa_enabled ? (
+                                      <>
+                                        <button
+                                          type="button"
+                                          className="w-full px-3 py-2 text-left text-xs font-medium text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer border-none bg-transparent transition-colors border-t border-slate-100"
+                                          onClick={() => {
+                                            setActiveActionMenuId(null);
+                                            handleToggleMfa(u.id, u.name, 'disable');
+                                          }}
+                                        >
+                                          <ShieldAlert size={13.5} className="text-rose-500" />
+                                          <span>Disable MFA</span>
+                                        </button>
+                                        {u.mfa_configured && (
+                                          <button
+                                            type="button"
+                                            className="w-full px-3 py-2 text-left text-xs font-medium text-amber-700 hover:bg-amber-50 flex items-center gap-2 cursor-pointer border-none bg-transparent transition-colors"
+                                            onClick={() => {
+                                              setActiveActionMenuId(null);
+                                              handleToggleMfa(u.id, u.name, 'reset');
+                                            }}
+                                          >
+                                            <RotateCcw size={13.5} className="text-amber-600" />
+                                            <span>Reset MFA</span>
+                                          </button>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        className="w-full px-3 py-2 text-left text-xs font-medium text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 cursor-pointer border-none bg-transparent transition-colors border-t border-slate-100"
+                                        onClick={() => {
+                                          setActiveActionMenuId(null);
+                                          handleToggleMfa(u.id, u.name, 'enable');
+                                        }}
+                                      >
+                                        <ShieldCheck size={13.5} className="text-emerald-600" />
+                                        <span>Enable MFA</span>
+                                      </button>
+                                    )}
+                                  </>
+                                )}
+
+                                {canDelete && (
+                                  <button
+                                    type="button"
+                                    className="w-full px-3 py-2 text-left text-xs font-medium text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer border-none bg-transparent transition-colors border-t border-slate-100"
+                                    onClick={() => {
+                                      setActiveActionMenuId(null);
+                                      handleDelete(u.id, u.name);
+                                    }}
+                                  >
+                                    <Trash2 size={13.5} className="text-rose-500" />
+                                    <span>Delete User</span>
+                                  </button>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Contact identity sub-row (Email + Phone) */}
+                      <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-500 truncate">
+                        <Mail size={12} className="text-slate-400 shrink-0" />
+                        <span className="truncate">{u.email}</span>
+                        {u.phone && (
+                          <>
+                            <span className="text-slate-300 shrink-0">•</span>
+                            <Phone size={11} className="text-slate-400 shrink-0" />
+                            <span className="shrink-0">{u.phone}</span>
                           </>
                         )}
+                      </div>
 
-                        {/* Resign Action */}
-                        {u.status === "active" && canResign && (
-                          <button
-                            className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer"
-                            onClick={() => handleResign(u.id, u.name)}
-                            title="Resign User"
-                          >
-                            Resign
-                          </button>
-                        )}
+                      {/* 2. Metadata Info Block: 2x2 Structured Grid */}
+                      <div className="mt-2 pt-2 border-t border-slate-100/90 flex flex-col gap-1.5">
+                        {/* Row 1: Department & Location */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                            <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">
+                              Department
+                            </span>
+                            <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">
+                              {u.department || '—'}
+                            </span>
+                          </div>
+                          <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                            <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">
+                              Location
+                            </span>
+                            <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">
+                              {u.location?.name || '—'}
+                            </span>
+                          </div>
+                        </div>
 
-                        {/* Edit Button */}
-                        {canEdit && (
-                          <button
-                            className="w-7 h-7 rounded-lg border border-slate-200 bg-slate-50 text-slate-650 hover:bg-slate-100 hover:text-slate-900 active:scale-95 transition-all cursor-pointer flex items-center justify-center"
-                            onClick={() => openEdit(u)}
-                            title="Edit User"
-                            aria-label="Edit User"
-                          >
-                            <Pencil size={13.5} />
-                          </button>
-                        )}
-
-                        {/* Delete Button */}
-                        {canDelete && (
-                          <button
-                            className="w-7 h-7 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 hover:text-rose-700 active:scale-95 transition-all cursor-pointer flex items-center justify-center"
-                            onClick={() => handleDelete(u.id, u.name)}
-                            title="Delete User"
-                            aria-label="Delete User"
-                          >
-                            <Trash2 size={13.5} />
-                          </button>
-                        )}
+                        {/* Row 2: Manager & Phone */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                            <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">
+                              Manager
+                            </span>
+                            <span className="text-[11.5px] truncate block leading-tight">
+                              {u.reportingManager ? (
+                                <span className="text-slate-800 font-semibold">{u.reportingManager.name}</span>
+                              ) : (
+                                <span className="text-slate-400 italic font-normal">None</span>
+                              )}
+                            </span>
+                          </div>
+                          <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                            <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">
+                              Phone
+                            </span>
+                            <span className="text-[11.5px] truncate block leading-tight">
+                              {u.phone ? (
+                                <span className="text-slate-800 font-semibold">{u.phone}</span>
+                              ) : (
+                                <span className="text-slate-400 italic font-normal">—</span>
+                              )}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}

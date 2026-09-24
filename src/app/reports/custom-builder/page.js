@@ -10,6 +10,8 @@ import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 import {
   ArrowLeft,
   Sliders,
+  SlidersHorizontal,
+  RotateCcw,
   Play,
   Download,
   Send,
@@ -163,6 +165,7 @@ export default function CustomReportBuilder() {
 
   // Modals integration
   const [activeModal, setActiveModal] = useState(null); // 'send' | 'schedule'
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
 
   // General Filter fields
   const [reportName, setReportName] = useState("Custom Asset Summary");
@@ -181,6 +184,14 @@ export default function CustomReportBuilder() {
   const [locations, setLocations] = useState([]);
   const [fetchedData, setFetchedData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
+
+  // Active source filters count for badge
+  const activeFilterCount =
+    (selectedLocation ? 1 : 0) +
+    (selectedStatus ? 1 : 0) +
+    (selectedType ? 1 : 0) +
+    (selectedPriority ? 1 : 0) +
+    (selectedCategory ? 1 : 0);
 
   // Preview Pagination State
   const [previewPage, setPreviewPage] = useState(1);
@@ -203,13 +214,13 @@ export default function CustomReportBuilder() {
 
   // Lock scroll when modal is open
   useEffect(() => {
-    if (activeModal) {
+    if (activeModal || showFilterSheet) {
       lockScroll();
     } else {
       unlockScroll();
     }
     return () => unlockScroll();
-  }, [activeModal]);
+  }, [activeModal, showFilterSheet]);
 
   // Column options per data source
   const columnsConfig = {
@@ -633,7 +644,7 @@ export default function CustomReportBuilder() {
               />
             </div>
 
-            <div className="flex flex-col gap-1 col-span-1 sm:col-span-2">
+            <div className="flex flex-col gap-1">
               <label className="text-xs font-semibold text-slate-600">Date Range (Optional)</label>
               <DateRangePicker
                 startDate={startDate}
@@ -644,155 +655,107 @@ export default function CustomReportBuilder() {
                 }}
               />
             </div>
-          </div>
 
-          {/* Conditional Filters Based on Data Source */}
-          <div className="bg-slate-50/80 border border-slate-200/80 p-3.5 rounded-xl space-y-2.5">
-            <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Source Filters</h4>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-              {dataSource === "assets" && (
-                <>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Location</label>
-                    <SearchableSelect
-                      options={[{ value: "", label: "All Locations" }, ...locations.map((l) => ({ value: l.id, label: l.name }))]}
-                      value={selectedLocation}
-                      onChange={setSelectedLocation}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Asset Type</label>
-                    <SearchableSelect
-                      options={[
-                        { value: "", label: "All Types" },
-                        { value: "Laptop", label: "Laptop" },
-                        { value: "Desktop", label: "Desktop" },
-                        { value: "Mobile", label: "Mobile" },
-                        { value: "Monitor", label: "Monitor" },
-                      ]}
-                      value={selectedType}
-                      onChange={setSelectedType}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Status</label>
-                    <SearchableSelect
-                      options={[
-                        { value: "", label: "All Status" },
-                        { value: "available", label: "Available" },
-                        { value: "allocated", label: "Allocated" },
-                        { value: "maintenance", label: "Maintenance" },
-                      ]}
-                      value={selectedStatus}
-                      onChange={setSelectedStatus}
-                    />
-                  </div>
-                </>
-              )}
-
-              {dataSource === "tickets" && (
-                <>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Location</label>
-                    <SearchableSelect
-                      options={[{ value: "", label: "All Locations" }, ...locations.map((l) => ({ value: l.id, label: l.name }))]}
-                      value={selectedLocation}
-                      onChange={setSelectedLocation}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Category</label>
-                    <SearchableSelect
-                      options={[
-                        { value: "", label: "All Categories" },
-                        { value: "hardware_malfunction", label: "Hardware" },
-                        { value: "software_issue", label: "Software" },
-                        { value: "general_it", label: "General IT" },
-                      ]}
-                      value={selectedCategory}
-                      onChange={setSelectedCategory}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Priority</label>
-                    <SearchableSelect
-                      options={[
-                        { value: "", label: "All Priorities" },
-                        { value: "low", label: "Low" },
-                        { value: "medium", label: "Medium" },
-                        { value: "high", label: "High" },
-                        { value: "critical", label: "Critical" },
-                      ]}
-                      value={selectedPriority}
-                      onChange={setSelectedPriority}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Status</label>
-                    <SearchableSelect
-                      options={[
-                        { value: "", label: "All Status" },
-                        { value: "pending", label: "Pending" },
-                        { value: "in_progress", label: "In Progress" },
-                        { value: "resolved", label: "Resolved" },
-                        { value: "closed", label: "Closed" },
-                      ]}
-                      value={selectedStatus}
-                      onChange={setSelectedStatus}
-                    />
-                  </div>
-                </>
-              )}
-
-              {dataSource === "licenses" && (
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Status</label>
-                  <SearchableSelect
-                    options={[
-                      { value: "", label: "All Status" },
-                      { value: "available", label: "Available" },
-                      { value: "active", label: "Active" },
-                      { value: "expired", label: "Expired" },
-                    ]}
-                    value={selectedStatus}
-                    onChange={setSelectedStatus}
-                  />
-                </div>
-              )}
-
-              {dataSource === "allocations" && (
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Status</label>
-                  <SearchableSelect
-                    options={[
-                      { value: "", label: "All Status" },
-                      { value: "active", label: "Active" },
-                      { value: "returned", label: "Returned" },
-                    ]}
-                    value={selectedStatus}
-                    onChange={setSelectedStatus}
-                  />
-                </div>
-              )}
-
-              {dataSource === "audit" && (
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Action type</label>
-                  <SearchableSelect
-                    options={[
-                      { value: "", label: "All Actions" },
-                      { value: "CREATE", label: "Create Action" },
-                      { value: "UPDATE", label: "Update Action" },
-                      { value: "DELETE", label: "Delete Action" },
-                    ]}
-                    value={selectedStatus}
-                    onChange={setSelectedStatus}
-                  />
-                </div>
-              )}
+            <div className="flex flex-col gap-1 justify-end">
+              <label className="text-xs font-semibold text-slate-600 flex items-center justify-between">
+                <span>Source Filters</span>
+                {activeFilterCount > 0 && (
+                  <span className="text-emerald-700 font-bold text-[11px]">{activeFilterCount} active</span>
+                )}
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowFilterSheet(true)}
+                className={`w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl border transition-all cursor-pointer text-xs sm:text-sm font-semibold h-[38px] ${
+                  activeFilterCount > 0
+                    ? "bg-emerald-50 border-emerald-300 text-emerald-700 shadow-xs"
+                    : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs"
+                }`}
+                aria-label="Filter Source Data"
+                title="Filter Source Data"
+              >
+                <SlidersHorizontal size={15} className={activeFilterCount > 0 ? "text-emerald-600" : "text-slate-500"} />
+                <span>Filters</span>
+                {activeFilterCount > 0 && (
+                  <span className="w-4 h-4 bg-emerald-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
+
+          {/* Active Source Filter Badges */}
+          {activeFilterCount > 0 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-xs custom-scrollbar">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">
+                Active Filters:
+              </span>
+              {selectedLocation && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-medium shrink-0">
+                  Location: {locations.find((l) => String(l.id) === String(selectedLocation))?.name || selectedLocation}
+                  <X
+                    size={12}
+                    className="cursor-pointer hover:text-emerald-900"
+                    onClick={() => setSelectedLocation("")}
+                  />
+                </span>
+              )}
+              {selectedType && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-medium shrink-0">
+                  Type: {selectedType}
+                  <X
+                    size={12}
+                    className="cursor-pointer hover:text-emerald-900"
+                    onClick={() => setSelectedType("")}
+                  />
+                </span>
+              )}
+              {selectedCategory && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-medium shrink-0">
+                  Category: {selectedCategory}
+                  <X
+                    size={12}
+                    className="cursor-pointer hover:text-emerald-900"
+                    onClick={() => setSelectedCategory("")}
+                  />
+                </span>
+              )}
+              {selectedPriority && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-medium shrink-0">
+                  Priority: {selectedPriority}
+                  <X
+                    size={12}
+                    className="cursor-pointer hover:text-emerald-900"
+                    onClick={() => setSelectedPriority("")}
+                  />
+                </span>
+              )}
+              {selectedStatus && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-medium shrink-0">
+                  Status: {selectedStatus}
+                  <X
+                    size={12}
+                    className="cursor-pointer hover:text-emerald-900"
+                    onClick={() => setSelectedStatus("")}
+                  />
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedLocation("");
+                  setSelectedType("");
+                  setSelectedCategory("");
+                  setSelectedPriority("");
+                  setSelectedStatus("");
+                }}
+                className="text-[11px] text-emerald-700 font-semibold hover:underline shrink-0 cursor-pointer ml-1"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
 
           {/* Columns selection pills */}
           <div className="space-y-2">
@@ -940,7 +903,7 @@ export default function CustomReportBuilder() {
           </div>
 
           {/* Mobile Card List View */}
-          <div className="block md:hidden divide-y divide-slate-100">
+          <div className="block md:hidden space-y-2.5 p-3 sm:p-4">
             {loading ? (
               <div className="p-12 text-center text-slate-400 flex flex-col items-center justify-center gap-2">
                 <div className="w-6 h-6 border-2 border-slate-200 border-t-emerald-500 rounded-full animate-spin" />
@@ -957,10 +920,13 @@ export default function CustomReportBuilder() {
                 const remainingCols = activeCols.slice(2);
 
                 return (
-                  <div key={idx} className="p-4 space-y-2.5 hover:bg-slate-50/50 transition-colors">
+                  <div
+                    key={idx}
+                    className="bg-white border border-slate-200/90 hover:border-slate-300 rounded-xl px-3.5 py-3 shadow-2xs flex flex-col transition-all"
+                  >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <span className="text-xs font-bold text-slate-900 block truncate">
+                        <span className="text-[13px] font-bold text-slate-900 block truncate">
                           {primaryCol ? primaryCol.getVal(row) : `Item #${idx + 1}`}
                         </span>
                         {secondaryCol && (
@@ -972,13 +938,13 @@ export default function CustomReportBuilder() {
                     </div>
 
                     {remainingCols.length > 0 && (
-                      <div className="grid grid-cols-2 gap-2 bg-slate-50/80 p-2.5 rounded-xl border border-slate-100/90 text-xs">
+                      <div className="mt-2.5 pt-2 border-t border-slate-100/90 grid grid-cols-2 gap-2 text-xs">
                         {remainingCols.map((c) => (
-                          <div key={c.id} className="min-w-0">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">
+                          <div key={c.id} className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                            <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">
                               {c.label}
                             </span>
-                            <span className="text-xs font-medium text-slate-700 truncate block mt-0.5">
+                            <span className="text-xs font-semibold text-slate-800 truncate block leading-tight">
                               {c.getVal(row)}
                             </span>
                           </div>
@@ -1273,6 +1239,225 @@ export default function CustomReportBuilder() {
                 className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
               >
                 <CheckCircle size={14} /> Save Schedule
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Source Filters Modal / Drawer */}
+      {showFilterSheet && (
+        <div
+          className="fixed inset-0 z-[500] flex items-end sm:items-center justify-center p-0 sm:p-4"
+          onClick={() => setShowFilterSheet(false)}
+        >
+          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs animate-sheet-fade-in" />
+
+          {/* Bottom Sheet Drawer on Mobile / Centered Modal on Desktop */}
+          <div
+            className="relative w-full sm:max-w-lg bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl z-[501] flex flex-col max-h-[85vh] sm:max-h-[90vh] animate-sheet-slide-up overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drag Handle */}
+            <div className="sm:hidden w-12 h-1.5 bg-slate-300 rounded-full mx-auto my-3 shrink-0" />
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 shrink-0">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal size={18} className="text-emerald-600" />
+                <h3 className="text-base font-bold text-slate-900">
+                  Source Filters
+                </h3>
+                {activeFilterCount > 0 && (
+                  <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                    {activeFilterCount} active
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFilterSheet(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer border-none"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Scrollable Body - ONLY Source Filters */}
+            <div className="p-5 overflow-y-auto flex-1 space-y-4">
+              {dataSource === "assets" && (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Location</label>
+                    <SearchableSelect
+                      options={[{ value: "", label: "All Locations" }, ...locations.map((l) => ({ value: l.id, label: l.name }))]}
+                      value={selectedLocation}
+                      onChange={setSelectedLocation}
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Asset Type</label>
+                    <SearchableSelect
+                      options={[
+                        { value: "", label: "All Types" },
+                        { value: "Laptop", label: "Laptop" },
+                        { value: "Desktop", label: "Desktop" },
+                        { value: "Mobile", label: "Mobile" },
+                        { value: "Monitor", label: "Monitor" },
+                      ]}
+                      value={selectedType}
+                      onChange={setSelectedType}
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Status</label>
+                    <SearchableSelect
+                      options={[
+                        { value: "", label: "All Status" },
+                        { value: "available", label: "Available" },
+                        { value: "allocated", label: "Allocated" },
+                        { value: "maintenance", label: "Maintenance" },
+                      ]}
+                      value={selectedStatus}
+                      onChange={setSelectedStatus}
+                      className="w-full"
+                    />
+                  </div>
+                </>
+              )}
+
+              {dataSource === "tickets" && (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Location</label>
+                    <SearchableSelect
+                      options={[{ value: "", label: "All Locations" }, ...locations.map((l) => ({ value: l.id, label: l.name }))]}
+                      value={selectedLocation}
+                      onChange={setSelectedLocation}
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Category</label>
+                    <SearchableSelect
+                      options={[
+                        { value: "", label: "All Categories" },
+                        { value: "hardware_malfunction", label: "Hardware" },
+                        { value: "software_issue", label: "Software" },
+                        { value: "general_it", label: "General IT" },
+                      ]}
+                      value={selectedCategory}
+                      onChange={setSelectedCategory}
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Priority</label>
+                    <SearchableSelect
+                      options={[
+                        { value: "", label: "All Priorities" },
+                        { value: "low", label: "Low" },
+                        { value: "medium", label: "Medium" },
+                        { value: "high", label: "High" },
+                        { value: "critical", label: "Critical" },
+                      ]}
+                      value={selectedPriority}
+                      onChange={setSelectedPriority}
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Status</label>
+                    <SearchableSelect
+                      options={[
+                        { value: "", label: "All Status" },
+                        { value: "pending", label: "Pending" },
+                        { value: "in_progress", label: "In Progress" },
+                        { value: "resolved", label: "Resolved" },
+                        { value: "closed", label: "Closed" },
+                      ]}
+                      value={selectedStatus}
+                      onChange={setSelectedStatus}
+                      className="w-full"
+                    />
+                  </div>
+                </>
+              )}
+
+              {dataSource === "licenses" && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Status</label>
+                  <SearchableSelect
+                    options={[
+                      { value: "", label: "All Status" },
+                      { value: "available", label: "Available" },
+                      { value: "active", label: "Active" },
+                      { value: "expired", label: "Expired" },
+                    ]}
+                    value={selectedStatus}
+                    onChange={setSelectedStatus}
+                    className="w-full"
+                  />
+                </div>
+              )}
+
+              {dataSource === "allocations" && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Status</label>
+                  <SearchableSelect
+                    options={[
+                      { value: "", label: "All Status" },
+                      { value: "active", label: "Active" },
+                      { value: "returned", label: "Returned" },
+                    ]}
+                    value={selectedStatus}
+                    onChange={setSelectedStatus}
+                    className="w-full"
+                  />
+                </div>
+              )}
+
+              {dataSource === "audit" && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Action type</label>
+                  <SearchableSelect
+                    options={[
+                      { value: "", label: "All Actions" },
+                      { value: "CREATE", label: "Create Action" },
+                      { value: "UPDATE", label: "Update Action" },
+                      { value: "DELETE", label: "Delete Action" },
+                    ]}
+                    value={selectedStatus}
+                    onChange={setSelectedStatus}
+                    className="w-full"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-100 flex items-center justify-between gap-3 bg-slate-50/50 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedLocation("");
+                  setSelectedStatus("");
+                  setSelectedType("");
+                  setSelectedPriority("");
+                  setSelectedCategory("");
+                }}
+                className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:text-slate-800 border border-slate-200 rounded-xl bg-white cursor-pointer"
+              >
+                Reset Filters
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowFilterSheet(false)}
+                className="px-6 py-2.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs cursor-pointer border-none flex items-center gap-1.5"
+              >
+                Apply Filters
               </button>
             </div>
           </div>

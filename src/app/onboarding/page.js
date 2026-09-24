@@ -1095,86 +1095,119 @@ export default function OnboardingPage() {
           </div>
 
           {/* Mobile Card View */}
-          <div className="block md:hidden space-y-3">
+          <div className="block md:hidden space-y-2.5">
             {emailRequests.length === 0 ? (
               <div className="text-center py-10 text-slate-400 text-xs">
                 No email provisioning requests found.
               </div>
             ) : (
               emailRequests.map(req => (
-                <div key={req.id} className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs space-y-3">
-                  {/* Top: Name, ID, Designation & Status badge */}
-                  <div className="flex items-start justify-between gap-2.5">
-                    <div className="min-w-0">
-                      <h4 className="text-sm font-bold text-slate-900 truncate">{req.onboardingRequest?.name}</h4>
-                      <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium mt-0.5">
-                        <span className="font-mono text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">ID: {req.onboardingRequest?.employee_id || '—'}</span>
-                        <span className="text-slate-300">•</span>
-                        <span className="truncate">{req.onboardingRequest?.designation || '—'}</span>
+                <div key={req.id} className="bg-white border border-slate-200/90 hover:border-slate-300 rounded-xl px-3 py-2.5 shadow-2xs flex flex-col transition-all">
+                  {/* Top Row: Name & Role on left, Status badge / Action on right */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <h4 className="text-[13.5px] font-bold text-slate-900 leading-snug tracking-tight truncate" title={req.onboardingRequest?.name}>
+                          {req.onboardingRequest?.name || '—'}
+                        </h4>
+                        {req.onboardingRequest?.designation && (
+                          <>
+                            <span className="text-slate-300 text-xs shrink-0">•</span>
+                            <span className="text-[11.5px] text-slate-500 font-medium truncate">
+                              {req.onboardingRequest.designation}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded-md font-bold font-mono tracking-tight inline-flex items-center">
+                          ID: {req.onboardingRequest?.employee_id || '—'}
+                        </span>
                       </div>
                     </div>
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border shrink-0 ${
-                      req.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
-                      req.status === 'rejected' ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-amber-50 text-amber-800 border-amber-200'
-                    }`}>
-                      <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                      {t(req.status) || req.status}
-                    </span>
-                  </div>
-                  
-                  {/* 2-Column Info: Location & Onboarding Status */}
-                  <div className="grid grid-cols-2 gap-2 text-xs pt-2.5 border-t border-slate-100">
-                    <div className="space-y-0.5 min-w-0">
-                      <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('location')}</span>
-                      <span className="font-semibold text-slate-700 truncate block">{req.onboardingRequest?.location?.name || '—'}</span>
-                    </div>
-                    <div className="space-y-0.5 min-w-0">
-                      <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('onboardingStatus')}</span>
-                      {req.onboardingRequest ? (
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10.5px] font-semibold border ${
-                            req.onboardingRequest.status === 'completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
-                            req.onboardingRequest.status === 'draft' ? 'bg-slate-50 text-slate-600 border-slate-200' : 
-                            req.onboardingRequest.status === 'pending_approval' ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200'
-                          }`}>
-                            {t(req.onboardingRequest.status) || req.onboardingRequest.status.replace('_', ' ')}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-medium">Step {req.onboardingRequest.step} / 6</span>
-                        </div>
-                      ) : <span className="text-slate-400">—</span>}
-                    </div>
-                  </div>
 
-                  {/* Suggested Corporate Email */}
-                  <div className="pt-2.5 border-t border-slate-100 space-y-1">
-                    <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('suggestedCorporateEmail')}</span>
-                    <div className="inline-block px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 font-mono text-xs text-slate-800 font-medium max-w-full truncate">
-                      {req.suggested_email}
-                    </div>
-                  </div>
-
-                  {/* Bottom: Action / Processed Note */}
-                  <div className="pt-2.5 border-t border-slate-100">
+                    {/* Top-Right Action / Green Status Badge */}
                     {req.status === 'pending' ? (
                       canProcessEmails && (
                         <button 
-                          className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white border-none cursor-pointer shadow-xs transition-colors" 
+                          type="button"
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 shadow-2xs transition-colors flex items-center gap-1 cursor-pointer" 
                           onClick={() => {
                             setSelectedEmailReq(req);
                             setEmailRemarks('');
                             setShowEmailActionModal(true);
                           }}
                         >
-                          Process Request
+                          Process
                         </button>
                       )
                     ) : (
-                      <div className="flex items-center justify-between text-xs text-slate-400 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
-                        <span className="font-medium text-slate-500">Status:</span>
-                        <span>Processed by <strong className="text-slate-700 font-semibold">{req.processor?.name || 'Admin'}</strong></span>
-                      </div>
+                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold border shrink-0 ${
+                        req.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80' : 
+                        req.status === 'rejected' ? 'bg-rose-50 text-rose-700 border-rose-200/80' : 'bg-amber-50 text-amber-800 border-amber-200/80'
+                      }`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                        {t(req.status) || req.status}
+                      </span>
                     )}
                   </div>
+
+                  {/* Suggested Corporate Email */}
+                  <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-700 bg-slate-50/70 border border-slate-100/90 px-2 py-1 rounded-lg font-mono min-w-0">
+                    <Mail size={12} className="text-slate-400 shrink-0" />
+                    <span className="truncate text-[11.5px] font-medium text-slate-800">{req.suggested_email}</span>
+                  </div>
+
+                  {/* 2x2 Structured Metadata Grid */}
+                  <div className="mt-2 pt-2 border-t border-slate-100/90 flex flex-col gap-1.5">
+                    {/* Row 1: Department & Location */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">
+                          {t('department') || 'Department'}
+                        </span>
+                        <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">
+                          {req.onboardingRequest?.department || '—'}
+                        </span>
+                      </div>
+                      <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">
+                          {t('location') || 'Location'}
+                        </span>
+                        <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">
+                          {req.onboardingRequest?.location?.name || '—'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Row 2: Onboarding Status & Wizard Step */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">
+                          {t('onboardingStatus') || 'Onboarding'}
+                        </span>
+                        <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">
+                          {req.onboardingRequest ? (t(req.onboardingRequest.status) || req.onboardingRequest.status.replace('_', ' ')) : '—'}
+                        </span>
+                      </div>
+                      <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">
+                          Wizard Step
+                        </span>
+                        <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">
+                          {req.onboardingRequest ? `Step ${req.onboardingRequest.step} / 6` : '—'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Processed By footer note */}
+                  {req.status !== 'pending' && req.processor?.name && (
+                    <div className="mt-1.5 pt-1.5 border-t border-slate-100/80 flex items-center justify-between text-[10.5px] text-slate-400">
+                      <span className="font-medium text-slate-500">Processed by:</span>
+                      <span className="text-slate-700 font-semibold">{req.processor?.name}</span>
+                    </div>
+                  )}
                 </div>
               ))
             )}
@@ -1183,7 +1216,7 @@ export default function OnboardingPage() {
         </div>
       ) : (
         // HR/Admin Pipeline tabs
-        <div className="flex flex-col gap-3 sm:gap-4 mb-6">
+        <div className="flex flex-col gap-2.5 sm:gap-4 mb-6">
           {((activeTab === 'active' ? activeRequests : completedRequests)).length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-xl p-8 shadow-xs text-center text-slate-400 flex flex-col items-center justify-center">
               <UserPlus size={48} className="mb-3 opacity-40" />
@@ -1232,71 +1265,89 @@ export default function OnboardingPage() {
 
                 {/* Mobile Card Layout */}
                 <div 
-                  className="block md:hidden bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs hover:shadow-xs active:scale-[0.99] transition-all cursor-pointer space-y-3"
+                  className="block md:hidden bg-white border border-slate-200/90 hover:border-slate-300 rounded-xl px-3 py-2.5 shadow-2xs flex flex-col transition-all cursor-pointer active:scale-[0.99]"
                   onClick={() => openWizard(req.id)}
                 >
-                  {/* Top Row: Avatar + Name & ID on left, Status badge on right */}
-                  <div className="flex items-start justify-between gap-2.5">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
-                        req.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-200/60' : 'bg-blue-50 text-blue-600 border-blue-200/60'
-                      }`}>
-                        {req.status === 'completed' ? <CheckCircle2 size={18} /> : <User size={18} />}
+                  {/* Top Row: Name & Role on left, Right Action button */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <h4 className="text-[13.5px] font-bold text-slate-900 leading-snug tracking-tight truncate" title={req.name}>
+                          {req.name}
+                        </h4>
+                        {req.designation && (
+                          <>
+                            <span className="text-slate-300 text-xs shrink-0">•</span>
+                            <span className="text-[11.5px] text-slate-500 font-medium truncate">
+                              {req.designation}
+                            </span>
+                          </>
+                        )}
+                        {req.status !== 'completed' && activeTab !== 'completed' && (
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold border shrink-0 ${
+                            req.status === 'draft' ? 'bg-slate-50 text-slate-600 border-slate-200/80' : 
+                            req.status === 'pending_approval' ? 'bg-amber-50 text-amber-800 border-amber-200/80' : 'bg-blue-50 text-blue-700 border-blue-200/80'
+                          }`}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                            {t(req.status) || req.status.replace('_', ' ')}
+                          </span>
+                        )}
                       </div>
-                      <div className="min-w-0">
-                        <h4 className="text-sm font-bold text-slate-900 truncate">{req.name}</h4>
-                        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium mt-0.5">
-                          <span className="font-mono text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">ID: {req.employee_id}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Status badge */}
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border shrink-0 ${
-                      req.status === 'completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
-                      req.status === 'draft' ? 'bg-slate-50 text-slate-600 border-slate-200' : 
-                      req.status === 'pending_approval' ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200'
-                    }`}>
-                      <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                      {req.status.replace('_', ' ')}
-                    </span>
-                  </div>
-
-                  {/* Middle Grid: 2-column info (Role/Department & Location) */}
-                  <div className="grid grid-cols-2 gap-2 text-xs pt-2.5 border-t border-slate-100">
-                    <div className="space-y-0.5 min-w-0">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                        <Briefcase size={11} className="text-slate-400 shrink-0" /> Role & Dept
-                      </span>
-                      <div className="font-semibold text-slate-700 text-xs truncate">
-                        {req.designation || '—'}
-                      </div>
-                      <div className="text-[11px] text-slate-500 truncate">
-                        {req.department ? `(${req.department})` : ''}
+                      <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded-md font-bold font-mono tracking-tight inline-flex items-center">
+                          ID: {req.employee_id}
+                        </span>
                       </div>
                     </div>
 
-                    <div className="space-y-0.5 min-w-0">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                        <MapPin size={11} className="text-slate-400 shrink-0" /> Location
-                      </span>
-                      <div className="font-semibold text-slate-700 text-xs truncate">
-                        {req.location?.name || 'Global'}
+                    {/* Right Action button */}
+                    <div className="shrink-0 flex items-center gap-1">
+                      <div className="w-7 h-7 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all flex items-center justify-center shadow-2xs">
+                        <ChevronRight size={14} />
                       </div>
                     </div>
                   </div>
 
-                  {/* Bottom Row: Wizard Step Progress Indicator + Tap to open chevron */}
-                  <div className="flex items-center justify-between pt-2.5 border-t border-slate-100/80 bg-slate-50/60 -mx-4 -mb-4 p-3 rounded-b-2xl">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Wizard:</span>
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-xs font-bold text-slate-700 shadow-2xs">
-                        Step {req.step} / 6
-                      </span>
+                  {/* 2x2 Structured Metadata Grid */}
+                  <div className="mt-2 pt-2 border-t border-slate-100/90 flex flex-col gap-1.5">
+                    {/* Row 1: Role & Department */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">
+                          {t('role') || 'Role'}
+                        </span>
+                        <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">
+                          {req.designation || '—'}
+                        </span>
+                      </div>
+                      <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">
+                          {t('department') || 'Department'}
+                        </span>
+                        <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">
+                          {req.department || '—'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 text-xs font-semibold text-emerald-600">
-                      <span>View Details</span>
-                      <ChevronRight size={14} />
+
+                    {/* Row 2: Location & Wizard Step */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">
+                          {t('location') || 'Location'}
+                        </span>
+                        <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">
+                          {req.location?.name || 'Global'}
+                        </span>
+                      </div>
+                      <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">
+                          Wizard Step
+                        </span>
+                        <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">
+                          Step {req.step} / 6
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>

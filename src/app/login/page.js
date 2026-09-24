@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { isValidEmail, sanitizeEmailInput } from '@/lib/validation';
-import { Settings2, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
 export default function LoginPage() {
@@ -78,12 +78,7 @@ export default function LoginPage() {
 
         {/* Logo and Header */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
-            <Settings2 size={20} className="animate-[spin_40s_linear_infinite]" />
-          </div>
-          <div>
-            <span className="text-xl font-bold tracking-tight text-white">Asset<span className="text-emerald-400">IQ</span></span>
-          </div>
+          <img src="/logo-white.png" alt="AssetCare" className="h-9 w-auto object-contain" />
         </div>
 
         {/* Center Mandala Graphics */}
@@ -123,11 +118,8 @@ export default function LoginPage() {
         <div className="w-full max-w-[400px] flex flex-col justify-center relative z-10">
           {/* Floating Header for Mobile (Hidden on Desktop) */}
           <div className="md:hidden flex flex-col items-center mb-8">
-            <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-500 mb-3 shadow-sm">
-              <Settings2 size={24} className="animate-[spin_40s_linear_infinite]" />
-            </div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-slate-800">Asset<span className="text-emerald-500">IQ</span></h1>
-            <p className="text-slate-450 text-xs mt-1">Enterprise IT Asset Management</p>
+            <img src="/logo.png" alt="AssetCare" className="h-10 w-auto object-contain mb-1.5" />
+            <p className="text-slate-400 text-xs">Enterprise IT Asset Management</p>
           </div>
 
           <div>

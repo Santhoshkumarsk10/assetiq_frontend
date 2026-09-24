@@ -43,6 +43,7 @@ import {
   Sliders,
   Calendar,
   AlertTriangle,
+  User,
 } from "lucide-react";
 
 const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6"];
@@ -430,7 +431,7 @@ export default function ReportsDashboard() {
         {/* Welcome Banner */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-xs">
           <div>
-            <h1 className="text-2xl font-extrabold text-slate-800">
+            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-800 leading-snug">
               Welcome back, <span className="text-emerald-600">{user?.name || "Admin"}</span>!
             </h1>
             <p className="text-slate-500 text-sm mt-1">
@@ -1103,7 +1104,8 @@ function ActivityLogsTabContent() {
         </button>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Desktop Table View */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-100">
@@ -1152,6 +1154,63 @@ function ActivityLogsTabContent() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="block md:hidden space-y-2.5 p-3 sm:p-4">
+        {filteredLogs.length === 0 ? (
+          <div className="text-center py-12 text-slate-400 text-xs font-medium">
+            No matching activity logs found.
+          </div>
+        ) : (
+          filteredLogs.slice(0, 15).map((log) => (
+            <div
+              key={log.id}
+              className="bg-white border border-slate-200/90 hover:border-slate-300 rounded-xl px-3.5 py-3 shadow-2xs flex flex-col transition-all"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-500 shrink-0">
+                    <User size={13} />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-[13px] font-bold text-slate-900 truncate">
+                      {log.user?.name || "System"}
+                    </h4>
+                    {log.user?.email && (
+                      <span className="text-[10px] text-slate-400 truncate block">
+                        {log.user.email}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase shrink-0 ${log.action?.includes("CREATE")
+                      ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                      : log.action?.includes("UPDATE")
+                        ? "bg-blue-50 text-blue-600 border border-blue-100"
+                        : log.action?.includes("DELETE")
+                          ? "bg-rose-50 text-rose-600 border border-rose-100"
+                          : "bg-slate-50 text-slate-500 border border-slate-100"
+                    }`}
+                >
+                  {log.action}
+                </span>
+              </div>
+
+              {log.details && (
+                <div className="mt-2 bg-slate-50/80 border border-slate-100/90 rounded-lg p-2.5 text-xs text-slate-700 font-medium leading-relaxed break-words">
+                  {log.details}
+                </div>
+              )}
+
+              <div className="mt-2 pt-1.5 border-t border-slate-100/90 flex items-center gap-1 text-[10.5px] text-slate-400 font-mono">
+                <Clock size={11} className="text-slate-400 shrink-0" />
+                <span>{log.created_at ? new Date(log.created_at).toLocaleString() : "—"}</span>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

@@ -779,7 +779,7 @@ function LicensesReportPageInner() {
           </div>
 
           {/* Mobile Card View */}
-          <div className="block md:hidden divide-y divide-slate-100">
+          <div className="block md:hidden space-y-2.5 p-3 sm:p-4">
             {licenses.length === 0 ? (
               <div className="text-center py-12 text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
                 <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300">
@@ -789,13 +789,18 @@ function LicensesReportPageInner() {
               </div>
             ) : (
               licenses.map((license) => (
-                <div key={license.id} className="p-3.5 sm:p-4 flex flex-col gap-2.5 hover:bg-slate-50/50 transition-colors">
+                <div
+                  key={license.id}
+                  className="bg-white border border-slate-200/90 hover:border-slate-300 rounded-xl px-3.5 py-3 shadow-2xs flex flex-col transition-all"
+                >
                   <div className="flex justify-between items-start gap-2">
                     <div className="min-w-0 flex-1">
-                      <h4 className="text-sm font-bold text-slate-800 truncate">{license.software_name}</h4>
-                      <span className="text-xs font-mono text-emerald-600 font-bold mt-0.5 block truncate">
-                        {license.license_key}
-                      </span>
+                      <h4 className="text-[13.5px] font-bold text-slate-900 leading-snug tracking-tight truncate">{license.software_name}</h4>
+                      <div className="mt-1">
+                        <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded-md font-bold font-mono tracking-tight inline-flex items-center truncate max-w-full">
+                          {license.license_key}
+                        </span>
+                      </div>
                     </div>
                     <span
                       className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase shrink-0"
@@ -809,23 +814,23 @@ function LicensesReportPageInner() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 border-t border-slate-100 pt-2">
-                    <div className="min-w-0 col-span-2 sm:col-span-1">
-                      <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('assignedEmployee')}</span>
-                      <span className="font-semibold text-slate-700 truncate block">{license.user?.name || "—"}</span>
+                  <div className="mt-2.5 pt-2 border-t border-slate-100/90 grid grid-cols-2 gap-2 text-xs">
+                    <div className="min-w-0 col-span-2 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                      <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">{t('assignedEmployee')}</span>
+                      <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">{license.user?.name || "—"}</span>
                       {license.user?.email && (
-                        <span className="text-[10px] text-slate-400 truncate block">{license.user.email}</span>
+                        <span className="text-[10px] text-slate-400 truncate block mt-0.5">{license.user.email}</span>
                       )}
                     </div>
-                    <div className="min-w-0">
-                      <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('purchasedDate')}</span>
-                      <span className="font-semibold text-slate-700 truncate block">
+                    <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                      <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">{t('purchasedDate')}</span>
+                      <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">
                         {license.created_at ? new Date(license.created_at).toLocaleDateString() : "—"}
                       </span>
                     </div>
-                    <div className="min-w-0">
-                      <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('validUntil')}</span>
-                      <span className="font-semibold text-slate-700 truncate block">
+                    <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                      <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">{t('validUntil')}</span>
+                      <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">
                         {license.valid_until ? new Date(license.valid_until).toLocaleDateString() : "Perpetual"}
                       </span>
                     </div>

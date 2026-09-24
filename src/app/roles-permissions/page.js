@@ -8,7 +8,7 @@ import { rolesApi } from '@/lib/api';
 import {
   Shield, Key, CheckSquare, Square, Save, RefreshCw, Plus, Pencil, Trash2, Search, X,
   Box, Users, MapPin, LifeBuoy, UserPlus, FileText, Bell, Activity, Settings, Cpu,
-  ChevronRight, ArrowLeft, Info, Lock
+  ChevronRight, ArrowLeft, Info, Lock, SlidersHorizontal
 } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/context/ConfirmContext';
@@ -337,6 +337,19 @@ export default function RolesPermissionsPage() {
     permPage * permLimit
   );
 
+  const getVisiblePermPages = (current, total) => {
+    if (total <= 5) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    if (current <= 3) {
+      return [1, 2, 3, 4, 5];
+    }
+    if (current >= total - 2) {
+      return [total - 4, total - 3, total - 2, total - 1, total];
+    }
+    return [current - 2, current - 1, current, current + 1, current + 2];
+  };
+
   // Filters for role sidebar
   const filteredRoles = roles.filter(role =>
     role.name.toLowerCase().includes(roleSearch.toLowerCase()) ||
@@ -535,6 +548,19 @@ export default function RolesPermissionsPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3.5 text-xs align-middle text-right space-x-1">
+                          <button
+                            type="button"
+                            className="w-8 h-8 inline-flex items-center justify-center rounded-lg border-none bg-transparent cursor-pointer text-slate-450 hover:bg-slate-100 hover:text-slate-800 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedRoleId(role.id);
+                              setShowMobileDetail(true);
+                            }}
+                            title="Permissions"
+                            aria-label="Permissions"
+                          >
+                            <SlidersHorizontal size={15} />
+                          </button>
                           {canEdit && (
                             <button
                               className="w-8 h-8 inline-flex items-center justify-center rounded-lg border-none bg-transparent cursor-pointer text-slate-450 hover:bg-slate-100 hover:text-slate-800 transition-colors"
@@ -604,7 +630,20 @@ export default function RolesPermissionsPage() {
                           <span className="text-[10px] font-medium text-slate-400">ID: {role.id}</span>
                         </div>
                       </div>
-                      <div className="flex gap-1">
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          className="w-8 h-8 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 cursor-pointer text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedRoleId(role.id);
+                            setShowMobileDetail(true);
+                          }}
+                          title="Permissions"
+                          aria-label="Permissions"
+                        >
+                          <SlidersHorizontal size={14} />
+                        </button>
                         {canEdit && (
                           <button
                             className="w-8 h-8 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 cursor-pointer text-slate-600 hover:bg-slate-100 transition-colors"
@@ -906,9 +945,10 @@ export default function RolesPermissionsPage() {
         )
       ) : (
         <div className="bg-white border border-slate-200 rounded-2xl p-2.5 sm:p-5 shadow-3xs">
-          <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-center mb-2.5 sm:mb-3.5">
-            <div className="w-full sm:flex-1 relative">
-              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-2.5">
+          {/* Desktop Filter Row */}
+          <div className="hidden md:flex gap-3 items-center mb-4">
+            <div className="flex-1 relative">
+              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-2.5 shadow-2xs">
                 <Search size={18} className="text-slate-400 shrink-0" />
                 <input
                   placeholder="Search permissions by scope name or description..."
@@ -945,8 +985,55 @@ export default function RolesPermissionsPage() {
                 setPermLimit(val);
                 setPermPage(1);
               }}
-              className="w-full sm:w-[150px]"
+              className="w-[150px]"
             />
+          </div>
+
+          {/* Mobile Filter & Search Bar */}
+          <div className="block md:hidden mb-3">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 relative">
+                <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-2xs">
+                  <Search size={16} className="text-slate-400 shrink-0" />
+                  <input
+                    placeholder="Search permissions..."
+                    value={permSearch}
+                    maxLength={100}
+                    onChange={(e) => {
+                      setPermSearch(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''));
+                      setPermPage(1);
+                    }}
+                    className="border-none bg-transparent outline-none text-xs text-slate-800 w-full placeholder-slate-400"
+                  />
+                  {permSearch && (
+                    <button
+                      onClick={() => {
+                        setPermSearch('');
+                        setPermPage(1);
+                      }}
+                      className="text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer border-none bg-transparent p-0.5 rounded"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="w-[125px] shrink-0">
+                <SearchableSelect
+                  options={[
+                    { value: 5, label: "5 per page" },
+                    { value: 10, label: "10 per page" },
+                    { value: 20, label: "20 per page" },
+                    { value: 50, label: "50 per page" }
+                  ]}
+                  value={permLimit}
+                  onChange={val => {
+                    setPermLimit(val);
+                    setPermPage(1);
+                  }}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Desktop Table View */}
@@ -1025,26 +1112,30 @@ export default function RolesPermissionsPage() {
             )}
           </div>
 
-          {/* Pagination Controls */}
+          {/* Desktop Pagination Controls */}
           {totalPermPages > 1 && (
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-4 border-t border-slate-200">
-              <div className="text-xs font-medium text-slate-500">
-                Showing {Math.min((permPage - 1) * permLimit + 1, filteredPerms.length)} to {Math.min(permPage * permLimit, filteredPerms.length)} of {filteredPerms.length} entries
+            <div className="hidden md:flex justify-between items-center mt-5 pt-4 border-t border-slate-200">
+              <div className="text-xs sm:text-sm text-slate-500 font-medium">
+                Showing <span className="font-semibold text-slate-700">{Math.min((permPage - 1) * permLimit + 1, filteredPerms.length)}</span> to{" "}
+                <span className="font-semibold text-slate-700">{Math.min(permPage * permLimit, filteredPerms.length)}</span> of{" "}
+                <span className="font-semibold text-slate-700">{filteredPerms.length}</span> entries
               </div>
-              <div className="flex gap-1.5">
+              <div className="flex items-center gap-1.5">
                 <button
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-750 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  type="button"
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   onClick={() => setPermPage(p => Math.max(p - 1, 1))}
                   disabled={permPage === 1}
                 >
                   Previous
                 </button>
-                {Array.from({ length: totalPermPages }, (_, i) => i + 1).map(p => (
+                {getVisiblePermPages(permPage, totalPermPages).map(p => (
                   <button
                     key={p}
+                    type="button"
                     className={permPage === p
-                      ? "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white border-none cursor-pointer transition-all"
-                      : "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer transition-all"
+                      ? "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white cursor-pointer shadow-xs"
+                      : "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer transition-colors"
                     }
                     onClick={() => setPermPage(p)}
                   >
@@ -1052,13 +1143,39 @@ export default function RolesPermissionsPage() {
                   </button>
                 ))}
                 <button
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-750 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  type="button"
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   onClick={() => setPermPage(p => Math.min(p + 1, totalPermPages))}
                   disabled={permPage === totalPermPages}
                 >
                   Next
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Mobile Pagination Controls */}
+          {totalPermPages > 1 && (
+            <div className="flex md:hidden justify-between items-center mt-3 pt-3 border-t border-slate-200 text-xs">
+              <button
+                type="button"
+                className="px-3 py-1.5 rounded-lg font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                onClick={() => setPermPage(p => Math.max(p - 1, 1))}
+                disabled={permPage === 1}
+              >
+                Previous
+              </button>
+              <span className="text-slate-500 font-medium text-xs">
+                Page {permPage} of {totalPermPages}
+              </span>
+              <button
+                type="button"
+                className="px-3 py-1.5 rounded-lg font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                onClick={() => setPermPage(p => Math.min(p + 1, totalPermPages))}
+                disabled={permPage === totalPermPages}
+              >
+                Next
+              </button>
             </div>
           )}
         </div>
@@ -1080,121 +1197,94 @@ export default function RolesPermissionsPage() {
         </div>
       </Modal>
 
-      {/* Right Slide-over Drawer for Add/Edit Permission */}
-      <div className={`fixed inset-0 z-[100] overflow-hidden transition-all duration-300 ${showPermModal ? 'visible opacity-100' : 'invisible opacity-0'
-        }`}>
-        {/* Backdrop overlay */}
-        <div
-          className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-300"
-          onClick={() => setShowPermModal(false)}
-        />
+      {/* Add/Edit Permission Modal */}
+      <Modal
+        isOpen={showPermModal}
+        onClose={() => setShowPermModal(false)}
+        title={editingPerm ? 'Edit Permission' : 'Add Permission'}
+        footer={
+          <>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-medium cursor-pointer border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors"
+              onClick={() => setShowPermModal(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-medium cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+              onClick={handleSavePermission}
+              disabled={savingPerm}
+            >
+              {savingPerm ? 'Saving...' : 'Save'}
+            </button>
+          </>
+        }
+      >
+        <div className="mb-4">
+          <label className="block text-xs font-medium text-slate-500 mb-1.5">Permission Scope Name *</label>
+          <input
+            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 placeholder-slate-400 transition-all"
+            placeholder="e.g. process:payroll"
+            maxLength={60}
+            value={permForm.name}
+            onChange={(e) => setPermForm({ ...permForm, name: e.target.value.replace(/[^a-zA-Z0-9\s:\.]/g, '') })}
+            required
+          />
+        </div>
 
-        {/* Drawer Panel container */}
-        <div className="absolute inset-y-0 right-0 pl-10 max-w-full flex">
-          <div className={`w-screen max-w-md bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${showPermModal ? 'translate-x-0' : 'translate-x-full'
-            }`}>
-            {/* Drawer Header */}
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div>
-                <h2 className="text-base font-bold text-slate-800">
-                  {editingPerm ? 'Edit Permission' : 'Add Permission'}
-                </h2>
-                <p className="text-[11px] text-slate-400 mt-0.5">Define permission scope and assign to roles</p>
-              </div>
-              <button
-                onClick={() => setShowPermModal(false)}
-                className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            </div>
+        <div className="mb-4">
+          <label className="block text-xs font-medium text-slate-500 mb-1.5">Description</label>
+          <textarea
+            rows={3}
+            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 outline-none bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 placeholder-slate-400 transition-all resize-none"
+            placeholder="Permission scope description..."
+            maxLength={255}
+            value={permForm.description}
+            onChange={(e) => setPermForm({ ...permForm, description: e.target.value.replace(/[^a-zA-Z0-9\s]/g, '') })}
+          />
+        </div>
 
-            {/* Drawer Body (Scrollable) */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-5">
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Permission Scope Name *</label>
-                <input
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 placeholder-slate-400 transition-all"
-                  placeholder="e.g. process:payroll"
-                  maxLength={60}
-                  value={permForm.name}
-                  onChange={(e) => setPermForm({ ...permForm, name: e.target.value.replace(/[^a-zA-Z0-9\s:\.]/g, '') })}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Description</label>
-                <textarea
-                  rows={3}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 placeholder-slate-400 transition-all resize-none"
-                  placeholder="Permission scope description..."
-                  maxLength={255}
-                  value={permForm.description}
-                  onChange={(e) => setPermForm({ ...permForm, description: e.target.value.replace(/[^a-zA-Z0-9\s]/g, '') })}
-                />
-              </div>
-
-              {!editingPerm && roles.length > 0 && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-2">{t('assignDirectlyToRoles')}</label>
-
-                  <div className="flex flex-wrap gap-2">
-                    {roles.map(role => {
-                      const isChecked = permForm.roleIds?.includes(role.id);
-                      return (
-                        <button
-                          key={role.id}
-                          type="button"
-                          onClick={() => {
-                            const updatedIds = isChecked
-                              ? permForm.roleIds.filter(id => id !== role.id)
-                              : [...(permForm.roleIds || []), role.id];
-                            setPermForm({ ...permForm, roleIds: updatedIds });
-                          }}
-                          className={`inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 ${isChecked
-                            ? 'border-emerald-600 bg-emerald-50/10 text-emerald-700 shadow-3xs ring-1 ring-emerald-500/10 font-bold'
-                            : 'border-slate-200 bg-white text-slate-650 hover:border-slate-300 hover:bg-slate-50'
-                            }`}
-                        >
-                          <div className={`shrink-0 w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${isChecked
-                            ? 'border-emerald-600 bg-emerald-600 text-white'
-                            : 'border-slate-300 bg-white'
-                            }`}>
-                            {isChecked && (
-                              <svg className="w-2.5 h-2.5 stroke-[3] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </div>
-                          <span>{role.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Drawer Footer */}
-            <div className="px-6 py-4.5 border-t border-slate-100 flex items-center justify-end gap-3 bg-slate-50/50">
-              <button
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold cursor-pointer border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors"
-                onClick={() => setShowPermModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-xl text-sm font-semibold cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors"
-                onClick={handleSavePermission}
-                disabled={savingPerm}
-              >
-                {savingPerm ? 'Saving...' : 'Save'}
-              </button>
+        {!editingPerm && roles.length > 0 && (
+          <div className="mb-2">
+            <label className="block text-xs font-medium text-slate-500 mb-2">{t('assignDirectlyToRoles') || 'Assign Directly to Roles'}</label>
+            <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1">
+              {roles.map(role => {
+                const isChecked = permForm.roleIds?.includes(role.id);
+                return (
+                  <button
+                    key={role.id}
+                    type="button"
+                    onClick={() => {
+                      const updatedIds = isChecked
+                        ? permForm.roleIds.filter(id => id !== role.id)
+                        : [...(permForm.roleIds || []), role.id];
+                      setPermForm({ ...permForm, roleIds: updatedIds });
+                    }}
+                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 ${isChecked
+                      ? 'border-emerald-600 bg-emerald-50/10 text-emerald-700 shadow-3xs ring-1 ring-emerald-500/10 font-bold'
+                      : 'border-slate-200 bg-white text-slate-650 hover:border-slate-300 hover:bg-slate-50'
+                      }`}
+                  >
+                    <div className={`shrink-0 w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${isChecked
+                      ? 'border-emerald-600 bg-emerald-600 text-white'
+                      : 'border-slate-300 bg-white'
+                      }`}>
+                      {isChecked && (
+                        <svg className="w-2.5 h-2.5 stroke-[3] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    <span>{role.name}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
-        </div>
-      </div>
+        )}
+      </Modal>
     </AppLayout>
   );
 }

@@ -645,7 +645,7 @@ function AuditReportPageInner() {
           </div>
 
           {/* Mobile Card List View */}
-          <div className="block md:hidden divide-y divide-slate-100">
+          <div className="block md:hidden space-y-2.5 p-3 sm:p-4">
             {auditLogs.length === 0 ? (
               <div className="text-center py-12 text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
                 <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300">
@@ -657,10 +657,13 @@ function AuditReportPageInner() {
               auditLogs.map((log) => {
                 const badge = getActionBadge(log.action);
                 return (
-                  <div key={log.id} className="p-4 space-y-3 hover:bg-slate-50/50 transition-colors">
+                  <div
+                    key={log.id}
+                    className="bg-white border border-slate-200/90 hover:border-slate-300 rounded-xl px-3.5 py-3 shadow-2xs flex flex-col transition-all"
+                  >
                     {/* Top Row: Action Badge + Timestamp */}
                     <div className="flex items-center justify-between gap-2">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold border ${badge.cls}`}>
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${badge.cls}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`} />
                         {badge.label}
                       </span>
@@ -671,7 +674,7 @@ function AuditReportPageInner() {
                     </div>
 
                     {/* Operator Information */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 mt-2">
                       <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-500 shrink-0">
                         <User size={13} />
                       </div>
@@ -686,13 +689,15 @@ function AuditReportPageInner() {
                     </div>
 
                     {/* Log Details Box */}
-                    <div className="bg-slate-50 border border-slate-100/90 rounded-xl p-2.5 text-xs text-slate-700 font-medium leading-relaxed break-words">
-                      {log.details || "No details recorded"}
-                    </div>
+                    {log.details && (
+                      <div className="mt-2 bg-slate-50/80 border border-slate-100/90 rounded-lg p-2.5 text-xs text-slate-700 font-medium leading-relaxed break-words">
+                        {log.details}
+                      </div>
+                    )}
 
                     {/* Metadata Footer: IP */}
                     {log.ip_address && (
-                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono pt-0.5">
+                      <div className="mt-2 pt-1.5 border-t border-slate-100/90 flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
                         <Globe size={11} className="text-slate-400" />
                         <span>IP: {log.ip_address}</span>
                       </div>

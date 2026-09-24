@@ -202,9 +202,12 @@ export default function DashboardPage() {
           {/* Welcome Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                Welcome back, <span className="font-extrabold text-slate-900">{user?.name || 'Chennai Admin'}</span>
-                <span className="text-xl">👋</span>
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight leading-snug">
+                Welcome back,{' '}
+                <span className="inline-flex items-center gap-1.5 font-extrabold text-slate-900 whitespace-nowrap">
+                  <span>{user?.name || 'Chennai Admin'}</span>
+                  <span className="text-xl leading-none">👋</span>
+                </span>
               </h1>
               <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
                 Here&apos;s what&apos;s happening with your assets today.
