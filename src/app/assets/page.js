@@ -12,6 +12,7 @@ import { useConfirm } from '@/context/ConfirmContext';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import AnimatedPageTitle from '@/components/AnimatedPageTitle';
+import { lockScroll, unlockScroll } from '@/lib/scrollLock';
 
 export default function AssetsPage() {
   const { t } = useLanguage();
@@ -51,6 +52,15 @@ export default function AssetsPage() {
   const [allocateForm, setAllocateForm] = useState({ user_id: '', notes: '' });
   const [allocating, setAllocating] = useState(false);
   const [showMobileFilterSheet, setShowMobileFilterSheet] = useState(false);
+
+  useEffect(() => {
+    if (showMobileFilterSheet || (showDetailsModal && viewingAsset)) {
+      lockScroll();
+      return () => {
+        unlockScroll();
+      };
+    }
+  }, [showMobileFilterSheet, showDetailsModal, viewingAsset]);
 
   // Excel Import States
   const [showImportModal, setShowImportModal] = useState(false);
@@ -468,7 +478,7 @@ export default function AssetsPage() {
 
   return (
     <AppLayout>
-      <div className="flex justify-between items-center gap-2 sm:gap-4 mb-4 -mt-3 sm:-mt-4">
+      <div className="flex justify-between items-center gap-2 sm:gap-4 mb-4 pt-3 sm:pt-5">
         <div className="min-w-0 flex-1">
           <AnimatedPageTitle title="Assets Management" className="!text-lg sm:!text-2xl md:!text-3xl whitespace-nowrap" />
         </div>
@@ -679,8 +689,8 @@ export default function AssetsPage() {
               <button
                 onClick={() => setShowMobileFilterSheet(true)}
                 className={`relative inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border transition-all cursor-pointer shrink-0 text-xs font-semibold ${(statusFilter || typeFilter || (limit && limit !== 10))
-                    ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-xs'
-                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-xs'
+                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                   }`}
                 aria-label="Filter Assets"
                 title="Filter Assets"

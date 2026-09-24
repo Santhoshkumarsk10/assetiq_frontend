@@ -14,6 +14,7 @@ import {
   LogIn,
   Shield,
   X,
+  RefreshCw,
 } from "lucide-react";
 
 function getAuditIcon(action) {
@@ -63,6 +64,7 @@ export default function AuditLogsPage() {
   const [totalPages, setTotalPages] = useState(1);
 
   const loadLogs = useCallback(async () => {
+    setLoading(true);
     try {
       const data = await auditApi.list({
         page,
@@ -138,23 +140,68 @@ export default function AuditLogsPage() {
     return () => clearTimeout(timer);
   }, [loadLogs]);
 
+  const handleExport = () => {
+    if (logs.length === 0) return;
+    const headers = ["ID", "User", "Action", "Details", "Entity Type", "IP Address", "Timestamp"];
+    const rows = logs.map(l => [
+      l.id,
+      `"${(l.user?.name || (l.user_id ? `User #${l.user_id}` : "System")).replace(/"/g, '""')}"`,
+      `"${(l.action || "").replace(/"/g, '""')}"`,
+      `"${(l.details || "").replace(/"/g, '""')}"`,
+      `"${(l.entity_type || "System").replace(/"/g, '""')}"`,
+      `"${(l.ip_address || "—").replace(/"/g, '""')}"`,
+      `"${new Date(l.created_at || l.createdAt).toLocaleString().replace(/"/g, '""')}"`
+    ]);
+    const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `audit_logs_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const filtered = logs;
 
   return (
     <AppLayout>
-      <div className="flex justify-between items-center mb-6 -mt-3 sm:-mt-4">
-        <div>
-          <AnimatedPageTitle title="Audit Logs" />
+      {/* Top Header & Actions */}
+      <div className="flex justify-between items-center gap-2 sm:gap-4 mb-4 sm:mb-6 pt-3 sm:pt-5">
+        <div className="min-w-0 flex-1">
+          <AnimatedPageTitle title="Audit Logs" className="!text-lg sm:!text-2xl md:!text-3xl whitespace-nowrap" />
         </div>
-        <button className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors">
-          <Download size={16} /> Export Logs
-        </button>
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          <button
+            className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold cursor-pointer border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors shrink-0 whitespace-nowrap shadow-2xs"
+            onClick={loadLogs}
+            disabled={loading}
+            title="Refresh"
+            aria-label="Refresh"
+          >
+            <RefreshCw size={16} className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+          <button
+            onClick={handleExport}
+            disabled={logs.length === 0}
+            className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 py-1.5 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold cursor-pointer border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors shrink-0 whitespace-nowrap shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Export Logs"
+          >
+            <Download size={16} className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="hidden sm:inline">Export Logs</span>
+            <span className="sm:hidden">Export</span>
+          </button>
+        </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
-        <div className="flex flex-col md:flex-row gap-4 md:items-center mb-5">
+      {/* Main Content Card */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-3 sm:p-5 md:p-6 shadow-xs">
+        {/* Filters Row */}
+        <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-4 sm:items-center mb-4 sm:mb-5">
           <div className="flex-1 relative w-full">
-            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-2.5">
+            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3.5 py-2 sm:px-4 sm:py-2.5 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/15 transition-all">
               <Search size={18} className="text-slate-400 shrink-0" />
               <input
                 placeholder="Search by user or activity..."
@@ -170,7 +217,7 @@ export default function AuditLogsPage() {
                 }}
                 onFocus={() => setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                className="border-none bg-transparent outline-none text-sm text-slate-800 w-full placeholder-slate-400"
+                className="border-none bg-transparent outline-none text-xs sm:text-sm text-slate-800 w-full placeholder-slate-400"
               />
               {searchInput && (
                 <button
@@ -195,95 +242,127 @@ export default function AuditLogsPage() {
                       setPage(1);
                       setShowSuggestions(false);
                     }}
-                    className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex flex-col gap-0.5 border-none bg-transparent cursor-pointer"
+                    className="w-full text-left px-3.5 py-2 hover:bg-slate-50 transition-colors flex flex-col gap-0.5 border-none bg-transparent cursor-pointer"
                   >
-                    <span className="text-[10px] text-emerald-600 font-bold tracking-wider uppercase">{item.type}</span>
-                    <span className="text-sm text-slate-700 font-medium">{item.label}</span>
+                    <span className="text-[9px] text-emerald-600 font-bold tracking-wider uppercase">{item.type}</span>
+                    <span className="text-xs sm:text-sm text-slate-700 font-medium truncate">{item.label}</span>
                   </button>
                 ))}
               </div>
             )}
           </div>
-          <SearchableSelect
-            options={[
-              { value: "", label: "All Actions" },
-              { value: "CREATE", label: "Created" },
-              { value: "UPDATE", label: "Updated" },
-              { value: "DELETE", label: "Deleted" },
-              { value: "LOGIN", label: "Login" }
-            ]}
-            value={actionFilter}
-            onChange={val => { setActionFilter(val); setPage(1); }}
-            className="w-full md:w-[150px]"
-          />
-          <SearchableSelect
-            options={[
-              { value: 5, label: "5 per page" },
-              { value: 10, label: "10 per page" },
-              { value: 20, label: "20 per page" },
-              { value: 50, label: "50 per page" }
-            ]}
-            value={limit}
-            onChange={val => setLimit(val)}
-            className="w-full md:w-[150px]"
-          />
+
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-3 shrink-0">
+            <SearchableSelect
+              options={[
+                { value: "", label: "All Actions" },
+                { value: "CREATE", label: "Created" },
+                { value: "UPDATE", label: "Updated" },
+                { value: "DELETE", label: "Deleted" },
+                { value: "LOGIN", label: "Login" }
+              ]}
+              value={actionFilter}
+              onChange={val => { setActionFilter(val); setPage(1); }}
+              className="w-full sm:w-[150px]"
+            />
+            <SearchableSelect
+              options={[
+                { value: 5, label: "5 per page" },
+                { value: 10, label: "10 per page" },
+                { value: 20, label: "20 per page" },
+                { value: 50, label: "50 per page" }
+              ]}
+              value={limit}
+              onChange={val => setLimit(val)}
+              className="w-full sm:w-[130px]"
+            />
+          </div>
         </div>
 
+        {/* Audit Logs List */}
         {loading ? (
-          <div className="flex items-center justify-center p-15 text-slate-400 gap-2.5 text-sm">
+          <div className="flex items-center justify-center p-12 sm:p-16 text-slate-400 gap-2.5 text-sm">
             <div className="w-6 h-6 border-3 border-slate-200 border-t-emerald-500 rounded-full animate-spin" /> Loading logs...
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-15 px-5 text-slate-400 flex flex-col items-center justify-center">
-            <ClipboardList size={48} className="mb-3 opacity-40" />
-            <p className="text-sm">No audit logs found</p>
+          <div className="text-center py-12 sm:py-16 px-4 text-slate-400 flex flex-col items-center justify-center">
+            <ClipboardList size={42} className="mb-2.5 opacity-40" />
+            <p className="text-xs sm:text-sm font-medium">No audit logs found</p>
           </div>
         ) : (
-          filtered.map((log) => {
-            const iconInfo = getAuditIcon(log.action);
-            const badgeInfo = getActionBadge(log.action);
-            const Icon = iconInfo.icon;
-            const ts = new Date(log.created_at || log.createdAt);
-            return (
-              <div className="flex items-center gap-4 px-5 py-4 border-b border-slate-100 last:border-b-0" key={log.id}>
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${iconInfo.cls}`}>
-                  <Icon size={20} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-semibold text-slate-800">
-                      {log.user_id ? `User #${log.user_id}` : "System"}
-                    </span>
-                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium border ${badgeInfo.cls}`}>
-                      <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                      {badgeInfo.label}
-                    </span>
+          <div className="divide-y divide-slate-100">
+            {filtered.map((log) => {
+              const iconInfo = getAuditIcon(log.action);
+              const badgeInfo = getActionBadge(log.action);
+              const Icon = iconInfo.icon;
+              const ts = new Date(log.created_at || log.createdAt);
+
+              return (
+                <div
+                  key={log.id}
+                  className="flex items-start gap-3 sm:gap-4 py-3 sm:py-3.5 hover:bg-slate-50/50 transition-colors rounded-xl px-1 sm:px-2"
+                >
+                  {/* Action Icon */}
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 shadow-2xs ${iconInfo.cls}`}>
+                    <Icon size={16} className="sm:w-5 sm:h-5" />
                   </div>
-                  <div className="text-sm text-slate-600 mb-1">{log.details}</div>
-                  <div className="flex items-center gap-3 text-xs text-slate-400">
-                    <span>● {log.entity_type || "System"}</span>
-                    <span>{log.ip_address || "—"}</span>
+
+                  {/* Main Details */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1 flex-wrap sm:flex-nowrap">
+                      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-wrap">
+                        <span className="text-xs sm:text-sm font-semibold text-slate-900 truncate">
+                          {log.user?.name || (log.user_id ? `User #${log.user_id}` : "System")}
+                        </span>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold border tracking-wide ${badgeInfo.cls}`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                          {badgeInfo.label}
+                        </span>
+                      </div>
+                      {/* Mobile Timestamp */}
+                      <span className="text-[11px] text-slate-400 font-mono sm:hidden shrink-0">
+                        {ts.toLocaleDateString([], { month: 'short', day: 'numeric' })}, {ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+
+                    <div className="text-xs sm:text-sm text-slate-600 leading-relaxed mb-1.5 break-words">
+                      {log.details || "No details recorded"}
+                    </div>
+
+                    <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-slate-400 flex-wrap">
+                      <span className="inline-flex items-center gap-1 font-medium text-slate-500">
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                        {log.entity_type || "System"}
+                      </span>
+                      {log.ip_address && (
+                        <span className="font-mono bg-slate-100/90 px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] text-slate-500">
+                          {log.ip_address}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Desktop Timestamp Column */}
+                  <div className="hidden sm:flex flex-col text-right text-xs text-slate-400 shrink-0 font-mono self-start mt-0.5">
+                    <span className="font-medium text-slate-650">{ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                    <span className="text-[11px] text-slate-400">{ts.toLocaleDateString()}</span>
                   </div>
                 </div>
-                <div className="text-right text-xs text-slate-400 shrink-0">
-                  <div>{ts.toLocaleTimeString()}</div>
-                  <div>{ts.toLocaleDateString()}</div>
-                </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </div>
         )}
 
-        {/* Pagination Controls */}
+        {/* Desktop Pagination Controls */}
         {totalPages > 1 && (
-          <div className="flex justify-between items-center mt-5 pt-4 border-t border-slate-200">
-            <div className="text-sm text-slate-500">
+          <div className="hidden md:flex justify-between items-center mt-5 pt-4 border-t border-slate-200">
+            <div className="text-xs sm:text-sm text-slate-500">
               Showing {Math.min((page - 1) * limit + 1, total)} to{" "}
               {Math.min(page * limit, total)} of {total} entries
             </div>
             <div className="flex gap-1.5">
               <button
-                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 onClick={() => setPage((p) => Math.max(p - 1, 1))}
                 disabled={page === 1}
               >
@@ -294,8 +373,8 @@ export default function AuditLogsPage() {
                   key={p}
                   className={
                     page === p 
-                      ? "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white cursor-pointer" 
-                      : "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer"
+                      ? "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white cursor-pointer shadow-2xs" 
+                      : "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer transition-all"
                   }
                   onClick={() => setPage(p)}
                 >
@@ -303,13 +382,36 @@ export default function AuditLogsPage() {
                 </button>
               ))}
               <button
-                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
                 disabled={page === totalPages}
               >
                 Next
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Mobile Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex md:hidden justify-between items-center mt-3 pt-3 border-t border-slate-200 text-xs">
+            <button
+              className="px-3 py-1.5 rounded-lg font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => setPage((p) => Math.max(p - 1, 1))}
+              disabled={page === 1}
+            >
+              Previous
+            </button>
+            <span className="text-slate-500 font-medium text-[11px]">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              className="px-3 py-1.5 rounded-lg font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+              disabled={page === totalPages}
+            >
+              Next
+            </button>
           </div>
         )}
       </div>

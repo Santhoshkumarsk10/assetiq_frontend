@@ -1,14 +1,25 @@
 'use client';
+import { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { lockScroll, unlockScroll } from '@/lib/scrollLock';
 
 export default function Modal({ isOpen, onClose, title, children, footer, size = 'md', overflowVisible = false }) {
+  useEffect(() => {
+    if (isOpen) {
+      lockScroll();
+      return () => {
+        unlockScroll();
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const maxWidthClass = size === 'lg' ? 'sm:max-w-[920px]' : size === 'xl' ? 'sm:max-w-[1150px]' : 'sm:max-w-[560px]';
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 z-[500] backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-sheet-fade-in"
+      className="fixed inset-0 bg-black/50 z-[500] backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-sheet-fade-in overscroll-contain"
       onClick={onClose}
     >
       <div

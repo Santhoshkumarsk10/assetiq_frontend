@@ -6,6 +6,7 @@ import AppLayout from "@/components/AppLayout";
 import SearchableSelect from "@/components/SearchableSelect";
 import DateRangePicker from "@/components/DateRangePicker";
 import { reportApi, locationApi } from "@/lib/api";
+import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 import {
   ArrowLeft,
   Sliders,
@@ -13,12 +14,145 @@ import {
   Download,
   Send,
   Clock,
-  Trash2,
   CheckCircle,
   AlertTriangle,
   X,
-  Sparkles,
+  ChevronDown,
 } from "lucide-react";
+
+function PageSizeSelect({ value, onChange }) {
+  return (
+    <div className="relative inline-flex items-center shrink-0">
+      <select
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        aria-label="Rows per page"
+        className="appearance-none bg-slate-50 hover:bg-slate-100/90 text-slate-700 text-xs font-semibold rounded-xl pl-3 pr-7 py-1.5 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer transition-colors shadow-2xs"
+      >
+        <option value={5}>5 / page</option>
+        <option value={10}>10 / page</option>
+        <option value={25}>25 / page</option>
+        <option value={50}>50 / page</option>
+      </select>
+      <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+    </div>
+  );
+}
+
+function TablePagination({ currentPage, totalItems, limit, onPageChange, onLimitChange, currentItemsCount = 0 }) {
+  const effectiveTotal = Math.max(Number(totalItems) || 0, Number(currentItemsCount) || 0);
+  if (effectiveTotal === 0) return null;
+  const totalPages = Math.max(1, Math.ceil(effectiveTotal / limit));
+
+  const getVisiblePages = (current, total) => {
+    if (total <= 5) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    if (current <= 3) {
+      return [1, 2, 3, 4, 5];
+    }
+    if (current >= total - 2) {
+      return [total - 4, total - 3, total - 2, total - 1, total];
+    }
+    return [current - 2, current - 1, current, current + 1, current + 2];
+  };
+
+  const visiblePages = getVisiblePages(currentPage, totalPages);
+
+  return (
+    <div className="border-t border-slate-100 p-3 sm:p-4 bg-white">
+      {/* Desktop Pagination */}
+      <div className="hidden sm:flex justify-between items-center gap-4">
+        <div className="text-xs text-slate-500 font-medium">
+          Showing <span className="font-semibold text-slate-700">{Math.min((currentPage - 1) * limit + 1, effectiveTotal)}</span> to{" "}
+          <span className="font-semibold text-slate-700">{Math.min(currentPage * limit, effectiveTotal)}</span> of{" "}
+          <span className="font-semibold text-slate-700">{effectiveTotal}</span> entries
+        </div>
+        <div className="flex items-center gap-3">
+          <PageSizeSelect
+            value={limit}
+            onChange={(newLimit) => {
+              onLimitChange(newLimit);
+              onPageChange(1);
+            }}
+          />
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1">
+              <button 
+                type="button"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors" 
+                onClick={() => onPageChange(Math.max(currentPage - 1, 1))} 
+                disabled={currentPage === 1}
+              >
+                Prev
+              </button>
+              {visiblePages.map(p => (
+                <button 
+                  key={p} 
+                  type="button"
+                  className={currentPage === p 
+                    ? "px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white cursor-pointer shadow-2xs" 
+                    : "px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer transition-colors"
+                  } 
+                  onClick={() => onPageChange(p)}
+                >
+                  {p}
+                </button>
+              ))}
+              <button 
+                type="button"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors" 
+                onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))} 
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile Pagination */}
+      <div className="flex sm:hidden flex-col gap-2.5">
+        <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+          <span>
+            {Math.min((currentPage - 1) * limit + 1, effectiveTotal)}-{Math.min(currentPage * limit, effectiveTotal)} of {effectiveTotal}
+          </span>
+          <PageSizeSelect
+            value={limit}
+            onChange={(newLimit) => {
+              onLimitChange(newLimit);
+              onPageChange(1);
+            }}
+          />
+        </div>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
+            <button 
+              type="button"
+              className="flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-center" 
+              onClick={() => onPageChange(Math.max(currentPage - 1, 1))} 
+              disabled={currentPage === 1}
+            >
+              Prev
+            </button>
+            <span className="text-xs font-semibold text-slate-600 px-2 whitespace-nowrap">
+              {currentPage} / {totalPages}
+            </span>
+            <button 
+              type="button"
+              className="flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-center" 
+              onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))} 
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function CustomReportBuilder() {
   const router = useRouter();
@@ -48,6 +182,10 @@ export default function CustomReportBuilder() {
   const [fetchedData, setFetchedData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
 
+  // Preview Pagination State
+  const [previewPage, setPreviewPage] = useState(1);
+  const [previewLimit, setPreviewLimit] = useState(10);
+
   // Email form state
   const [emailTo, setEmailTo] = useState("");
   const [emailFormat, setEmailFormat] = useState("pdf");
@@ -62,6 +200,16 @@ export default function CustomReportBuilder() {
   const [scheduleEmails, setScheduleEmails] = useState("");
   const [scheduleFormat, setScheduleFormat] = useState("pdf");
   const [scheduleActive, setScheduleActive] = useState(true);
+
+  // Lock scroll when modal is open
+  useEffect(() => {
+    if (activeModal) {
+      lockScroll();
+    } else {
+      unlockScroll();
+    }
+    return () => unlockScroll();
+  }, [activeModal]);
 
   // Column options per data source
   const columnsConfig = {
@@ -166,6 +314,7 @@ export default function CustomReportBuilder() {
     // Clear preview list when switching data sources
     setFetchedData([]);
     setFilteredData([]);
+    setPreviewPage(1);
   }, [dataSource]);
 
   // Load and Filter Data
@@ -228,6 +377,7 @@ export default function CustomReportBuilder() {
       });
 
       setFilteredData(filtered);
+      setPreviewPage(1);
       showToast(`Loaded ${filtered.length} matching entries.`);
     } catch (e) {
       console.error(e);
@@ -248,6 +398,7 @@ export default function CustomReportBuilder() {
     setSelectedCategory("");
     setFilteredData([]);
     setFetchedData([]);
+    setPreviewPage(1);
   };
 
   // EXPORTS
@@ -423,21 +574,29 @@ export default function CustomReportBuilder() {
     }
   };
 
+  // Paginated Preview Data
+  const paginatedData = filteredData.slice(
+    (previewPage - 1) * previewLimit,
+    previewPage * previewLimit
+  );
+
   return (
     <AppLayout>
-      <div className="mx-auto space-y-4 mb-5 -mt-3 sm:-mt-4">
+      <div className="mx-auto space-y-4 sm:space-y-6 pt-3 sm:pt-5 mb-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs">
           <div className="flex items-center gap-3">
             <Link
               href="/reports"
-              className="p-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl transition-colors cursor-pointer"
+              className="p-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl transition-colors cursor-pointer shrink-0"
+              title="Back to Reports"
+              aria-label="Back to Reports"
             >
               <ArrowLeft size={16} />
             </Link>
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                <Sliders size={20} className="text-emerald-600" /> Custom Report Builder
+                <Sliders size={20} className="text-emerald-600 shrink-0" /> Custom Report Builder
               </h1>
               <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
                 Build tailored asset &amp; tickets reports with custom column filters and live preview.
@@ -448,7 +607,7 @@ export default function CustomReportBuilder() {
 
         {/* Builder Configuration Panel */}
         <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="flex flex-col gap-1">
               <label className="text-xs font-semibold text-slate-600">Report Name</label>
               <input
@@ -474,7 +633,7 @@ export default function CustomReportBuilder() {
               />
             </div>
 
-            <div className="flex flex-col gap-1 col-span-1 md:col-span-2">
+            <div className="flex flex-col gap-1 col-span-1 sm:col-span-2">
               <label className="text-xs font-semibold text-slate-600">Date Range (Optional)</label>
               <DateRangePicker
                 startDate={startDate}
@@ -637,13 +796,19 @@ export default function CustomReportBuilder() {
 
           {/* Columns selection pills */}
           <div className="space-y-2">
-            <h4 className="text-xs font-semibold text-slate-700">Columns to Include in Report</h4>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-semibold text-slate-700">Columns to Include in Report</h4>
+              <span className="text-[11px] text-slate-400 font-medium">
+                {selectedColumns[dataSource]?.length || 0} selected
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               {columnsConfig[dataSource].map((col) => {
                 const isActive = selectedColumns[dataSource].includes(col.id);
                 return (
                   <button
                     key={col.id}
+                    type="button"
                     onClick={() => handleToggleColumn(col.id)}
                     className={`px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer border transition-all ${
                       isActive
@@ -659,53 +824,62 @@ export default function CustomReportBuilder() {
           </div>
 
           {/* Action Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100">
-            <button
-              onClick={handleClearFilters}
-              className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-xs font-semibold transition-all shadow-2xs cursor-pointer"
-            >
-              Clear Filters
-            </button>
-
-            <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-slate-100">
+            <div className="flex items-center gap-2">
               <button
-                onClick={runReport}
-                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+                type="button"
+                onClick={handleClearFilters}
+                className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-xs font-semibold transition-all shadow-2xs cursor-pointer flex-1 sm:flex-none text-center"
               >
-                <Play size={12} fill="white" /> Run Report
+                Clear Filters
               </button>
 
               <button
+                type="button"
+                onClick={runReport}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs flex-1 sm:flex-none"
+              >
+                <Play size={12} fill="white" /> Run Report
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
+              <button
+                type="button"
                 onClick={() => handleExport('pdf')}
-                className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-rose-600 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer bg-white shadow-2xs"
+                className="px-3 py-2 border border-slate-200 hover:bg-slate-50 text-rose-600 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer bg-white shadow-2xs"
               >
                 <Download size={12} /> PDF
               </button>
 
               <button
+                type="button"
                 onClick={() => handleExport('excel')}
-                className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-emerald-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer bg-white shadow-2xs"
+                className="px-3 py-2 border border-slate-200 hover:bg-slate-50 text-emerald-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer bg-white shadow-2xs"
               >
                 <Download size={12} /> Excel
               </button>
 
               <button
+                type="button"
                 onClick={() => handleExport('csv')}
-                className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-blue-600 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer bg-white shadow-2xs"
+                className="px-3 py-2 border border-slate-200 hover:bg-slate-50 text-blue-600 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer bg-white shadow-2xs"
               >
                 <Download size={12} /> CSV
               </button>
 
               <button
+                type="button"
                 onClick={openSendModal}
-                className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer bg-white shadow-2xs"
+                className="px-3 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer bg-white shadow-2xs"
               >
                 <Send size={12} /> Send Now
               </button>
 
               <button
+                type="button"
                 onClick={openScheduleModal}
-                className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer bg-white shadow-2xs"
+                className="col-span-2 sm:col-span-1 px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer bg-white shadow-2xs"
               >
                 <Clock size={12} /> Save &amp; Schedule
               </button>
@@ -713,7 +887,7 @@ export default function CustomReportBuilder() {
           </div>
         </div>
 
-        {/* Live Preview Table */}
+        {/* Live Preview Section */}
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs">
           <div className="p-3.5 sm:p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/60">
             <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Report Results Preview</h3>
@@ -722,12 +896,13 @@ export default function CustomReportBuilder() {
             </span>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/90 border-b border-slate-100">
                   {activeCols.map((c) => (
-                    <th key={c.id} className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th key={c.id} className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                       {c.label}
                     </th>
                   ))}
@@ -736,7 +911,7 @@ export default function CustomReportBuilder() {
               <tbody className="divide-y divide-slate-100 text-xs">
                 {loading ? (
                   <tr>
-                    <td colSpan={activeCols.length} className="text-center py-16 text-slate-400">
+                    <td colSpan={activeCols.length || 1} className="text-center py-16 text-slate-400">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <div className="w-6 h-6 border-2 border-slate-200 border-t-emerald-500 rounded-full animate-spin" />
                         <span>Running query calculations...</span>
@@ -745,15 +920,15 @@ export default function CustomReportBuilder() {
                   </tr>
                 ) : filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan={activeCols.length} className="text-center py-12 text-slate-400 font-medium">
+                    <td colSpan={activeCols.length || 1} className="text-center py-12 text-slate-400 font-medium">
                       No matching records loaded. Configure the settings above and click &quot;Run Report&quot;.
                     </td>
                   </tr>
                 ) : (
-                  filteredData.map((row, idx) => (
+                  paginatedData.map((row, idx) => (
                     <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                       {activeCols.map((c) => (
-                        <td key={c.id} className="px-4 py-3 font-medium text-slate-700">
+                        <td key={c.id} className="px-4 py-3 font-medium text-slate-700 whitespace-nowrap">
                           {c.getVal(row)}
                         </td>
                       ))}
@@ -763,20 +938,84 @@ export default function CustomReportBuilder() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Card List View */}
+          <div className="block md:hidden divide-y divide-slate-100">
+            {loading ? (
+              <div className="p-12 text-center text-slate-400 flex flex-col items-center justify-center gap-2">
+                <div className="w-6 h-6 border-2 border-slate-200 border-t-emerald-500 rounded-full animate-spin" />
+                <span className="text-xs font-medium">Running query calculations...</span>
+              </div>
+            ) : filteredData.length === 0 ? (
+              <div className="p-8 text-center text-slate-400 text-xs font-medium">
+                No matching records loaded. Configure the settings above and click &quot;Run Report&quot;.
+              </div>
+            ) : (
+              paginatedData.map((row, idx) => {
+                const primaryCol = activeCols[0];
+                const secondaryCol = activeCols[1];
+                const remainingCols = activeCols.slice(2);
+
+                return (
+                  <div key={idx} className="p-4 space-y-2.5 hover:bg-slate-50/50 transition-colors">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className="text-xs font-bold text-slate-900 block truncate">
+                          {primaryCol ? primaryCol.getVal(row) : `Item #${idx + 1}`}
+                        </span>
+                        {secondaryCol && (
+                          <span className="text-[11px] text-slate-500 font-medium block truncate mt-0.5">
+                            {secondaryCol.label}: <span className="text-slate-700 font-semibold">{secondaryCol.getVal(row)}</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {remainingCols.length > 0 && (
+                      <div className="grid grid-cols-2 gap-2 bg-slate-50/80 p-2.5 rounded-xl border border-slate-100/90 text-xs">
+                        {remainingCols.map((c) => (
+                          <div key={c.id} className="min-w-0">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">
+                              {c.label}
+                            </span>
+                            <span className="text-xs font-medium text-slate-700 truncate block mt-0.5">
+                              {c.getVal(row)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Persistent Results Pagination */}
+          {filteredData.length > 0 && (
+            <TablePagination
+              currentPage={previewPage}
+              totalItems={filteredData.length}
+              limit={previewLimit}
+              onPageChange={setPreviewPage}
+              onLimitChange={setPreviewLimit}
+              currentItemsCount={paginatedData.length}
+            />
+          )}
         </div>
       </div>
 
       {/* TOAST alerts */}
       {toast && (
         <div
-          className={`fixed bottom-5 right-5 px-5 py-3.5 rounded-xl shadow-lg border text-sm font-bold flex items-center gap-2 z-[9999] transition-all animate-bounce ${
+          className={`fixed bottom-5 right-5 max-w-[90vw] px-4 sm:px-5 py-3.5 rounded-xl shadow-lg border text-xs sm:text-sm font-bold flex items-center gap-2 z-[9999] transition-all animate-bounce ${
             toast.type === "error"
               ? "bg-rose-50 text-rose-700 border-rose-100"
               : "bg-emerald-50 text-emerald-700 border-emerald-100"
           }`}
         >
-          {toast.type === "error" ? <AlertTriangle size={18} /> : <CheckCircle size={18} />}
-          {toast.message}
+          {toast.type === "error" ? <AlertTriangle size={18} className="shrink-0" /> : <CheckCircle size={18} className="shrink-0" />}
+          <span className="truncate">{toast.message}</span>
         </div>
       )}
 
@@ -784,18 +1023,19 @@ export default function CustomReportBuilder() {
 
       {/* 1. Send via Email Modal */}
       {activeModal === "send" && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-[1000] p-4">
-          <div className="bg-white rounded-2xl border border-slate-100 max-w-md w-full p-6 shadow-xl relative animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-[1000] p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl border border-slate-100 max-w-md w-full p-5 sm:p-6 shadow-xl relative animate-in fade-in zoom-in duration-200 my-auto max-h-[90vh] overflow-y-auto">
             <button
+              type="button"
               onClick={() => setActiveModal(null)}
-              className="absolute right-4 top-4 p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 transition-colors"
+              className="absolute right-4 top-4 p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 transition-colors cursor-pointer"
             >
               <X size={18} />
             </button>
-            <h2 className="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
-              <Send size={18} className="text-emerald-600" /> Send Custom Report
+            <h2 className="text-lg sm:text-xl font-bold text-slate-800 mb-1 flex items-center gap-2">
+              <Send size={18} className="text-emerald-600 shrink-0" /> Send Custom Report
             </h2>
-            <p className="text-slate-450 text-xs mb-6">Mail custom report exports directly to your inbox or team.</p>
+            <p className="text-slate-400 text-xs mb-5">Mail custom report exports directly to your inbox or team.</p>
 
             <div className="space-y-4">
               <div className="flex flex-col gap-1.5">
@@ -804,7 +1044,7 @@ export default function CustomReportBuilder() {
                   type="text"
                   disabled
                   value={reportName}
-                  className="w-full px-3 py-2 border border-slate-200 bg-slate-50 text-slate-500 rounded-xl text-sm font-medium outline-none"
+                  className="w-full px-3 py-2 border border-slate-200 bg-slate-50 text-slate-500 rounded-xl text-xs sm:text-sm font-medium outline-none"
                 />
               </div>
 
@@ -815,9 +1055,9 @@ export default function CustomReportBuilder() {
                   placeholder="e.g. analyst@auxcare.com"
                   value={emailTo}
                   onChange={(e) => setEmailTo(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800 font-medium"
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800 font-medium"
                 />
-                <span className="text-[10px] text-slate-450 font-medium">Separate multiple emails with commas.</span>
+                <span className="text-[10px] text-slate-400 font-medium">Separate multiple emails with commas.</span>
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -840,22 +1080,24 @@ export default function CustomReportBuilder() {
                   rows={3}
                   value={emailNote}
                   onChange={(e) => setEmailNote(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800 resize-none font-medium"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800 resize-none font-medium"
                 />
               </div>
             </div>
 
-            <div className="flex gap-3 mt-8 border-t border-slate-100 pt-5">
+            <div className="flex gap-3 mt-6 sm:mt-8 border-t border-slate-100 pt-4 sm:pt-5">
               <button
+                type="button"
                 onClick={() => setActiveModal(null)}
-                className="flex-1 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-xl transition-colors cursor-pointer"
+                className="flex-1 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-semibold rounded-xl transition-colors cursor-pointer"
                 disabled={loading}
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleSendEmail}
-                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-705 text-white text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
                 disabled={loading}
               >
                 {loading ? (
@@ -873,18 +1115,19 @@ export default function CustomReportBuilder() {
 
       {/* 2. Schedule Report Modal */}
       {activeModal === "schedule" && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-[1000] p-4">
-          <div className="bg-white rounded-2xl border border-slate-100 max-w-md w-full p-6 shadow-xl relative animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-[1000] p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl border border-slate-100 max-w-md w-full p-5 sm:p-6 shadow-xl relative animate-in fade-in zoom-in duration-200 my-auto max-h-[90vh] overflow-y-auto">
             <button
+              type="button"
               onClick={() => setActiveModal(null)}
-              className="absolute right-4 top-4 p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 transition-colors"
+              className="absolute right-4 top-4 p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 transition-colors cursor-pointer"
             >
               <X size={18} />
             </button>
-            <h2 className="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
-              <Clock size={18} className="text-emerald-600" /> Schedule Custom Report
+            <h2 className="text-lg sm:text-xl font-bold text-slate-800 mb-1 flex items-center gap-2">
+              <Clock size={18} className="text-emerald-600 shrink-0" /> Schedule Custom Report
             </h2>
-            <p className="text-slate-450 text-xs mb-6">Setup recurring email schedules for automated exports.</p>
+            <p className="text-slate-400 text-xs mb-5">Setup recurring email schedules for automated exports.</p>
 
             <div className="space-y-4">
               <div className="flex flex-col gap-1.5">
@@ -893,11 +1136,11 @@ export default function CustomReportBuilder() {
                   type="text"
                   value={scheduleName}
                   onChange={(e) => setScheduleName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800 font-medium"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800 font-medium"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-bold text-slate-600">Frequency</label>
                   <SearchableSelect
@@ -916,7 +1159,7 @@ export default function CustomReportBuilder() {
                     type="time"
                     value={scheduleTime}
                     onChange={(e) => setScheduleTime(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800 font-medium"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800 font-medium"
                   />
                 </div>
               </div>
@@ -965,13 +1208,13 @@ export default function CustomReportBuilder() {
                   placeholder="e.g. managers@auxcare.com"
                   value={scheduleEmails}
                   onChange={(e) => setScheduleEmails(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800 font-medium"
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm bg-white outline-none focus:border-emerald-500 transition-all text-slate-800 font-medium"
                 />
               </div>
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-slate-600">File Format</label>
-                <div className="flex gap-5 text-sm font-semibold text-slate-605 py-1">
+                <div className="flex flex-wrap gap-4 text-xs sm:text-sm font-semibold text-slate-600 py-1">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
@@ -1005,7 +1248,7 @@ export default function CustomReportBuilder() {
                 </div>
               </div>
 
-              <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer pt-2">
+              <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-700 cursor-pointer pt-2">
                 <input
                   type="checkbox"
                   checked={scheduleActive}
@@ -1016,16 +1259,18 @@ export default function CustomReportBuilder() {
               </label>
             </div>
 
-            <div className="flex gap-3 mt-8 border-t border-slate-100 pt-5">
+            <div className="flex gap-3 mt-6 sm:mt-8 border-t border-slate-100 pt-4 sm:pt-5">
               <button
+                type="button"
                 onClick={() => setActiveModal(null)}
-                className="flex-1 py-2.5 border border-slate-200 hover:bg-slate-55 text-slate-700 text-sm font-semibold rounded-xl transition-colors cursor-pointer"
+                className="flex-1 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-semibold rounded-xl transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleSaveSchedule}
-                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-705 text-white text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
               >
                 <CheckCircle size={14} /> Save Schedule
               </button>

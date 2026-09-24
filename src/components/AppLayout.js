@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import TopBar from '@/components/TopBar';
+import { lockScroll, unlockScroll } from '@/lib/scrollLock';
 
 const routePermissions = {
   '/roles-permissions': ['role.list'],
@@ -21,6 +22,67 @@ export default function AppLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Global listener to prevent background scrolling when any modal, filter sheet, or popup is visible
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    let isLockedByObserver = false;
+
+    const overlaySelector = [
+      '.animate-sheet-fade-in',
+      '.animate-sheet-slide-up',
+      '[role="dialog"]',
+      '.fixed.inset-0.z-\\[500\\]',
+      '.fixed.inset-0.z-\\[1000\\]',
+      '.fixed.inset-0.z-\\[10000\\]',
+      '.fixed.inset-0.bg-black\\/50',
+      '.fixed.inset-0.bg-black\\/40',
+      '.fixed.inset-0.bg-slate-900\\/60',
+      '.fixed.inset-0.bg-slate-900\\/40'
+    ].join(', ');
+
+    const checkOverlays = () => {
+      const elements = document.querySelectorAll(overlaySelector);
+      let visibleOverlay = false;
+      for (let i = 0; i < elements.length; i++) {
+        const el = elements[i];
+        if (el.classList.contains('invisible') || el.classList.contains('opacity-0')) {
+          continue;
+        }
+        visibleOverlay = true;
+        break;
+      }
+
+      if (visibleOverlay && !isLockedByObserver) {
+        lockScroll();
+        isLockedByObserver = true;
+      } else if (!visibleOverlay && isLockedByObserver) {
+        unlockScroll();
+        isLockedByObserver = false;
+      }
+    };
+
+    checkOverlays();
+
+    const observer = new MutationObserver(() => {
+      checkOverlays();
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class', 'style']
+    });
+
+    return () => {
+      observer.disconnect();
+      if (isLockedByObserver) {
+        unlockScroll();
+      }
+    };
+  }, []);
 
   // Register Firebase Service Worker
   useEffect(() => {

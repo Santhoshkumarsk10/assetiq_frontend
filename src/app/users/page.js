@@ -221,10 +221,10 @@ export default function UsersPage() {
     const isLocationAdmin = currentUser?.role_name === 'Location Admin';
     const locAdminUser = locationId
       ? managers.find(
-          (m) =>
-            m.role?.name === "Location Admin" &&
-            String(m.location_id) === String(locationId),
-        )
+        (m) =>
+          m.role?.name === "Location Admin" &&
+          String(m.location_id) === String(locationId),
+      )
       : null;
 
     let updatedReportingManager = "";
@@ -498,11 +498,11 @@ export default function UsersPage() {
   const getInitials = (name) =>
     name
       ? name
-          .split(" ")
-          .map((w) => w[0])
-          .join("")
-          .toUpperCase()
-          .slice(0, 2)
+        .split(" ")
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
       : "??";
   const getRoleBadgeClass = (role) => {
     if (!role) return "bg-slate-100 text-slate-600";
@@ -520,7 +520,7 @@ export default function UsersPage() {
 
   return (
     <AppLayout>
-      <div className="flex justify-between items-center gap-2 sm:gap-4 mb-6 -mt-3 sm:-mt-4">
+      <div className="flex justify-between items-center gap-2 sm:gap-4 mb-4 sm:mb-6 pt-3 sm:pt-5">
         <div className="min-w-0">
           <AnimatedPageTitle title="Users" />
         </div>
@@ -534,55 +534,58 @@ export default function UsersPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-6 mb-4 sm:mb-8">
-        {/* Card 1: Total Users */}
-        <div className="bg-blue-50 border border-slate-200 rounded-xl sm:rounded-2xl p-2.5 sm:p-5 shadow-xs sm:shadow-sm flex items-center gap-2.5 sm:gap-4 group min-w-0">
-          <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-blue-100/70 text-blue-600 border border-blue-200/60 flex items-center justify-center shrink-0 shadow-2xs">
-            <UsersIcon size={20} className="w-4 h-4 sm:w-[22px] sm:h-[22px]" strokeWidth={2.2} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[10.5px] sm:text-xs font-medium text-slate-500 truncate">Total Users</div>
-            <div className="text-base sm:text-2xl font-bold text-slate-900 tracking-tight leading-none mt-0.5 sm:mt-1">
-              {users.length.toLocaleString()}
+      {/* Stats Card: Single Card Section in a Single Row */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs p-3 sm:p-5 mb-4 sm:mb-8">
+        <div className="grid grid-cols-4 divide-x divide-slate-100">
+          {/* Stat 1: Total Users */}
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3.5 px-1.5 sm:px-4 py-1 text-center sm:text-left min-w-0">
+            <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl bg-blue-50 text-blue-600 border border-blue-100/70 flex items-center justify-center shrink-0 shadow-2xs">
+              <UsersIcon size={18} className="sm:w-5 sm:h-5" strokeWidth={2.2} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] sm:text-xs font-medium text-slate-500 truncate">Total Users</div>
+              <div className="text-sm sm:text-xl md:text-2xl font-bold text-slate-900 tracking-tight leading-tight mt-0.5 sm:mt-1 font-mono">
+                {users.length.toLocaleString()}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Card 2: Active Users */}
-        <div className="bg-emerald-50 border border-slate-200 rounded-xl sm:rounded-2xl p-2.5 sm:p-5 shadow-xs sm:shadow-sm flex items-center gap-2.5 sm:gap-4 group min-w-0">
-          <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-emerald-100/70 text-emerald-600 border border-emerald-200/60 flex items-center justify-center shrink-0 shadow-2xs">
-            <UserCheck size={20} className="w-4 h-4 sm:w-[22px] sm:h-[22px]" strokeWidth={2.2} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[10.5px] sm:text-xs font-medium text-slate-500 truncate">Active Users</div>
-            <div className="text-base sm:text-2xl font-bold text-slate-900 tracking-tight leading-none mt-0.5 sm:mt-1">
-              {activeCount.toLocaleString()}
+          {/* Stat 2: Active Users */}
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3.5 px-1.5 sm:px-4 py-1 text-center sm:text-left min-w-0">
+            <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100/70 flex items-center justify-center shrink-0 shadow-2xs">
+              <UserCheck size={18} className="sm:w-5 sm:h-5" strokeWidth={2.2} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] sm:text-xs font-medium text-slate-500 truncate">Active Users</div>
+              <div className="text-sm sm:text-xl md:text-2xl font-bold text-slate-900 tracking-tight leading-tight mt-0.5 sm:mt-1 font-mono">
+                {activeCount.toLocaleString()}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Card 3: Admins */}
-        <div className="bg-violet-50 border border-slate-200 rounded-xl sm:rounded-2xl p-2.5 sm:p-5 shadow-xs sm:shadow-sm flex items-center gap-2.5 sm:gap-4 group min-w-0">
-          <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-violet-100/70 text-violet-600 border border-violet-200/60 flex items-center justify-center shrink-0 shadow-2xs">
-            <ShieldCheck size={20} className="w-4 h-4 sm:w-[22px] sm:h-[22px]" strokeWidth={2.2} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[10.5px] sm:text-xs font-medium text-slate-500 truncate">Admins</div>
-            <div className="text-base sm:text-2xl font-bold text-slate-900 tracking-tight leading-none mt-0.5 sm:mt-1">
-              {adminCount.toLocaleString()}
+          {/* Stat 3: Admins */}
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3.5 px-1.5 sm:px-4 py-1 text-center sm:text-left min-w-0">
+            <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl bg-violet-50 text-violet-600 border border-violet-100/70 flex items-center justify-center shrink-0 shadow-2xs">
+              <ShieldCheck size={18} className="sm:w-5 sm:h-5" strokeWidth={2.2} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] sm:text-xs font-medium text-slate-500 truncate">Admins</div>
+              <div className="text-sm sm:text-xl md:text-2xl font-bold text-slate-900 tracking-tight leading-tight mt-0.5 sm:mt-1 font-mono">
+                {adminCount.toLocaleString()}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Card 4: Locations */}
-        <div className="bg-amber-50 border border-slate-200 rounded-xl sm:rounded-2xl p-2.5 sm:p-5 shadow-xs sm:shadow-sm flex items-center gap-2.5 sm:gap-4 group min-w-0">
-          <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-amber-100/70 text-amber-600 border border-amber-200/60 flex items-center justify-center shrink-0 shadow-2xs">
-            <MapPin size={20} className="w-4 h-4 sm:w-[22px] sm:h-[22px]" strokeWidth={2.2} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[10.5px] sm:text-xs font-medium text-slate-500 truncate">Locations</div>
-            <div className="text-base sm:text-2xl font-bold text-slate-900 tracking-tight leading-none mt-0.5 sm:mt-1">
-              {locations.length.toLocaleString()}
+          {/* Stat 4: Locations */}
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3.5 px-1.5 sm:px-4 py-1 text-center sm:text-left min-w-0">
+            <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl bg-amber-50 text-amber-600 border border-amber-100/70 flex items-center justify-center shrink-0 shadow-2xs">
+              <MapPin size={18} className="sm:w-5 sm:h-5" strokeWidth={2.2} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] sm:text-xs font-medium text-slate-500 truncate">Locations</div>
+              <div className="text-sm sm:text-xl md:text-2xl font-bold text-slate-900 tracking-tight leading-tight mt-0.5 sm:mt-1 font-mono">
+                {locations.length.toLocaleString()}
+              </div>
             </div>
           </div>
         </div>
@@ -593,22 +596,20 @@ export default function UsersPage() {
         <div className="flex border-b border-slate-200 mb-4 sm:mb-6">
           <button
             type="button"
-            className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all cursor-pointer bg-transparent border-none ${
-              activeTab === "users"
+            className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all cursor-pointer bg-transparent border-none ${activeTab === "users"
                 ? "border-emerald-600 text-emerald-600 border-solid"
                 : "border-transparent text-slate-500 hover:text-slate-700"
-            }`}
+              }`}
             onClick={() => setActiveTab("users")}
           >
             All Users
           </button>
           <button
             type="button"
-            className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all cursor-pointer bg-transparent border-none ${
-              activeTab === "offboarding"
+            className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all cursor-pointer bg-transparent border-none ${activeTab === "offboarding"
                 ? "border-emerald-600 text-emerald-600 border-solid"
                 : "border-transparent text-slate-500 hover:text-slate-700"
-            }`}
+              }`}
             onClick={() => setActiveTab("offboarding")}
           >
             Offboarding Queue
@@ -760,11 +761,10 @@ export default function UsersPage() {
                 {/* Single Filter Button Trigger */}
                 <button
                   onClick={() => setShowMobileFilterSheet(true)}
-                  className={`relative inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border transition-all cursor-pointer shrink-0 text-xs font-semibold ${
-                    Boolean(locationFilter) || limit !== 10 || Boolean(search)
+                  className={`relative inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border transition-all cursor-pointer shrink-0 text-xs font-semibold ${Boolean(locationFilter) || limit !== 10 || Boolean(search)
                       ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-xs'
                       : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs'
-                  }`}
+                    }`}
                   aria-label="Filter Users"
                   title="Filter Users"
                 >
@@ -1342,13 +1342,12 @@ export default function UsersPage() {
                                             handleVerifyReturn(alloc.id)
                                           }
                                           disabled={!canVerify}
-                                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${
-                                            alreadyVerified
+                                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${alreadyVerified
                                               ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
                                               : canVerify
                                                 ? "bg-emerald-600 hover:bg-emerald-700 text-white border-none"
                                                 : "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
-                                          }`}
+                                            }`}
                                         >
                                           {alreadyVerified
                                             ? "Verified by You"
@@ -1431,13 +1430,12 @@ export default function UsersPage() {
                                         handleVerifyReturn(alloc.id)
                                       }
                                       disabled={!canVerify}
-                                      className={`w-full px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${
-                                        alreadyVerified
+                                      className={`w-full px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${alreadyVerified
                                           ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
                                           : canVerify
                                             ? "bg-emerald-600 hover:bg-emerald-700 text-white border-none shadow-2xs"
                                             : "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
-                                      }`}
+                                        }`}
                                     >
                                       {alreadyVerified
                                         ? "Verified by You"
@@ -1780,8 +1778,8 @@ export default function UsersPage() {
                   isLocationAdmin && currentUser?.id
                     ? [{ value: currentUser.id, label: `${currentUser.name} (${currentUser.role_name || "Location Admin"}) - ${currentUser.email}` }]
                     : roles.find((r) => String(r.id) === String(form.role_id))?.name === "Location Admin"
-                    ? [{ value: editingUser ? editingUser.id : "self", label: editingUser ? `${editingUser.name} (Self)` : "Self (Same User)" }]
-                    : managers
+                      ? [{ value: editingUser ? editingUser.id : "self", label: editingUser ? `${editingUser.name} (Self)` : "Self (Same User)" }]
+                      : managers
                         .filter((m) => String(m.id) !== String(editingUser?.id))
                         .map((m) => ({
                           value: m.id,
@@ -1805,9 +1803,9 @@ export default function UsersPage() {
                   adminUser
                     ? [{ value: adminUser.id, label: `${adminUser.name} (${adminUser.role?.name || "Admin"}) - ${adminUser.email}` }]
                     : managers.map((m) => ({
-                        value: m.id,
-                        label: `${m.name} (${m.role?.name || m.designation || "No Designation"}) - ${m.email}`,
-                      }))
+                      value: m.id,
+                      label: `${m.name} (${m.role?.name || m.designation || "No Designation"}) - ${m.email}`,
+                    }))
                 }
                 value={form.general_manager_id || (adminUser ? adminUser.id : "")}
                 disabled={true}
