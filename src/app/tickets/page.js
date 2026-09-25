@@ -1176,7 +1176,7 @@ export default function TicketsPage() {
               </div>
 
               {/* Mobile Cards View */}
-              <div className="block md:hidden divide-y divide-slate-100">
+              <div className="block md:hidden space-y-2.5 p-3 sm:p-4">
                 {tickets.map((tkt) => {
                   const canAssignThis = !['closed', 'cancelled'].includes(tkt.status) && (
                     isSuperAdminOrAdmin || (isLocationAdmin && (!tkt.assigned_to || ['pending', 'in_progress'].includes(tkt.status)))
@@ -1196,41 +1196,67 @@ export default function TicketsPage() {
                   );
 
                   return (
-                    <div key={tkt.id} className="p-4 space-y-3 hover:bg-slate-50/50 transition-colors">
+                    <div
+                      key={tkt.id}
+                      className="bg-white border border-slate-200/90 hover:border-slate-300 rounded-xl px-3.5 py-3 shadow-2xs flex flex-col transition-all"
+                    >
                       <div className="flex justify-between items-start gap-2">
-                        <div className="min-w-0">
-                          <span className="text-xs text-slate-400 font-bold font-mono">{tkt.ticket_no}</span>
-                          <h4 className="text-sm font-bold text-slate-900 mt-0.5 break-words">{tkt.title}</h4>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="text-[13.5px] font-bold text-slate-900 leading-snug tracking-tight break-words">
+                            {tkt.title}
+                          </h4>
+                          <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded-md font-bold font-mono tracking-tight inline-flex items-center">
+                              {tkt.ticket_no}
+                            </span>
+                            <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${getPriorityColor(tkt.priority)}`}>
+                              {t(getPriorityLabel(tkt.priority))}
+                            </span>
+                          </div>
                         </div>
-                        <StatusBadge status={tkt.status} />
+                        <StatusBadge status={tkt.status} className="shrink-0" />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50/80 p-2.5 rounded-xl border border-slate-100/90">
-                        <div>
-                          <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('category')}</span>
-                          <span className="font-semibold text-slate-700 truncate block">{t(getCategoryLabel(tkt.category))}</span>
-                        </div>
-                        <div>
-                          <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('priority')}</span>
-                          <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${getPriorityColor(tkt.priority)}`}>
-                            {t(getPriorityLabel(tkt.priority))}
+                      <div className="mt-2.5 pt-2 border-t border-slate-100/90 grid grid-cols-2 gap-2 text-xs">
+                        <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2.5 py-1.5">
+                          <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">
+                            {t('category')}
+                          </span>
+                          <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">
+                            {t(getCategoryLabel(tkt.category))}
                           </span>
                         </div>
-                        <div>
-                          <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('raisedBy')}</span>
-                          <span className="font-semibold text-slate-700 truncate block">{tkt.reporter?.name || '—'}</span>
+                        <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2.5 py-1.5">
+                          <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">
+                            {t('raisedBy')}
+                          </span>
+                          <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">
+                            {tkt.reporter?.name || '—'}
+                          </span>
                         </div>
-                        <div>
-                          <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('assignee')}</span>
-                          <span className="font-semibold text-slate-700 truncate block">{tkt.assignee?.name || t('unassigned')}</span>
+                        <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2.5 py-1.5">
+                          <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">
+                            {t('assignee')}
+                          </span>
+                          <span className="text-[11.5px] truncate block leading-tight">
+                            {tkt.assignee ? (
+                              <span className="text-slate-800 font-semibold">{tkt.assignee.name}</span>
+                            ) : (
+                              <span className="text-amber-600 font-medium italic">{t('unassigned')}</span>
+                            )}
+                          </span>
                         </div>
-                        <div className="col-span-2 pt-1 border-t border-slate-200/50 flex justify-between items-center text-[11px] text-slate-400">
-                          <span>{t('lastUpdated')}:</span>
-                          <span className="font-semibold text-slate-600">{new Date(tkt.createdAt || tkt.created_at).toLocaleDateString()}</span>
+                        <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2.5 py-1.5">
+                          <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">
+                            {t('lastUpdated')}
+                          </span>
+                          <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">
+                            {new Date(tkt.createdAt || tkt.created_at).toLocaleDateString()}
+                          </span>
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap justify-end gap-1.5 pt-1 items-center">
+                      <div className="mt-2.5 pt-2 border-t border-slate-100/90 flex flex-wrap justify-end gap-1.5 items-center">
                         <button
                           type="button"
                           onClick={() => openViewDetails(tkt)}
@@ -1260,7 +1286,7 @@ export default function TicketsPage() {
                           <button
                             type="button"
                             onClick={() => openCancel(tkt)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold transition-colors cursor-pointer"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold hover:bg-rose-100 transition-colors cursor-pointer"
                           >
                             <XCircle size={13} /> {t('cancel')}
                           </button>
@@ -1269,7 +1295,7 @@ export default function TicketsPage() {
                           <button
                             type="button"
                             onClick={() => handleClose(tkt)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-200 transition-colors cursor-pointer"
                           >
                             <X size={13} /> Close
                           </button>

@@ -6,7 +6,7 @@ import Modal from '@/components/Modal';
 import SearchableSelect from '@/components/SearchableSelect';
 import LocationSticker from '@/components/LocationSticker';
 import { locationApi } from '@/lib/api';
-import { Search, Plus, Pencil, Trash2, MapPin, X, Globe, Phone, Upload, Image as ImageIcon, SlidersHorizontal } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, MapPin, X, Globe, Phone, Upload, Image as ImageIcon, SlidersHorizontal, MoreVertical } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { useAuth } from '@/context/AuthContext';
@@ -31,6 +31,7 @@ export default function LocationsPage() {
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
   const [showMobileFilterSheet, setShowMobileFilterSheet] = useState(false);
+  const [activeActionMenuId, setActiveActionMenuId] = useState(null);
 
   // Pagination states
   const [page, setPage] = useState(1);
@@ -433,109 +434,222 @@ export default function LocationsPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4 lg:gap-5">
-            {filtered.map((loc) => {
-              const sticker = getLocationSticker(loc.name);
-              const isActive = loc.is_active !== false && loc.status !== 'inactive';
+          <>
+            {/* Mobile Location Cards View (Clean & Minimal Layout) */}
+            <div className="grid grid-cols-2 gap-2.5 sm:hidden">
+              {filtered.map((loc) => {
+                const isActive = loc.is_active !== false && loc.status !== 'inactive';
 
-              return (
-                <div
-                  key={loc.id}
-                  className="bg-white border border-slate-200/90 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between group relative overflow-hidden"
-                >
-                  {/* Top Header inside Card */}
-                  <div>
-                    <div className="flex items-start sm:items-center justify-between gap-1 sm:gap-2 mb-1 sm:mb-1.5">
-                      {/* Left: Country / Region Pill */}
-                      <div className="flex items-center gap-1 flex-wrap min-w-0">
-                        {sticker?.country ? (
-                          <span className={`px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full text-[8.5px] sm:text-[10px] font-bold uppercase tracking-wider border shrink-0 ${sticker.badgeBg}`}>
-                            {sticker.country}
-                          </span>
-                        ) : (
-                          <span className="px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full text-[8.5px] sm:text-[10px] font-bold uppercase tracking-wider border bg-slate-50 text-slate-600 border-slate-200 shrink-0">
-                            Global
-                          </span>
-                        )}
-                        {loc.country_code && (
-                          <span className="hidden xs:inline-flex items-center gap-0.5 sm:gap-1 px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-full text-[8.5px] sm:text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200/70 shrink-0">
-                            <Phone size={9} className="text-slate-400 sm:w-2.5 sm:h-2.5" />
-                            {loc.country_code}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Right: Active/Inactive Status Badge */}
-                      <div className="shrink-0">
+                return (
+                  <div
+                    key={loc.id}
+                    className="bg-white border border-slate-200/90 rounded-xl p-2.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between group relative"
+                  >
+                    <div>
+                      {/* Top Header: Active Status Badge + 3-Dot More (⋮) Menu */}
+                      <div className="flex items-center justify-end gap-1.5 mb-1">
                         <span
-                          className={`inline-flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full text-[9px] sm:text-[11px] font-semibold transition-colors ${isActive
+                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[8.5px] font-semibold transition-colors ${
+                            isActive
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
                               : 'bg-slate-100 text-slate-600 border border-slate-200'
-                            }`}
+                          }`}
                         >
                           <span
-                            className={`w-1.5 h-1.5 rounded-full ${isActive
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isActive
                                 ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]'
                                 : 'bg-slate-400'
-                              }`}
+                            }`}
                           />
                           {isActive ? 'Active' : 'Inactive'}
                         </span>
+
+                        {(canEdit || canDelete) && (
+                          <div className="relative shrink-0">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveActionMenuId(activeActionMenuId === loc.id ? null : loc.id);
+                              }}
+                              className="w-6.5 h-6.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 hover:text-slate-800 hover:bg-slate-100 active:scale-95 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                              aria-label="Actions"
+                              title="Actions"
+                            >
+                              <MoreVertical size={13} />
+                            </button>
+
+                            {activeActionMenuId === loc.id && (
+                              <>
+                                <div
+                                  className="fixed inset-0 z-40"
+                                  onClick={() => setActiveActionMenuId(null)}
+                                />
+                                <div className="absolute right-0 top-full mt-1.5 w-32 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                                  {canEdit && (
+                                    <button
+                                      type="button"
+                                      className="w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer border-none bg-transparent transition-colors"
+                                      onClick={() => {
+                                        setActiveActionMenuId(null);
+                                        openEdit(loc);
+                                      }}
+                                    >
+                                      <Pencil size={13} className="text-slate-400" />
+                                      <span>Edit</span>
+                                    </button>
+                                  )}
+                                  {canDelete && (
+                                    <button
+                                      type="button"
+                                      className="w-full px-3 py-2 text-left text-xs font-medium text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer border-none bg-transparent transition-colors border-t border-slate-100"
+                                      onClick={() => {
+                                        setActiveActionMenuId(null);
+                                        handleDelete(loc.id, loc.name);
+                                      }}
+                                    >
+                                      <Trash2 size={13} className="text-rose-500" />
+                                      <span>Delete</span>
+                                    </button>
+                                  )}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    </div>
 
-                    {/* Hero Die-Cut Travel Sticker Showcase */}
-                    <div className="h-20 sm:h-32 md:h-36 w-full flex items-center justify-center my-1 sm:my-1.5 relative">
-                      <LocationSticker locationName={loc.name} image={loc.image || loc.image_url} />
-                    </div>
+                      {/* Hero Die-Cut Travel Sticker Showcase */}
+                      <div className="h-20 w-full flex items-center justify-center my-1 relative">
+                        <LocationSticker locationName={loc.name} image={loc.image || loc.image_url} />
+                      </div>
 
-                    {/* Location Name & Details */}
-                    <div className="mt-1 text-center">
-                      <h3 className="text-xs sm:text-[15px] font-bold text-slate-900 group-hover:text-emerald-600 transition-colors tracking-tight line-clamp-1" title={loc.name}>
-                        {loc.name}
-                      </h3>
-                      <div className="text-[9.5px] sm:text-xs text-slate-500 mt-0.5 flex items-center justify-center gap-0.5 sm:gap-1 px-0.5 text-center line-clamp-1" title={loc.address || 'No address specified'}>
-                        <MapPin size={10} className="text-slate-400 shrink-0 sm:w-3 sm:h-3" />
-                        <span className="truncate">
-                          {loc.address || 'No address specified'}
-                        </span>
+                      {/* Location Name & Details */}
+                      <div className="mt-1 text-center">
+                        <h3 className="text-xs font-bold text-slate-900 group-hover:text-emerald-600 transition-colors tracking-tight line-clamp-1" title={loc.name}>
+                          {loc.name}
+                        </h3>
+                        <div className="text-[9.5px] text-slate-500 mt-0.5 flex items-center justify-center gap-0.5 px-0.5 text-center line-clamp-1" title={loc.address || 'No address specified'}>
+                          <MapPin size={10} className="text-slate-400 shrink-0" />
+                          <span className="truncate">
+                            {loc.address || 'No address specified'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
+                );
+              })}
+            </div>
 
-                  {/* Card Bottom / Footer with Action Buttons */}
-                  <div className="mt-2 sm:mt-3 pt-1.5 sm:pt-2.5 border-t border-slate-100 flex items-center justify-between">
-                    <div className="text-[9px] sm:text-[11px] font-medium text-slate-400 flex items-center gap-1 truncate">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                      ID #{loc.id || '—'}
+            {/* Desktop / Tablet Cards View (Unchanged) */}
+            <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5">
+              {filtered.map((loc) => {
+                const sticker = getLocationSticker(loc.name);
+                const isActive = loc.is_active !== false && loc.status !== 'inactive';
+
+                return (
+                  <div
+                    key={loc.id}
+                    className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between group relative overflow-hidden"
+                  >
+                    {/* Top Header inside Card */}
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        {/* Left: Country / Region Pill */}
+                        <div className="flex items-center gap-1 flex-wrap min-w-0">
+                          {sticker?.country ? (
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 ${sticker.badgeBg}`}>
+                              {sticker.country}
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border bg-slate-50 text-slate-600 border-slate-200 shrink-0">
+                              Global
+                            </span>
+                          )}
+                          {loc.country_code && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200/70 shrink-0">
+                              <Phone size={10} className="text-slate-400" />
+                              {loc.country_code}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Right: Active/Inactive Status Badge */}
+                        <div className="shrink-0">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-colors ${
+                              isActive
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
+                                : 'bg-slate-100 text-slate-600 border border-slate-200'
+                            }`}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                isActive
+                                  ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]'
+                                  : 'bg-slate-400'
+                              }`}
+                            />
+                            {isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Hero Die-Cut Travel Sticker Showcase */}
+                      <div className="h-32 md:h-36 w-full flex items-center justify-center my-1.5 relative">
+                        <LocationSticker locationName={loc.name} image={loc.image || loc.image_url} />
+                      </div>
+
+                      {/* Location Name & Details */}
+                      <div className="mt-1 text-center">
+                        <h3 className="text-[15px] font-bold text-slate-900 group-hover:text-emerald-600 transition-colors tracking-tight line-clamp-1" title={loc.name}>
+                          {loc.name}
+                        </h3>
+                        <div className="text-xs text-slate-500 mt-0.5 flex items-center justify-center gap-1 px-0.5 text-center line-clamp-1" title={loc.address || 'No address specified'}>
+                          <MapPin size={12} className="text-slate-400 shrink-0" />
+                          <span className="truncate">
+                            {loc.address || 'No address specified'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Action buttons (Edit & Delete - ALWAYS visible) */}
-                    <div className="flex items-center gap-1 sm:gap-1.5">
-                      {canEdit && (
-                        <button
-                          onClick={() => openEdit(loc)}
-                          title="Edit Location"
-                          className="w-6.5 h-6.5 sm:w-8 sm:h-8 rounded-lg border border-slate-200/90 bg-slate-50/70 text-slate-600 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 flex items-center justify-center transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
-                        >
-                          <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                        </button>
-                      )}
-                      {canDelete && (
-                        <button
-                          onClick={() => handleDelete(loc.id, loc.name)}
-                          title="Delete Location"
-                          className="w-6.5 h-6.5 sm:w-8 sm:h-8 rounded-lg border border-slate-200/90 bg-slate-50/70 text-slate-600 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 flex items-center justify-center transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
-                        >
-                          <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                        </button>
-                      )}
+                    {/* Card Bottom / Footer with Action Buttons */}
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                      <div className="text-[11px] font-medium text-slate-400 flex items-center gap-1 truncate">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                        ID #{loc.id || '—'}
+                      </div>
+
+                      {/* Action buttons (Edit & Delete - ALWAYS visible) */}
+                      <div className="flex items-center gap-1.5">
+                        {canEdit && (
+                          <button
+                            onClick={() => openEdit(loc)}
+                            title="Edit Location"
+                            className="w-8 h-8 rounded-lg border border-slate-200/90 bg-slate-50/70 text-slate-600 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 flex items-center justify-center transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDelete(loc.id, loc.name)}
+                            title="Delete Location"
+                            className="w-8 h-8 rounded-lg border border-slate-200/90 bg-slate-50/70 text-slate-600 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 flex items-center justify-center transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </>
         )}
 
         {/* Pagination Controls */}

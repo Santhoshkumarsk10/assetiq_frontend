@@ -228,7 +228,8 @@ export default function ScheduledReportsManager() {
             </span>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100">
@@ -246,7 +247,7 @@ export default function ScheduledReportsManager() {
                 {schedules.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="text-center py-16 text-slate-400 font-medium">
-                      No automated schedules configured. Click "Create Schedule" or use standard report clocks.
+                      No automated schedules configured. Click &quot;Create Schedule&quot; or use standard report clocks.
                     </td>
                   </tr>
                 ) : (
@@ -312,6 +313,92 @@ export default function ScheduledReportsManager() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="block md:hidden space-y-2.5 p-3 sm:p-4">
+            {schedules.length === 0 ? (
+              <div className="text-center py-12 text-slate-400 font-medium text-xs">
+                No automated schedules configured. Click &quot;Create Schedule&quot; or use standard report clocks.
+              </div>
+            ) : (
+              schedules.map((s) => (
+                <div
+                  key={s.id}
+                  className="bg-white border border-slate-200/90 hover:border-slate-300 rounded-xl px-3.5 py-3 shadow-2xs flex flex-col transition-all"
+                >
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-[13.5px] font-bold text-slate-900 leading-snug tracking-tight truncate">{s.name}</h4>
+                      <span className="text-xs font-semibold text-slate-500 mt-0.5 block truncate">
+                        {s.reportTitle}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleToggleActive(s.id)}
+                      className="cursor-pointer transition-colors shrink-0"
+                    >
+                      {s.active ? (
+                        <div className="flex items-center gap-1 text-emerald-600 font-bold text-xs bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                          <ToggleRight size={18} /> Active
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-slate-400 font-semibold text-xs bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
+                          <ToggleLeft size={18} /> Paused
+                        </div>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="mt-2.5 pt-2 border-t border-slate-100/90 grid grid-cols-2 gap-2 text-xs">
+                    <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                      <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">Frequency</span>
+                      <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight capitalize">
+                        {s.frequency === 'weekly' && s.runDay ? `Weekly (${s.runDay})` :
+                         s.frequency === 'monthly' && s.runDate ? `Monthly (Day ${s.runDate})` :
+                         s.frequency}
+                      </span>
+                    </div>
+                    <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                      <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">Format</span>
+                      <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight uppercase">{s.format}</span>
+                    </div>
+                    <div className="min-w-0 col-span-2 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                      <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">Recipients</span>
+                      <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">{s.recipients}</span>
+                    </div>
+                    <div className="min-w-0 col-span-2 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                      <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">Last Run</span>
+                      <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">{s.lastRun}</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-2.5 pt-2 border-t border-slate-100/90 flex justify-end gap-2">
+                    <button
+                      onClick={() => handleRunNow(s.id)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-emerald-600 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                      title="Execute Schedule Immediately"
+                      disabled={loadingScheduleId === s.id}
+                    >
+                      {loadingScheduleId === s.id ? (
+                        <div className="w-3.5 h-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Play size={13} fill="currentColor" />
+                      )}
+                      <span>Run Now</span>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteSchedule(s.id)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 hover:bg-rose-50 text-rose-600 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                      title="Delete Schedule"
+                    >
+                      <Trash2 size={13} />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

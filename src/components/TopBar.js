@@ -6,14 +6,15 @@ import { useLanguage } from '@/context/LanguageContext';
 import { notificationApi } from '@/lib/api';
 import { socket } from '@/lib/socket';
 import { Bell, Globe, X, CheckCheck, AlertTriangle, RefreshCw, CheckCircle, XCircle, Info, Menu } from 'lucide-react';
+import CountryFlag from '@/components/CountryFlag';
 
 const languagesList = [
-  { code: 'en', label: 'English', flag: '🇬🇧' },
-  { code: 'hi', label: 'हिन्दी', flag: '🇮🇳' },
-  { code: 'ta', label: 'தமிழ்', flag: '🇮🇳' },
-  { code: 'ms', label: 'Melayu', flag: '🇲🇾' },
-  { code: 'sw', label: 'Kiswahili', flag: '🇰🇪' },
-  { code: 'ar', label: 'العربية', flag: '🇦🇪' },
+  { code: 'en', label: 'English', country: 'gb' },
+  { code: 'hi', label: 'हिन्दी', country: 'in' },
+  { code: 'ta', label: 'தமிழ்', country: 'in' },
+  { code: 'ms', label: 'Melayu', country: 'my' },
+  { code: 'sw', label: 'Kiswahili', country: 'ke' },
+  { code: 'ar', label: 'العربية', country: 'ae' },
 ];
 
 const notifTypeConfig = {
@@ -121,7 +122,11 @@ export default function TopBar({ isOpen, toggleSidebar }) {
       if (notifDropRef.current && !notifDropRef.current.contains(e.target)) setShowNotifDropdown(false);
     };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
   }, []);
 
   const initials = user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '??';
@@ -178,8 +183,8 @@ export default function TopBar({ isOpen, toggleSidebar }) {
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-800 transition-colors cursor-pointer text-sm font-medium"
             title={t('language')}
           >
-            <Globe size={16} className="text-slate-400 animate-pulse" />
-            <span>{currentLanguageObject?.flag}</span>
+            <Globe size={16} className="text-slate-400" />
+            <CountryFlag code={currentLanguageObject?.country} />
             <span className="hidden sm:inline">{currentLanguageObject?.label}</span>
           </button>
           {showLangDropdown && (
@@ -197,7 +202,7 @@ export default function TopBar({ isOpen, toggleSidebar }) {
                     setShowLangDropdown(false);
                   }}
                 >
-                  <span className="text-base">{lang.flag}</span>
+                  <CountryFlag code={lang.country} />
                   <span>{lang.label}</span>
                 </button>
               ))}
@@ -220,70 +225,77 @@ export default function TopBar({ isOpen, toggleSidebar }) {
           </button>
 
           {showNotifDropdown && (
-            <div className="absolute top-11 right-0 bg-white border border-slate-200 rounded-xl shadow-xl w-[380px] z-[200] overflow-hidden">
-              {/* Header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <Bell size={15} className="text-slate-500" />
-                  <span className="text-sm font-semibold text-slate-800">Notifications</span>
-                  {unreadCount > 0 && (
-                    <span className="bg-rose-100 text-rose-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{unreadCount} new</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  {unreadCount > 0 && (
-                    <button
-                      onClick={handleMarkAllRead}
-                      className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 font-medium cursor-pointer border-none bg-transparent"
-                    >
-                      <CheckCheck size={13} /> Mark all read
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setShowNotifDropdown(false)}
-                    className="text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer"
-                  >
-                    <X size={15} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Notification list */}
-              <div className="max-h-[380px] overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-slate-400 gap-2">
-                    <Bell size={30} className="opacity-30" />
-                    <p className="text-sm">No notifications yet</p>
+            <>
+              {/* Mobile backdrop */}
+              <div
+                className="fixed inset-0 top-[60px] bg-slate-900/20 backdrop-blur-[1px] sm:hidden z-[190]"
+                onClick={() => setShowNotifDropdown(false)}
+              />
+              <div className="fixed inset-x-3 top-[64px] sm:inset-x-auto sm:top-11 sm:right-0 sm:absolute w-auto sm:w-[380px] max-w-lg sm:max-w-none mx-auto sm:mx-0 bg-white border border-slate-200 rounded-xl shadow-xl z-[200] overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <Bell size={15} className="text-slate-500" />
+                    <span className="text-sm font-semibold text-slate-800">Notifications</span>
+                    {unreadCount > 0 && (
+                      <span className="bg-rose-100 text-rose-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{unreadCount} new</span>
+                    )}
                   </div>
-                ) : (
-                  notifications.map((notif) => {
-                    const cfg = notifTypeConfig[notif.type] || notifTypeConfig.info;
-                    const Icon = cfg.icon;
-                    return (
-                      <div
-                        key={notif.id}
-                        className={`flex gap-3 px-4 py-3 border-b border-slate-50 cursor-pointer hover:bg-slate-50 transition-colors ${!notif.is_read ? 'bg-blue-50/40' : ''}`}
-                        onClick={() => !notif.is_read && handleMarkOneRead(notif.id)}
+                  <div className="flex items-center gap-2">
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={handleMarkAllRead}
+                        className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 font-medium cursor-pointer border-none bg-transparent"
                       >
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${cfg.bg}`}>
-                          <Icon size={15} className={cfg.color} />
+                        <CheckCheck size={13} /> Mark all read
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setShowNotifDropdown(false)}
+                      className="text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer p-1"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Notification list */}
+                <div className="max-h-[calc(100vh-140px)] sm:max-h-[380px] overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-slate-400 gap-2">
+                      <Bell size={30} className="opacity-30" />
+                      <p className="text-sm">No notifications yet</p>
+                    </div>
+                  ) : (
+                    notifications.map((notif) => {
+                      const cfg = notifTypeConfig[notif.type] || notifTypeConfig.info;
+                      const Icon = cfg.icon;
+                      return (
+                        <div
+                          key={notif.id}
+                          className={`flex gap-3 px-4 py-3 border-b border-slate-50 cursor-pointer hover:bg-slate-50 transition-colors ${!notif.is_read ? 'bg-blue-50/40' : ''}`}
+                          onClick={() => !notif.is_read && handleMarkOneRead(notif.id)}
+                        >
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${cfg.bg}`}>
+                            <Icon size={15} className={cfg.color} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-semibold text-slate-800 leading-snug ${!notif.is_read ? 'font-bold' : ''}`}>
+                              {notif.title}
+                            </p>
+                            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed line-clamp-2">{notif.message}</p>
+                            <p className="text-[10px] text-slate-400 mt-1">{timeAgo(notif.created_at)}</p>
+                          </div>
+                          {!notif.is_read && (
+                            <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-2" />
+                          )}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-semibold text-slate-800 leading-snug ${!notif.is_read ? 'font-bold' : ''}`}>
-                            {notif.title}
-                          </p>
-                          <p className="text-xs text-slate-500 mt-0.5 leading-relaxed line-clamp-2">{notif.message}</p>
-                          <p className="text-[10px] text-slate-400 mt-1">{timeAgo(notif.created_at)}</p>
-                        </div>
-                        {!notif.is_read && (
-                          <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-2" />
-                        )}
-                      </div>
-                    );
-                  })
-                )}
+                      );
+                    })
+                  )}
+                </div>
               </div>
-            </div>
+            </>
           )}
         </div>
 

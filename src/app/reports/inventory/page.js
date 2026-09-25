@@ -807,24 +807,30 @@ function InventoryReportPageInner() {
             </table>
           </div>
 
-          <div className="block md:hidden divide-y divide-slate-100">
+          {/* Mobile Card View */}
+          <div className="block md:hidden space-y-2.5 p-3 sm:p-4">
             {assets.length === 0 ? (
               <div className="text-center py-10 text-slate-400 text-xs">No assets found.</div>
             ) : (
               assets.map((asset) => (
-                <div key={asset.id} className="p-3.5 sm:p-4 flex flex-col gap-2.5 hover:bg-slate-50/50 transition-colors">
+                <div
+                  key={asset.id}
+                  className="bg-white border border-slate-200/90 hover:border-slate-300 rounded-xl px-3.5 py-3 shadow-2xs flex flex-col transition-all"
+                >
                   <div className="flex justify-between items-start gap-2">
                     <div className="min-w-0 flex-1">
-                      <h4 className="text-sm font-bold text-slate-800 truncate">{asset.name}</h4>
-                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                        <span className="text-xs font-mono text-emerald-600 font-bold">{asset.asset_tag}</span>
+                      <h4 className="text-[13.5px] font-bold text-slate-900 leading-snug tracking-tight truncate">{asset.name}</h4>
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded-md font-bold font-mono tracking-tight">
+                          {asset.asset_tag}
+                        </span>
                         {asset.brand && (
-                          <span className="text-[10px] text-slate-400 font-medium truncate">• {asset.brand}</span>
+                          <span className="text-[11px] text-slate-400 font-medium truncate">• {asset.brand}</span>
                         )}
                       </div>
                     </div>
                     <span
-                      className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase shrink-0"
+                      className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase shrink-0"
                       style={{
                         backgroundColor: `${STATUS_COLORS[asset.status]}15`,
                         color: STATUS_COLORS[asset.status],
@@ -834,22 +840,22 @@ function InventoryReportPageInner() {
                       {t(asset.status) || asset.status}
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 border-t border-slate-100 pt-2">
-                    <div className="min-w-0">
-                      <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('category')}</span>
-                      <span className="font-semibold text-slate-700 truncate block">{t(asset.type) || asset.type}</span>
+                  <div className="mt-2.5 pt-2 border-t border-slate-100/90 grid grid-cols-2 gap-2 text-xs">
+                    <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                      <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">{t('category')}</span>
+                      <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">{t(asset.type) || asset.type}</span>
                     </div>
-                    <div className="min-w-0">
-                      <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('location')}</span>
-                      <span className="font-semibold text-slate-700 truncate block">{asset.location?.name || "—"}</span>
+                    <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                      <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">{t('location')}</span>
+                      <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">{asset.location?.name || "—"}</span>
                     </div>
-                    <div className="min-w-0">
-                      <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('allocatedTo')}</span>
-                      <span className="font-semibold text-slate-750 truncate block">{asset.allocated_user_name || "—"}</span>
+                    <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                      <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">{t('allocatedTo')}</span>
+                      <span className="font-semibold text-slate-800 text-[11.5px] truncate block leading-tight">{asset.allocated_user_name || "—"}</span>
                     </div>
-                    <div className="min-w-0">
-                      <span className="block text-[10px] text-slate-400 font-bold uppercase">SN</span>
-                      <span className="font-semibold text-slate-700 font-mono truncate block">{asset.serial_number || "—"}</span>
+                    <div className="min-w-0 bg-slate-50/70 border border-slate-100/90 rounded-lg px-2 py-1">
+                      <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">SN</span>
+                      <span className="font-mono text-slate-700 text-[11px] truncate block leading-tight">{asset.serial_number || "—"}</span>
                     </div>
                   </div>
                 </div>

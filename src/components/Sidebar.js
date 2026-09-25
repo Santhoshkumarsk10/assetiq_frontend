@@ -109,7 +109,11 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
       <div className={`px-4 flex items-center ${isOpen ? 'justify-between lg:justify-center' : 'justify-center'} shrink-0 ${isAuxinzio ? 'border-b border-[#202544]' : isDark ? 'border-b border-slate-800' : 'border-b border-slate-100'}`} style={{ height: '60px' }}>
         {isOpen ? (
           <>
-            <img src="/images/option 1.png" alt="Auxinzio AssetCare" className="h-8 max-w-[150px] sm:max-w-[180px] w-auto object-contain" />
+            <img 
+              src={isAuxinzio || isDark ? "/logo-white.png" : "/logo.png"} 
+              alt="AssetCare" 
+              className="h-8 max-w-[150px] sm:max-w-[180px] w-auto object-contain" 
+            />
             <button
               onClick={toggleSidebar}
               type="button"
@@ -120,7 +124,7 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
             </button>
           </>
         ) : (
-          <img src="/images/option 1.png" alt="Auxinzio AssetCare" className="h-8 w-8 object-cover object-left" />
+          <img src="/images/logo-icon.png" alt="AssetCare" className="h-8 w-8 object-contain" />
         )}
       </div>
 
@@ -234,6 +238,41 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
           );
         })}
       </nav>
+
+      {/* Bottom Brand Footer */}
+      <div className={`p-3 shrink-0 flex items-center justify-center ${
+        isAuxinzio ? 'border-t border-[#202544] bg-[#14172d]/40' : isDark ? 'border-t border-slate-800 bg-slate-900/30' : 'border-t border-slate-100 bg-slate-50/60'
+      }`}>
+        {isOpen ? (
+          <a
+            href="https://auxinz.io"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col items-center justify-center py-1 px-2 rounded-lg hover:opacity-90 transition-all duration-200"
+            title="AUXINZ.io - Your Growth Catalyst"
+          >
+            <img
+              src={isAuxinzio || isDark ? "/images/auxinz-logo-white.png" : "/images/auxinz-logo.png"}
+              alt="AUXINZ.io - Your Growth Catalyst"
+              className="h-7 max-w-[160px] w-auto object-contain"
+            />
+          </a>
+        ) : (
+          <a
+            href="https://auxinz.io"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center p-1.5 rounded-lg hover:opacity-90 transition-all duration-200"
+            title="AUXINZ.io - Your Growth Catalyst"
+          >
+            <img
+              src="/images/auxinz-icon.png"
+              alt="AUXINZ.io"
+              className="h-6 w-6 object-contain"
+            />
+          </a>
+        )}
+      </div>
     </aside>
   );
 }
